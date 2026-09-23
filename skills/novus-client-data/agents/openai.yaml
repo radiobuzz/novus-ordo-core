@@ -1,0 +1,3 @@
+interface:
+  display_name: "Novus Ordo Client Data"
+  short_description: "Shared game data, safe commands and persistent views"

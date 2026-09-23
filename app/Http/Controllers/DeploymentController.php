@@ -25,9 +25,7 @@ class DeploymentController extends Controller
     public function cancelDeployments(CancelDeploymentsRequest $cancelRequest, NationContext $context): JsonResponse {
         $nation = $context->getNation();
 
-        $foundDeployments = $nation->deploymentByIds(...$cancelRequest->deployment_ids)->get();
-
-        $nation->cancelDeployments(...$foundDeployments);
+        app(\App\Services\NationCommands::class)->cancelDeployments($nation, $cancelRequest->deployment_ids);
         
         return response()->json(null, HttpStatusCode::NoContent);
     }
@@ -74,7 +72,7 @@ class DeploymentController extends Controller
 
         $deployments = array_map(
             fn (Deployment $d) => $d->export(),
-            $nation->deploy(...$deploymentCommands)
+            app(\App\Services\NationCommands::class)->deploy($nation, $deploymentCommands->all())
         );
         return response()->json(['data' => $deployments], HttpStatusCode::Created);
     }

@@ -11,7 +11,6 @@ use App\ModelTraits\ReplicatesForTurns;
 use App\ReadModels\DemographicStat;
 use App\ReadModels\TerritoryTurnOwnerInfo;
 use App\ReadModels\TerritoryTurnPublicInfo;
-use App\Services\StaticJavascriptResource;
 use Illuminate\Database\Eloquent\Builder;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Relations\BelongsTo;
@@ -189,7 +188,9 @@ class TerritoryDetail extends Model
             stats: [is_null($this->owner_nation_id) ? new DemographicStat('Population', 0, StatUnit::Unknown->name) : new DemographicStat('Population', $this->getPopulationSize(), StatUnit::WholeNumber->name)],
             owner_production: is_null($this->owner_nation_id) ? null : collect(array_keys($productionByResource))
                 ->mapWithKeys(fn (int $resource) => [ResourceType::from($resource)->name => TerritoryDetail::calculateEffectiveProduction($productionByResource[$resource], $this->getPopulationSize(), $ownerLoyaltyRatio)])->all(),
-            loyalties: $loyalties->map(fn (NationTerritoryLoyalty $l) => $l->export())->all()
+            loyalties: $loyalties->map(fn (NationTerritoryLoyalty $l) => $l->export())->all(),
+            base_productivity: collect($productionByResource)->mapWithKeys(fn ($rate, $resource) => [ResourceType::from($resource)->name => $rate])->all(),
+            production_population_unit: self::UNIT_OF_POPULATION_SIZE,
         );
     }
 
@@ -247,17 +248,11 @@ class TerritoryDetail extends Model
             'stats' => [
                 is_null($t->owner_nation_id) ? new DemographicStat(TerritoryStat::Population->name, 0, StatUnit::Unknown->name) : new DemographicStat(TerritoryStat::Population->name, $t->population_size, StatUnit::WholeNumber->name),
             ],
+            'base_productivity' => $productionByTerrainResource[$t->terrain_type]->all(),
+            'production_population_unit' => self::UNIT_OF_POPULATION_SIZE,
             'owner_production' => is_null($t->owner_nation_id) ? null : $productionByTerrainResource[$t->terrain_type]->mapWithKeys(fn ($production, $resource) => [$resource => TerritoryDetail::calculateEffectiveProduction($production, $t->population_size, $t->raw_loyalty / 100)])->all(),
             'loyalties' => $loyaltiesByTerritoryId->get($t->territory_id)?->map(fn (object $l) => ['nation_id' => $l->nation_id, 'loyalty_ratio' => $l->raw_loyalty / 100])?->all()??[]
         ]), $territories);
-    }
-
-    public static function getAllTerritoriesTurnInfoClientResource(Turn $turn): StaticJavascriptResource {
-        return StaticJavascriptResource::forTurn(
-            'territories-turn-js',
-            fn() => "let allTerritoriesTurnInfo = " . json_encode(TerritoryDetail::exportAllTurnPublicInfo($turn)) . ";",
-            $turn
-        );
     }
 
     public function resetLaborPool(): void {

@@ -8,8 +8,14 @@ use Illuminate\Support\Collection;
 
 class News extends Model
 {
+    protected function casts(): array {
+        return [
+            'context' => 'array',
+        ];
+    }
+
     public function export(): NewsInfo {
-        return new NewsInfo($this->content);
+        return new NewsInfo($this->content, $this->context);
     }
 
     public static function getNationUsualNameTag(NationDetail $nationDetail): string {
@@ -38,13 +44,34 @@ class News extends Model
             ->get();
     }
 
-    public static function create(Turn $turn, string $content): News {
+    public static function create(Turn $turn, string $content, ?array $context = null): News {
         $news = new News();
         $news->game_id = $turn->getGame()->getId();
         $news->turn_id = $turn->getId();
         $news->content = $content;
+        $news->context = $context;
         $news->save();
 
         return $news;
+    }
+
+    public static function createBattle(Turn $turn, Battle $battle): News {
+        $attacker = $battle->getAttacker()->getDetail($turn);
+        $defender = $battle->getDefenderOrNull()?->getDetail($turn);
+        $territory = $battle->getTerritory();
+        $conquered = $battle->getWinnerOrNull()?->getId() === $battle->getAttacker()->getId();
+        $defenderName = $defender ? self::getNationUsualNameTag($defender) : 'Neutral';
+        $content = $conquered
+            ? self::getNationUsualNameTag($attacker) . ' conquered ' . self::getTerritoryNameTag($territory) . ' from ' . $defenderName . '.'
+            : self::getNationUsualNameTag($attacker) . ' was repelled by ' . $defenderName . ' at ' . self::getTerritoryNameTag($territory) . '.';
+
+        return self::create($turn, $content, [
+            'type' => 'battle',
+            'battle_id' => $battle->getId(),
+            'attacker_nation_id' => $battle->getAttacker()->getId(),
+            'defender_nation_id' => $battle->getDefenderOrNull()?->getId(),
+            'territory_id' => $territory->getId(),
+            'outcome' => $conquered ? 'conquered' : 'repelled',
+        ]);
     }
 }

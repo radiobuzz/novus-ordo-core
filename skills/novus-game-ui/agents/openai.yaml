@@ -1,0 +1,4 @@
+interface:
+  display_name: "Novus Ordo Game UI"
+  short_description: "Reuse-first foundations for the Novus Ordo game UI"
+  default_prompt: "Use $novus-game-ui to plan or implement a reusable Novus Ordo UI component within the requested scope."

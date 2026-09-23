@@ -3,14 +3,23 @@
     "private": true,
     "type": "module",
     "scripts": {
+        "generate:client": "APP_ROUTES_CACHE=bootstrap/cache/client-source-routes.php php8.3 artisan client:generate",
+        "check:client": "APP_ROUTES_CACHE=bootstrap/cache/client-source-routes.php php8.3 artisan client:generate --check",
+        "test:client": "node --test tests/client/*.test.js",
+        "test:client:browser": "playwright test --config tests/client/browser/playwright.config.js",
+        "test:client:php": "APP_ROUTES_CACHE=bootstrap/cache/client-source-routes.php php8.3 tests/client/contracts.php",
+        "format:client": "prettier --config resources/js/client/.prettierrc.json --ignore-path resources/js/client/.prettierignore --write 'resources/js/client/**/*.{js,scss}' '!resources/js/client/api/generated.js' 'tests/client/**/*.js'",
         "build": "vite build",
         "dev": "vite"
     },
     "devDependencies": {
+        "@playwright/test": "1.56.1",
         "@tailwindcss/vite": "^4.0.0",
         "axios": "^1.11.0",
         "concurrently": "^9.0.1",
         "laravel-vite-plugin": "^2.0.0",
+        "prettier": "3.6.2",
+        "sass": "1.93.3",
         "tailwindcss": "^4.0.0",
         "vite": "^7.0.4"
     }

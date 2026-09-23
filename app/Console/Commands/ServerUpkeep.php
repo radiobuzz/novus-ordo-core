@@ -39,6 +39,10 @@ class ServerUpkeep extends Command
             $turn = $game->getCurrentTurn();
 
             if ($turn->hasExpired()) {
+                if (!app(\App\Services\GameParticipants::class)->canAdvance($game, $turn)) {
+                    $this->info("Game {$game->getId()} is waiting for its automated participants; no turn was skipped.");
+                    return;
+                }
                 echo "Game {$game->getId()}, turn {$turn->getNumber()} has expired, moving to next turn." . PHP_EOL;
                 $newTurn = $game->tryNextTurn($turn);
                 $this->info("Game {$game->getId()}, is now on turn {$newTurn->getNumber()}.");

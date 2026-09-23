@@ -1,0 +1,248 @@
+@use 'tokens';
+@use 'foundations';
+.no-admin {
+    margin: 0;
+    background: var(--background);
+    color: var(--text-primary);
+    color-scheme: dark;
+    font: 14px/1.55 var(--font-ui);
+    *,
+    *::before,
+    *::after {
+        box-sizing: border-box;
+    }
+    [hidden] {
+        display: none !important;
+    }
+    :focus-visible {
+        outline: 2px solid var(--focus-ring);
+        outline-offset: 3px;
+    }
+    a:not(.ui-button) {
+        color: var(--accent-command);
+    }
+    h1 {
+        font: 2rem/1.2 var(--font-display);
+        margin: 0;
+    }
+    p {
+        overflow-wrap: anywhere;
+    }
+    .admin-shell {
+        max-width: 1680px;
+        margin: auto;
+        min-height: 100dvh;
+        display: flex;
+        flex-direction: column;
+    }
+    .admin-header {
+        display: flex;
+        justify-content: space-between;
+        align-items: center;
+        gap: var(--space-4);
+        padding: var(--space-5) var(--space-6);
+        border-bottom: 1px solid var(--border-glass);
+        background: linear-gradient(120deg, var(--surface-glass-start), var(--surface-panel));
+    }
+    .admin-brand {
+        display: flex;
+        gap: var(--space-4);
+        align-items: center;
+    }
+    .admin-insignia {
+        font: 2rem var(--font-display);
+        border: 1px solid var(--accent-command);
+        padding: 4px 13px;
+        color: var(--accent-command);
+    }
+    .admin-wordmark {
+        font: 1.2rem var(--font-display);
+        letter-spacing: 0.2em;
+    }
+    .admin-subtitle {
+        font-size: 0.7rem;
+        letter-spacing: 0.12em;
+        color: var(--text-muted);
+        text-transform: uppercase;
+    }
+    .admin-header-actions,
+    .admin-actions {
+        display: flex;
+        flex-wrap: wrap;
+        gap: var(--space-2);
+        align-items: center;
+    }
+    .admin-scope-bar {
+        display: flex;
+        align-items: center;
+        flex-wrap: wrap;
+        gap: var(--space-4);
+        padding: var(--space-4) var(--space-6);
+        background: var(--surface-panel);
+    }
+    .admin-scope-bar .ui-field {
+        min-width: min(320px, 100%);
+    }
+    .admin-scope-bar p {
+        color: var(--text-muted);
+        font-size: 0.8rem;
+        margin-right: auto;
+    }
+    .admin-nav {
+        display: flex;
+        gap: var(--space-5);
+        flex-wrap: wrap;
+        padding: 0 var(--space-6);
+        border-bottom: 1px solid var(--border-default);
+    }
+    .admin-nav a {
+        padding: var(--space-4) 0;
+        text-decoration: none;
+        color: var(--text-muted);
+        border-bottom: 2px solid transparent;
+    }
+    .admin-nav a[aria-current] {
+        color: var(--accent-command);
+        border-color: var(--accent-command);
+    }
+    .admin-notice {
+        margin: 0;
+        padding: var(--space-3) var(--space-6);
+        color: var(--status-ready);
+        min-height: 24px;
+    }
+    .admin-notice:empty {
+        padding: 0;
+    }
+    .admin-notice[data-error='true'] {
+        color: var(--action-danger);
+    }
+    .admin-content {
+        flex: 1;
+        padding: var(--space-5) var(--space-6);
+        min-width: 0;
+    }
+    .admin-stack {
+        display: grid;
+        gap: var(--space-5);
+        min-width: 0;
+    }
+    .admin-page-heading {
+        display: flex;
+        justify-content: space-between;
+        gap: var(--space-4);
+        flex-wrap: wrap;
+        align-items: center;
+    }
+    .admin-eyebrow {
+        font-size: 0.7rem;
+        text-transform: uppercase;
+        letter-spacing: 0.16em;
+        color: var(--accent-command);
+        margin: 0 0 var(--space-2);
+    }
+    .admin-overview-grid {
+        display: grid;
+        grid-template-columns: minmax(0, 1.8fr) minmax(300px, 1fr);
+        gap: var(--space-5);
+        align-items: start;
+    }
+    .admin-two-columns {
+        display: grid;
+        grid-template-columns: repeat(2, minmax(0, 1fr));
+        gap: var(--space-5);
+    }
+    .admin-form {
+        display: grid;
+        gap: var(--space-4);
+        border: 0;
+        padding: 0;
+        margin: 0;
+        min-width: 0;
+    }
+    .admin-muted,
+    .admin-map-selection {
+        color: var(--text-muted);
+    }
+    .admin-credential {
+        padding: var(--space-5);
+        border: 1px solid var(--status-warning);
+        border-radius: var(--radius);
+        display: grid;
+        gap: var(--space-3);
+    }
+    .admin-footer {
+        display: flex;
+        justify-content: space-between;
+        flex-wrap: wrap;
+        gap: var(--space-3);
+        padding: var(--space-4) var(--space-6);
+        border-top: 1px solid var(--border-default);
+        color: var(--text-muted);
+        font-size: 0.75rem;
+    }
+    .map-viewport {
+        position: relative;
+        height: clamp(300px, 46vh, 600px);
+        background: var(--map-ocean);
+        border-radius: var(--radius);
+        overflow: hidden;
+    }
+    .world-canvas {
+        display: block;
+        width: 100%;
+        height: 100%;
+        touch-action: none;
+    }
+    .map-controls {
+        display: flex;
+        align-items: center;
+        gap: var(--space-2);
+        position: absolute;
+        bottom: var(--space-3);
+        left: var(--space-3);
+        background: var(--surface-panel);
+        padding: var(--space-1);
+        border-radius: var(--radius);
+    }
+    .map-notice {
+        position: absolute;
+        top: var(--space-2);
+        left: var(--space-3);
+        background: var(--surface-panel);
+        padding: var(--space-2);
+    }
+    @media (max-width: 1000px) {
+        .admin-overview-grid {
+            grid-template-columns: 1fr;
+        }
+    }
+    @media (max-width: 650px) {
+        .admin-header {
+            flex-wrap: wrap;
+        }
+        .admin-header,
+        .admin-scope-bar,
+        .admin-content,
+        .admin-footer,
+        .admin-notice {
+            padding: var(--space-4);
+        }
+        .admin-nav {
+            padding: 0 var(--space-4);
+            gap: var(--space-4);
+        }
+        .admin-two-columns {
+            grid-template-columns: 1fr;
+        }
+        .admin-scope-bar .ui-field {
+            width: 100%;
+        }
+        .ui-panel {
+            --panel-padding: var(--space-4);
+        }
+        h1 {
+            font-size: 1.6rem;
+        }
+    }
+}

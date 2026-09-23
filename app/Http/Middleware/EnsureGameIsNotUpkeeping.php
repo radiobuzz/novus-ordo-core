@@ -2,7 +2,6 @@
 
 namespace App\Http\Middleware;
 
-use App\Models\Game;
 use App\Utils\HttpStatusCode;
 use Closure;
 use Illuminate\Http\Request;
@@ -20,12 +19,7 @@ class EnsureGameIsNotUpkeeping
      */
     public function handle(Request $request, Closure $next): Response
     {
-        $gameOrNull = Game::getCurrentOrNull();
-        if (is_null($gameOrNull)) {
-            // Assumes the context validation will return a more descriptive error.
-            return $next($request);
-        }
-        $game = Game::notNull($gameOrNull);
+        $game = app(\App\Services\SelectedGame::class)->resolve($request);
 
         if ($game->isUpkeeping()) {
             abort(HttpStatusCode::ServiceUnavailable, "Game ID {$game->getId()} is upkeeping. Retry later.");

@@ -1,0 +1,235 @@
+.no-client {
+    .world-workspace {
+        display: grid;
+        grid-template-columns: 238px minmax(0, 1fr);
+        height: 100%;
+        min-height: 0;
+    }
+    .world-directory {
+        display: flex;
+        flex-direction: column;
+        min-height: 0;
+        background: var(--surface);
+        border-right: 1px solid var(--line);
+        padding: var(--space-5) var(--space-4) var(--space-4);
+    }
+    .directory-heading h2 {
+        font: 400 1.8rem var(--font-display);
+        margin: var(--space-2) 0 var(--space-5);
+    }
+    .directory-count {
+        font-size: 0.7rem;
+        color: var(--muted);
+        margin: var(--space-3) 0;
+    }
+    .territory-list {
+        flex: 1;
+        min-height: 60px;
+        overflow: auto;
+        overscroll-behavior: contain;
+    }
+    .territory-row {
+        display: flex;
+        flex-direction: column;
+        gap: var(--space-1);
+        width: 100%;
+        border: 0;
+        border-bottom: 1px solid var(--line-soft);
+        background: transparent;
+        text-align: left;
+        padding: var(--space-3);
+        border-radius: var(--radius);
+        cursor: pointer;
+    }
+    .territory-row:hover {
+        background: var(--surface-raised);
+    }
+    .territory-row[aria-pressed='true'] {
+        background: var(--accent-soft);
+        box-shadow: inset 2px 0 var(--accent);
+    }
+    .territory-row-name {
+        font-size: 0.82rem;
+    }
+    .territory-row-type,
+    .territory-row-own {
+        font-size: var(--font-tiny);
+        color: var(--muted);
+    }
+    .territory-row-own {
+        color: var(--success);
+    }
+    .map-viewport {
+        min-width: 0;
+        min-height: 0;
+        position: relative;
+        overflow: hidden;
+        background: var(--map-ocean);
+    }
+    .world-canvas {
+        display: block;
+        width: 100%;
+        height: 100%;
+        touch-action: none;
+        cursor: grab;
+    }
+    .world-canvas.is-panning {
+        cursor: grabbing;
+    }
+    .map-caption {
+        pointer-events: none;
+        position: absolute;
+        top: var(--space-5);
+        left: var(--space-5);
+        display: flex;
+        flex-direction: column;
+        gap: var(--space-2);
+        font-size: 0.72rem;
+        color: var(--muted);
+        padding: var(--space-3);
+        background: var(--glass);
+        border: 1px solid var(--line);
+        border-radius: var(--radius);
+    }
+    .map-controls {
+        position: absolute;
+        right: var(--space-5);
+        bottom: var(--space-6);
+        display: flex;
+        gap: var(--space-1);
+        align-items: center;
+        padding: var(--space-1);
+        background: var(--glass);
+        border: 1px solid var(--line);
+        border-radius: var(--radius);
+    }
+    .zoom-value {
+        font-size: 0.7rem;
+        min-width: 40px;
+        text-align: center;
+        font-variant-numeric: tabular-nums;
+    }
+    .map-legend {
+        position: absolute;
+        left: var(--space-5);
+        bottom: var(--space-6);
+        display: flex;
+        flex-wrap: wrap;
+        gap: var(--space-3);
+        font-size: var(--font-tiny);
+        color: var(--muted);
+        pointer-events: none;
+    }
+    .legend-own:before,
+    .legend-foreign:before {
+        content: '';
+        display: inline-block;
+        width: 7px;
+        height: 7px;
+        margin-right: 6px;
+        border-radius: 50%;
+        background: var(--map-own);
+    }
+    .legend-foreign:before {
+        background: var(--map-foreign);
+    }
+    .map-legend span:last-child {
+        flex-basis: 100%;
+    }
+    .map-notice {
+        position: absolute;
+        top: 85px;
+        left: var(--space-5);
+        right: var(--space-5);
+        font-size: 0.8rem;
+        padding: var(--space-3);
+        background: var(--surface);
+        border: 1px solid var(--line);
+    }
+    .layer-panel {
+        border-top: 1px solid var(--line);
+        margin-top: var(--space-3);
+        padding-top: var(--space-3);
+    }
+    .layer-panel summary {
+        font-size: 0.8rem;
+        cursor: pointer;
+        padding: var(--space-2) 0;
+    }
+    .layer-panel label {
+        display: flex;
+        align-items: center;
+        gap: var(--space-2);
+        font-size: 0.75rem;
+        padding: var(--space-2) 0;
+        min-height: 32px;
+    }
+    @media (max-width: 760px) {
+        .world-workspace {
+            grid-template-columns: 1fr;
+            grid-template-rows: minmax(210px, 1fr) 180px;
+        }
+        .map-viewport {
+            grid-row: 1;
+        }
+        .world-directory {
+            grid-row: 2;
+            display: grid;
+            grid-template-columns: minmax(0, 1fr) 115px;
+            grid-template-rows: auto minmax(0, 1fr);
+            gap: var(--space-2);
+            padding: var(--space-3);
+            border-right: 0;
+            border-top: 1px solid var(--line);
+        }
+        .directory-heading,
+        .directory-count {
+            display: none;
+        }
+        .world-directory input[type='search'] {
+            grid-column: 1;
+        }
+        .territory-list {
+            grid-column: 1;
+            grid-row: 2;
+        }
+        .layer-panel {
+            grid-column: 2;
+            grid-row: 1 / 3;
+            margin: 0;
+            padding: 0 0 0 var(--space-2);
+            border-top: 0;
+            border-left: 1px solid var(--line);
+            overflow: auto;
+        }
+        .map-caption {
+            top: var(--space-3);
+            left: var(--space-3);
+        }
+        .map-controls {
+            bottom: var(--space-3);
+            right: var(--space-3);
+        }
+        .map-legend {
+            bottom: var(--space-4);
+            left: var(--space-3);
+            max-width: 130px;
+            gap: var(--space-1);
+        }
+        .map-legend span:last-child {
+            display: none;
+        }
+    }
+}
+.map-beta-badge {
+    position: absolute;
+    bottom: 16px;
+    right: 16px;
+    padding: 5px 10px;
+    border: 1px solid #a29365;
+    border-radius: 4px;
+    background: #142831e6;
+    color: #eddbab;
+    font-size: 11px;
+    pointer-events: none;
+}

@@ -3,6 +3,7 @@
 namespace App\Models;
 
 use App\Domain\BidType;
+use App\Domain\DivisionType;
 use App\Domain\LaborPoolConstants;
 use App\Domain\ProductionBidConstants;
 use App\Domain\ResourceType;
@@ -15,6 +16,7 @@ use App\ReadModels\BudgetInfo;
 use App\ReadModels\DemographicStat;
 use App\ReadModels\NationTurnOwnerInfo;
 use App\ReadModels\NationTurnPublicInfo;
+use App\ReadModels\NationTurnSummary;
 use App\Utils\GuardsForAssertions;
 use App\Utils\ImageSource;
 use Closure;
@@ -306,9 +308,20 @@ class NationDetail extends Model
         return true;
     }
 
+    public function getMaximumAffordableDeployment(DivisionType $divisionType): int {
+        $maximum = PHP_INT_MAX;
+        foreach (DivisionType::getMeta($divisionType)->deploymentCosts as $resourceType => $cost) {
+            if ($cost > 0) {
+                $maximum = min($maximum, (int) floor($this->getAvailableProduction(ResourceType::from($resourceType)) / $cost));
+            }
+        }
+
+        return $maximum === PHP_INT_MAX ? 0 : max(0, $maximum);
+    }
+
     public function getFreeLabor(): int {
         $production = $this->getProductionRaw(ResourceType::Capital);
-        return min($production, max(0, $this->getBalanceRaw(ResourceType::Capital) + $this->getStockpiledQuantity(ResourceType::Capital)));
+        return min($production, max(0, $this->getBalanceRaw(ResourceType::Capital) + $this->getStockpiledQuantityRaw(ResourceType::Capital)));
     }
 
     public function getRecruitmentPoolRaw(): int {
@@ -406,10 +419,29 @@ class NationDetail extends Model
         return $stockpiles;
     }
 
+    public function exportTurnSummary(): NationTurnSummary {
+        $previous = $this->getPreviousDetail();
+        $hasPrevious = $previous->getTurnId() !== $this->getTurnId();
+        $population = $this->getPopulationSize();
+        $territories = $this->territories()->count();
+        $completed = $hasPrevious
+            ? $previous->deployments()->get()->countBy(fn (Deployment $deployment) => $deployment->getDivisionType()->name)->all()
+            : [];
+
+        return new NationTurnSummary(
+            previous_turn_number: $hasPrevious ? $previous->getTurn()->getNumber() : null,
+            population: $population,
+            population_change: $hasPrevious ? $population - $previous->getPopulationSize() : null,
+            territories: $territories,
+            territory_change: $hasPrevious ? $territories - $previous->territories()->count() : null,
+            completed_units: $completed,
+        );
+    }
+
     public function exportBudget(): BudgetInfo {
         return new BudgetInfo(
             nation_id: $this->getNation()->getId(),
-            turn_number: $this->getTurn()->getId(),
+            turn_number: $this->getTurn()->getNumber(),
             production: $this->exportProduction(),
             stockpiles: $this->exportStockpiles(),
             upkeep: $this->exportUpkeep(),
@@ -448,6 +480,48 @@ class NationDetail extends Model
         $this->allocateLabor();
     }
 
+    /** Raw inputs for a non-authoritative, joint territorial forecast in the client. */
+    public function exportProductionPlanning(): array {
+        return [
+            'resources' => collect(ResourceType::cases())->mapWithKeys(function (ResourceType $type) {
+                $meta = ResourceType::getMeta($type);
+                return [$type->name => [
+                    'upkeep' => $this->getUpkeepRaw($type),
+                    'expenses' => $this->getExpensesRaw($type),
+                    'stock' => $this->getStockpiledQuantityRaw($type),
+                    'produced_by_labor' => $meta->producedByLabor,
+                    'reserve_labor' => $meta->reserveLaborForUpkeep,
+                    'upkeep_priority' => $meta->upkeepBidPriority->value,
+                ]];
+            })->all(),
+            'bid_order' => ProductionBid::getAll($this)->map(fn (ProductionBid $bid) => [
+                'resource_type' => $bid->getResourceType()->name,
+                'upkeep' => $bid->getBidType() === BidType::Upkeep,
+                'priority' => $bid->getPriority(),
+            ])->values()->all(),
+            'facilities' => LaborPoolFacility::getFacilities($this)->map(fn (LaborPoolFacility $facility) => [
+                'territory_id' => $facility->getTerritoryId(),
+                'resource_type' => $facility->getResourceType()->name,
+                'capacity' => $facility->getCapacity(),
+                'productivity' => $facility->getProductivity(),
+            ])->values()->all(),
+            'command_priority' => ProductionBidConstants::HIGHEST_COMMAND_BID_PRIORITY,
+            'capital_priority' => ProductionBidConstants::LOWEST_COMMAND_BID_PRIORITY - 1,
+        ];
+    }
+
+    /** Caller owns the transaction. All bids are written before allocating once. */
+    public function placeProductionPlan(array $bids): void {
+        foreach ($bids as $bid) {
+            $type = ResourceType::fromName($bid['resource_type']);
+            if (!ResourceType::getMeta($type)->canPlaceCommand) {
+                throw new InvalidArgumentException("Can't place a bid for resource type {$type->name}");
+            }
+            ProductionBid::setCommandBid($this, $type, $bid['max_quantity'], $bid['max_labor_allocation_per_unit']);
+        }
+        $this->allocateLabor();
+    }
+
     private function allocateLabor(): void {
         $this->attemptAllocateLabor(true);
 
@@ -460,7 +534,6 @@ class NationDetail extends Model
         $laborPoolsById = LaborPool::getLaborPools($this)->mapWithKeys(fn (LaborPool $lp) => [ $lp->getId() => $lp ]);
         $laborPoolSizesByPoolId = $laborPoolsById->mapWithKeys(fn (LaborPool $lp) => [ $lp->getId() => $lp->getSize() ])->all();
         $facilitiesById = LaborPoolFacility::getFacilities($this)->mapWithKeys(fn (LaborPoolFacility $f) => [ $f->getId() => $f ]);
-        $remainingFacilityCapacitiesByFacilityId = $facilitiesById->mapWithKeys(fn (LaborPoolFacility $f) => [ $f->getId() => $f->getCapacity() ])->all();
         $demandRemainingByResourceType = [];
 
         $resourceInfosByType = ResourceType::getMetas();
@@ -498,67 +571,23 @@ class NationDetail extends Model
             ProductionBid::setUpkeepBid($this, ResourceType::from($resourceType), $quantity);
         }
         
-        $usableLabor = max(0, $laborPoolsById->sum(fn (LaborPool $lp) => $lp->getSize()) - $reservedLabor);
 
         ProductionBid::setCommandBid($this, ResourceType::Capital, ProductionBidConstants::MAX_QUANTITY_LIMIT, ProductionBidConstants::MAX_LABOR_PER_UNIT_LIMIT, ProductionBidConstants::LOWEST_COMMAND_BID_PRIORITY - 1);
 
-        $bids = ProductionBid::getAll($this);
-
-        $bidsByPriority = $bids->sortBy(fn (ProductionBid $bid) => $bid->getPriority());
-
-        $facilitiesSortedByProductivity = $facilitiesById
-            ->sortByDesc(fn (LaborPoolFacility $p) => $p->getProductivityPercent());
-
-        foreach ($bidsByPriority as $bid) {
-            assert($bid instanceof ProductionBid);
-
-            if ($bid->getBidType() != BidType::Upkeep && $usableLabor < 1) {
-                continue;
-            }
-
-            $resourceType = $bid->getResourceType();
-
-            $pendingQuantity = $bid->getMaxQuantity();
-
-            $facilities = $facilitiesSortedByProductivity
-                ->filter(fn (LaborPoolFacility $f) => $f->getResourceType() == $resourceType);
-
-            foreach($facilities as $facilityId => $facility) {
-                if ($pendingQuantity < 0) {
-                    break;
-                }
-
-                assert($facility instanceof LaborPoolFacility);
-
-                $productivity = $facility->getProductivity();
-
-                if ($bid->getMaxLaborPerUnit() < LaborPoolConstants::LABOR_PER_UNIT_OF_PRODUCTION / $productivity) {
-                    break;
-                }
-
-                $poolId = $facility->getLaborPoolId();
-                $poolSize = $laborPoolSizesByPoolId[$poolId];
-                $remainingCapacity = $remainingFacilityCapacitiesByFacilityId[$facilityId];
-
-                $capacityUsage = min(ceil($pendingQuantity / $productivity), $poolSize, $remainingCapacity);
-
-                if ($bid->getBidType() != BidType::Upkeep) {
-                    $capacityUsage = min($capacityUsage, $usableLabor);
-                }
-                
-                $usableLabor -= $capacityUsage;
-
-                if ($capacityUsage <= 0) {
-                    continue;
-                }
-
-                $laborPoolSizesByPoolId[$poolId] -= $capacityUsage;
-                $remainingFacilityCapacitiesByFacilityId[$facilityId] -= $capacityUsage;
-                $pendingQuantity = $pendingQuantity - min($pendingQuantity, floor($capacityUsage * $productivity));
-
-                $facility->addToAllocation($capacityUsage);
-            }
-        }
+        $allocations = \App\Domain\ProductionAllocation::allocate(
+            $laborPoolSizesByPoolId,
+            $facilitiesById->map(fn (LaborPoolFacility $f) => [
+                'id' => $f->getId(), 'pool' => $f->getLaborPoolId(), 'resource' => $f->getResourceType()->name,
+                'capacity' => $f->getCapacity(), 'productivity' => $f->getProductivity(),
+            ])->values()->all(),
+            ProductionBid::getAll($this)->map(fn (ProductionBid $bid) => [
+                'resource' => $bid->getResourceType()->name, 'priority' => $bid->getPriority(),
+                'upkeep' => $bid->getBidType() === BidType::Upkeep, 'quantity' => $bid->getMaxQuantity(),
+                'max_labor' => $bid->getMaxLaborPerUnit(),
+            ])->all(),
+            $reservedLabor,
+        );
+        foreach ($allocations as $id => $quantity) if ($quantity > 0) $facilitiesById[$id]->addToAllocation($quantity);
     }
 
     public function onNextTurn(NationDetail $current): void {

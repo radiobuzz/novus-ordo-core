@@ -1,0 +1,412 @@
+.no-client {
+    .game-navigation {
+        display: flex;
+        align-items: center;
+        flex-wrap: wrap;
+        gap: 8px 20px;
+        padding: 8px 24px;
+        border-bottom: 1px solid var(--line);
+        background: var(--surface);
+    }
+    .game-navigation a {
+        padding: 8px 0;
+        text-decoration: none;
+        color: var(--muted);
+    }
+    .game-navigation a[aria-current='page'] {
+        color: var(--accent);
+        box-shadow: 0 2px var(--accent);
+    }
+    .turn-readiness {
+        margin-left: auto;
+        color: var(--muted);
+        font-size: 0.8rem;
+    }
+    .game-workspace {
+        height: 100%;
+        overflow: auto;
+        padding: clamp(16px, 3vw, 36px);
+    }
+    .game-heading h1 {
+        margin: 8px 0 20px;
+        font: 1.8rem var(--font-display);
+    }
+    .game-message:empty {
+        display: none;
+    }
+    .game-message {
+        border-left: 3px solid var(--accent);
+        padding: 12px;
+        background: var(--surface-raised);
+    }
+    .game-cards {
+        display: grid;
+        gap: 20px;
+        min-width: 0;
+    }
+    .game-card {
+        --panel-padding: var(--space-5);
+    }
+    .game-card h3 {
+        font-size: 0.95rem;
+    }
+    .game-stats {
+        display: grid;
+        grid-template-columns: repeat(auto-fit, minmax(180px, 1fr));
+        gap: 16px;
+    }
+    .game-stats dt {
+        color: var(--muted);
+    }
+    .game-stats dd {
+        margin: 3px 0;
+        font-size: 1.2rem;
+    }
+    .game-table-scroll {
+        overflow-x: auto;
+    }
+    .game-table {
+        width: 100%;
+        border-collapse: collapse;
+        font-size: 0.85rem;
+    }
+    .game-table td,
+    .game-table th {
+        text-align: left;
+        padding: 12px;
+        border-bottom: 1px solid var(--line);
+    }
+    .game-table th {
+        color: var(--muted);
+        font-weight: 500;
+    }
+    .bid-form {
+        display: grid;
+        grid-template-columns: 140px 1fr 1fr auto;
+        gap: 16px;
+        align-items: end;
+        padding: 16px 0;
+        border-top: 1px solid var(--line);
+    }
+    .bid-form p {
+        grid-column: 1 / -1;
+        margin: 0;
+    }
+    .deployment-form,
+    .report-controls {
+        display: flex;
+        flex-wrap: wrap;
+        align-items: end;
+        gap: 16px;
+    }
+    .deployment-form .game-field {
+        flex: 1 1 160px;
+    }
+    .deployment-form p {
+        flex-basis: 100%;
+    }
+    .game-actions {
+        display: flex;
+        flex-wrap: wrap;
+        gap: 12px;
+        margin-top: 20px;
+    }
+    .military-map .map-viewport {
+        position: relative;
+        height: 420px;
+        margin-bottom: 16px;
+        background: var(--background);
+    }
+    .military-map .world-canvas {
+        width: 100%;
+        height: 100%;
+        display: block;
+    }
+    .order-preview {
+        font-size: 0.85rem;
+    }
+    .report-text {
+        white-space: pre-wrap;
+        overflow-wrap: anywhere;
+        font: inherit;
+    }
+    .report-identity {
+        --identity-color: var(--accent);
+        display: inline-flex;
+        align-items: center;
+        gap: var(--space-2);
+        min-width: 0;
+        padding: 2px 8px 2px 4px;
+        border: 1px solid color-mix(in srgb, var(--identity-color) 55%, var(--line));
+        border-left: 3px solid var(--identity-color);
+        border-radius: 999px;
+        background: color-mix(in srgb, var(--identity-color) 10%, var(--surface-raised));
+        color: var(--text);
+        line-height: 1.4;
+        vertical-align: middle;
+    }
+    .report-identity.is-neutral {
+        --identity-color: var(--muted);
+    }
+    .report-identity-flag {
+        width: 24px;
+        height: 16px;
+        border-radius: 2px;
+        object-fit: cover;
+        box-shadow: 0 0 0 1px color-mix(in srgb, var(--text) 20%, transparent);
+    }
+    .report-neutral-flag {
+        width: 24px;
+        text-align: center;
+        font-size: 1rem;
+        line-height: 1;
+    }
+    .report-participants,
+    .report-event-line {
+        display: inline-flex;
+        flex-wrap: wrap;
+        align-items: center;
+        gap: var(--space-2);
+    }
+    .report-versus,
+    .report-event-action {
+        color: var(--muted);
+        font-size: 0.78rem;
+        text-transform: uppercase;
+        letter-spacing: 0.08em;
+    }
+    .report-event {
+        display: grid;
+        gap: var(--space-2);
+        padding: var(--space-3) 0 var(--space-3) var(--space-4);
+        border-left: 2px solid var(--success);
+    }
+    .report-event.is-repelled {
+        border-left-color: var(--warning);
+    }
+    .report-event-territory {
+        margin: 0;
+        color: var(--muted);
+        font-size: 0.82rem;
+    }
+    .rankings-view {
+        min-width: 0;
+    }
+    .ranking-tabs,
+    .ranking-metrics {
+        display: flex;
+        flex-wrap: wrap;
+        gap: var(--space-2);
+        margin-bottom: var(--space-4);
+    }
+    .ranking-tab[aria-selected='true'],
+    .ranking-metric[aria-pressed='true'] {
+        color: var(--text-primary);
+        background: var(--accent-soft);
+        border-color: var(--accent-command);
+    }
+    .ranking-current-grid {
+        display: grid;
+        grid-template-columns: repeat(auto-fit, minmax(min(100%, 340px), 1fr));
+        gap: var(--space-5);
+    }
+    .ranking-current-chart {
+        min-width: 0;
+        padding: var(--space-4);
+        border: 1px solid var(--line-soft);
+        border-radius: var(--radius);
+        background: color-mix(in srgb, var(--surface-raised) 45%, transparent);
+    }
+    .ranking-current-chart h3 {
+        margin: 0 0 var(--space-4);
+        font-family: var(--font-display);
+        color: var(--accent);
+    }
+    .ranking-bars {
+        display: grid;
+        gap: var(--space-3);
+        margin: 0;
+        padding: 0;
+        list-style: none;
+    }
+    .ranking-bar {
+        display: grid;
+        grid-template-columns: 2.5rem minmax(0, 1fr) auto;
+        gap: 2px var(--space-2);
+        align-items: baseline;
+    }
+    .ranking-position {
+        grid-row: 1 / 3;
+        color: var(--muted);
+        font-variant-numeric: tabular-nums;
+    }
+    .ranking-name {
+        overflow: hidden;
+        text-overflow: ellipsis;
+        white-space: nowrap;
+    }
+    .ranking-value {
+        color: var(--text-primary);
+        font-size: var(--font-small);
+        font-variant-numeric: tabular-nums;
+    }
+    .ranking-bar-track {
+        grid-column: 2 / -1;
+        height: 6px;
+        overflow: hidden;
+        border-radius: 999px;
+        background: var(--line-soft);
+    }
+    .ranking-bar-fill {
+        display: block;
+        width: var(--ranking-width);
+        height: 100%;
+        min-width: 0;
+        border-radius: inherit;
+        background: var(--ranking-color);
+    }
+    .ranking-history-summary,
+    .ranking-empty,
+    .ranking-history-error {
+        color: var(--muted);
+    }
+    .ranking-history-error {
+        color: var(--danger);
+    }
+    .ranking-nation-filters {
+        display: flex;
+        flex-wrap: wrap;
+        gap: var(--space-2) var(--space-4);
+        min-width: 0;
+        margin: 0 0 var(--space-4);
+        padding: var(--space-3);
+        border: 1px solid var(--line-soft);
+        border-radius: var(--radius);
+    }
+    .ranking-nation-filters legend {
+        padding: 0 var(--space-2);
+        color: var(--muted);
+        font-size: var(--font-small);
+    }
+    .ranking-nation-filter {
+        display: inline-flex;
+        align-items: center;
+        gap: var(--space-2);
+        min-height: 32px;
+        font-size: var(--font-small);
+    }
+    .ranking-line-sample {
+        width: 28px;
+        height: 3px;
+        background: var(--ranking-color);
+        border-radius: 999px;
+    }
+    .ranking-chart-frame {
+        width: 100%;
+        overflow-x: auto;
+        border: 1px solid var(--line-soft);
+        border-radius: var(--radius);
+        background: var(--surface-control);
+    }
+    .ranking-history-chart {
+        display: block;
+        width: 100%;
+        min-width: 620px;
+        height: auto;
+    }
+    .ranking-grid-line {
+        stroke: var(--line-soft);
+        stroke-width: 1;
+    }
+    .ranking-axis-label {
+        fill: var(--text-muted);
+        font: 12px var(--font-ui);
+        text-anchor: end;
+    }
+    .ranking-axis-turn {
+        text-anchor: middle;
+    }
+    .ranking-series-line {
+        fill: none;
+        stroke-width: 3;
+        stroke-linecap: round;
+        stroke-linejoin: round;
+        vector-effect: non-scaling-stroke;
+    }
+    .ranking-series-point {
+        stroke: var(--surface-control);
+        stroke-width: 2;
+        vector-effect: non-scaling-stroke;
+    }
+    .ranking-history-data {
+        margin-top: var(--space-4);
+    }
+    .ranking-history-data > summary {
+        width: fit-content;
+        cursor: pointer;
+        color: var(--accent);
+    }
+    .ranking-history-data .ui-table-scroll {
+        max-height: 440px;
+        margin-top: var(--space-3);
+    }
+    .ranking-history-data .ui-table thead {
+        position: sticky;
+        top: 0;
+        z-index: 1;
+        background: var(--surface-raised);
+    }
+    .nation-flag {
+        max-width: 160px;
+        max-height: 100px;
+        object-fit: contain;
+        float: right;
+        margin: 0 0 16px 16px;
+    }
+    .leader-portrait {
+        max-height: 160px;
+        max-width: 160px;
+        object-fit: contain;
+    }
+    @media (max-width: 760px) {
+        .game-navigation {
+            padding: 8px 12px;
+            gap: 6px 16px;
+        }
+        .game-navigation a {
+            font-size: 0.8rem;
+        }
+        .turn-readiness {
+            margin-left: 0;
+        }
+        .game-card {
+            --panel-padding: var(--space-4);
+        }
+        .bid-form {
+            grid-template-columns: 1fr 1fr;
+        }
+        .bid-form h3,
+        .bid-form button {
+            grid-column: 1 / -1;
+        }
+        .military-map .map-viewport {
+            height: 300px;
+        }
+        .ranking-current-grid {
+            grid-template-columns: 1fr;
+        }
+        .ranking-current-chart {
+            padding: var(--space-3);
+        }
+        .ranking-bar {
+            grid-template-columns: 2.25rem minmax(0, 1fr);
+        }
+        .ranking-value {
+            grid-column: 2;
+            justify-self: start;
+        }
+        .ranking-bar-track {
+            grid-column: 2;
+        }
+    }
+}

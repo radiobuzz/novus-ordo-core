@@ -14,5 +14,7 @@ readonly class TerritoryTurnPublicInfo {
         public array $stats,
         public ?array $owner_production,
         public array $loyalties,
+        public array $base_productivity = [],
+        public int $production_population_unit = 1_000_000,
     ) {}
 }

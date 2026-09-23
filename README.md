@@ -23,7 +23,7 @@ GRANT ALL PRIVILEGES ON novusordo.* TO 'novusordo'@'%' IDENTIFIED BY 'nopassword
 
 #### Clone the repository
 ```bash
-git clone https://github.com/QsmsSoftware/novus-ordo-core.git
+git clone https://github.com/radiobuzz/novus-ordo-core.git
 ```
 
 #### Change to the project's directory

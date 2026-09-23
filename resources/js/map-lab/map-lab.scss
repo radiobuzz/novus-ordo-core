@@ -1,0 +1,794 @@
+@use '../client/styles/tokens';
+
+* {
+    box-sizing: border-box;
+}
+
+html,
+body,
+#map-lab-root {
+    width: 100%;
+    height: 100%;
+    margin: 0;
+}
+
+body {
+    overflow: hidden;
+    background: var(--background);
+    color: var(--text);
+    font-family: var(--font-ui);
+}
+
+button,
+input,
+select {
+    font: inherit;
+}
+
+button,
+a {
+    color: inherit;
+}
+
+button:focus-visible,
+a:focus-visible,
+canvas:focus-visible {
+    outline: 2px solid var(--accent);
+    outline-offset: 2px;
+}
+
+.map-lab-boot {
+    padding: 2rem;
+}
+
+[hidden] {
+    display: none !important;
+}
+
+.inspector-tabs {
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    gap: 4px;
+    margin-bottom: 18px;
+}
+.inspector-tabs button {
+    min-height: 30px;
+    font-size: 0.63rem;
+    color: #cdd7db;
+    background: #172630;
+    border: 1px solid #3d525c;
+    border-radius: 4px;
+    cursor: pointer;
+}
+.inspector-tabs button[aria-pressed='true'] {
+    border-color: #d9bf85;
+    background: #474331;
+}
+.inspector-tabs button:disabled {
+    opacity: 0.4;
+    cursor: default;
+}
+.experiment-panel {
+    margin-bottom: 22px;
+    padding-bottom: 18px;
+    border-bottom: 1px solid var(--line);
+}
+
+.atlas-controls > label,
+.atlas-controls form > label {
+    display: block;
+    margin: 10px 0;
+    font-size: var(--font-size-small, 0.75rem);
+}
+.atlas-controls select {
+    display: block;
+    width: 100%;
+    padding: 7px;
+    margin-top: 5px;
+    color: var(--text-primary);
+    background: var(--surface-control);
+    border: 1px solid var(--border-default);
+    border-radius: 4px;
+}
+.atlas-controls select:focus-visible {
+    outline: 2px solid var(--focus-ring);
+    outline-offset: 2px;
+}
+.administration-controls label {
+    display: block;
+    margin: 10px 0;
+    font-size: var(--font-size-small, 0.75rem);
+}
+.administration-controls .layer-controls label {
+    margin: 0;
+}
+.administration-controls input:not([type='checkbox']) {
+    width: 100%;
+    min-width: 0;
+    padding: 7px;
+    margin-top: 5px;
+    color: var(--text-primary);
+    background: var(--surface-control);
+    border: 1px solid var(--border-default);
+    border-radius: 4px;
+}
+.administration-controls input:focus-visible {
+    outline: 2px solid var(--focus-ring);
+    outline-offset: 2px;
+}
+
+.administration-controls input[type='color'] {
+    height: 36px;
+    padding: 3px;
+    cursor: pointer;
+}
+
+.lab-map canvas.is-painting {
+    cursor: crosshair;
+}
+[data-admin-list] button {
+    width: 100%;
+    text-align: left;
+    overflow-wrap: anywhere;
+    margin-bottom: 6px;
+}
+[data-admin-list] button[aria-pressed='true'] {
+    border-color: var(--accent);
+}
+[data-admin-membership] dd {
+    overflow-wrap: anywhere;
+}
+.experiment-panel > label {
+    display: block;
+    margin: 10px 0;
+    font-size: 0.73rem;
+    line-height: 1.5;
+}
+.experiment-panel select {
+    display: block;
+    width: 100%;
+    color: #e5e9dd;
+    background: #21333e;
+    border: 1px solid #445b68;
+    border-radius: 4px;
+    padding: 7px;
+    margin-top: 5px;
+}
+.experiment-panel input[type='range'] {
+    display: block;
+    width: 100%;
+    accent-color: #d6bc83;
+}
+.experiment-panel output {
+    float: right;
+    color: #dfc38a;
+}
+.experiment-panel h3 {
+    font-size: 0.85rem;
+}
+.experiment-metrics {
+    margin: 12px 0;
+}
+.experiment-metrics div {
+    display: flex;
+    justify-content: space-between;
+    gap: 12px;
+    border-bottom: 1px solid #30424b;
+    padding: 6px 0;
+    font-size: 0.69rem;
+}
+.experiment-metrics dt {
+    color: #acbec5;
+}
+.experiment-metrics dd {
+    margin: 0;
+    color: #eee0b8;
+    text-align: right;
+}
+.troop-ledger {
+    display: grid;
+    grid-template-columns: repeat(3, 1fr);
+    gap: 5px;
+    padding: 9px 0;
+}
+.troop-ledger span {
+    background: #132735;
+    padding: 7px;
+    font-size: 0.64rem;
+    color: #b2c5ce;
+}
+.troop-ledger strong {
+    display: block;
+    color: #efdbb3;
+    font-size: 1rem;
+}
+.naval-phase {
+    padding: 9px;
+    background: #18313e;
+    color: #f3d29b;
+    font-size: 0.78rem;
+}
+.faction-flag {
+    width: 30px;
+    height: 20px;
+    flex-shrink: 0;
+    vertical-align: middle;
+    border: 1px solid #d9d7bb66;
+}
+.faction-key {
+    display: grid;
+    gap: 9px;
+    margin-bottom: 24px;
+    font-size: 0.7rem;
+}
+.faction-key span {
+    display: flex;
+    align-items: center;
+    gap: 9px;
+}
+.faction-key small {
+    color: var(--muted);
+    line-height: 1.5;
+}
+.military-panel {
+    border-bottom: 1px solid var(--line);
+    padding-bottom: 20px;
+    margin-bottom: 24px;
+}
+.formation-roster {
+    display: grid;
+    gap: 4px;
+    max-height: 195px;
+    overflow: auto;
+}
+.formation-roster button {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    text-align: left;
+    padding: 8px;
+}
+.formation-roster small {
+    display: block;
+    margin-top: 4px;
+    color: #aab9c4;
+    font-size: 0.62rem;
+}
+.formation-roster button,
+.command-buttons button {
+    background: #1c2b34;
+    border: 1px solid #3a505e;
+    border-radius: 4px;
+    color: #e9e5d7;
+    cursor: pointer;
+    font-size: 0.7rem;
+}
+.formation-roster [aria-pressed='true'],
+.command-buttons [aria-pressed='true'] {
+    border-color: #e7c687;
+    background: #3b3b30;
+}
+.formation-detail {
+    margin-top: 15px;
+    padding: 12px;
+    background: #10202a;
+    border: 1px solid #3e5361;
+    border-radius: 5px;
+}
+.formation-detail h3 {
+    margin: 0 0 12px;
+    font-size: 0.9rem;
+    line-height: 1.5;
+}
+.formation-detail p,
+.formation-detail label {
+    font-size: 0.72rem;
+    line-height: 1.6;
+}
+.formation-detail progress {
+    display: block;
+    width: 100%;
+    height: 7px;
+    margin: 5px 0 10px;
+    accent-color: #a3c886;
+}
+.formation-detail progress.morale {
+    accent-color: #7ab9db;
+}
+.command-buttons {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 5px;
+    margin: 8px 0;
+}
+.command-buttons button {
+    min-height: 34px;
+    padding: 6px 9px;
+}
+.command-buttons button:disabled {
+    opacity: 0.4;
+    cursor: default;
+}
+.combat-log {
+    max-height: 165px;
+    overflow: auto;
+    padding-left: 18px;
+    color: #bac8cb;
+    font-size: 0.68rem;
+    line-height: 1.6;
+}
+
+.lab-shell {
+    display: grid;
+    grid-template-columns: 270px minmax(380px, 1fr) 290px;
+    grid-template-rows: 76px minmax(0, 1fr);
+    width: 100%;
+    height: 100%;
+}
+
+.lab-header {
+    grid-column: 1 / -1;
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 24px;
+    padding: 12px 20px;
+    background: #11191d;
+    border-bottom: 1px solid var(--line);
+}
+
+.eyebrow {
+    margin: 0 0 4px;
+    color: #cdb47d;
+    font-size: 0.65rem;
+    font-weight: 700;
+    letter-spacing: 0.14em;
+    text-transform: uppercase;
+}
+
+.lab-header h1,
+.lab-controls h2,
+.lab-inspector h2,
+.cell-card h3 {
+    margin: 0;
+    font-family: var(--font-display);
+    font-weight: 400;
+}
+
+.lab-header h1 {
+    font-size: clamp(1.15rem, 2vw, 1.65rem);
+}
+
+.lab-header-actions {
+    display: flex;
+    align-items: center;
+    gap: 16px;
+    font-size: 0.74rem;
+}
+
+.lab-header-actions a {
+    color: #dcc58f;
+}
+
+.prototype-badge {
+    padding: 6px 9px;
+    border: 1px solid #806d45;
+    border-radius: 99px;
+    color: #e1cfaa;
+}
+
+.lab-controls,
+.lab-inspector {
+    min-height: 0;
+    overflow: auto;
+    padding: 20px;
+    background: var(--surface);
+}
+
+.lab-controls {
+    border-right: 1px solid var(--line);
+}
+
+.lab-inspector {
+    border-left: 1px solid var(--line);
+}
+
+.lab-controls section + section {
+    margin-top: 24px;
+    padding-top: 20px;
+    border-top: 1px solid var(--line-soft);
+}
+
+.lab-controls h2 {
+    margin-bottom: 12px;
+    font-size: 1.08rem;
+}
+
+.resolution-control,
+.scale-control {
+    display: grid;
+    grid-template-columns: repeat(3, 1fr);
+    gap: 5px;
+}
+
+.scale-control {
+    grid-template-columns: 1fr 1fr;
+}
+
+.resolution-control button,
+.scale-control button,
+.map-tools button,
+.secondary-button {
+    min-height: 36px;
+    border: 1px solid var(--line);
+    border-radius: var(--radius);
+    background: var(--surface-raised);
+    cursor: pointer;
+}
+
+.resolution-control button[aria-pressed='true'],
+.scale-control button[aria-pressed='true'] {
+    border-color: var(--accent);
+    background: #53492f;
+    color: #fff3d2;
+}
+
+.hint,
+.scenario-guide p,
+.scenario-guide li,
+.design-question p {
+    color: var(--muted);
+    font-size: 0.74rem;
+    line-height: 1.55;
+}
+
+.scenario-guide strong {
+    color: #8bb9dc;
+}
+
+.scenario-guide ol {
+    padding-left: 20px;
+}
+
+.secondary-button {
+    width: 100%;
+    margin-top: 6px;
+}
+
+.geography-controls {
+    display: grid;
+    gap: 7px;
+    font-size: 0.76rem;
+
+    label {
+        display: flex;
+        justify-content: space-between;
+    }
+    output {
+        color: #e1cfaa;
+    }
+    input {
+        width: 100%;
+        min-width: 0;
+        accent-color: #cdb47d;
+    }
+}
+
+.geography-controls input[type='text'],
+#geography-view {
+    width: 100%;
+    padding: 8px;
+    background: var(--surface-raised);
+    color: var(--text);
+    border: 1px solid var(--line);
+    border-radius: var(--radius);
+}
+
+.view-label {
+    display: block;
+    margin-bottom: 6px;
+    font-size: 0.76rem;
+}
+.secondary-button:disabled {
+    opacity: 0.45;
+    cursor: default;
+}
+
+.layer-controls {
+    display: grid;
+    gap: 4px;
+}
+
+.layer-controls label {
+    display: flex;
+    align-items: center;
+    gap: 9px;
+    min-height: 33px;
+    color: #d8dddd;
+    font-size: 0.78rem;
+}
+
+.lab-map {
+    position: relative;
+    min-width: 0;
+    min-height: 0;
+    overflow: hidden;
+    background: #0d202a;
+}
+
+.lab-map canvas {
+    display: block;
+    width: 100%;
+    height: 100%;
+    touch-action: none;
+    cursor: grab;
+}
+
+.lab-map canvas.is-panning {
+    cursor: grabbing;
+}
+
+.map-status,
+.performance-status,
+.map-tools,
+.map-key {
+    position: absolute;
+    border: 1px solid #41515a;
+    background: #111a20e8;
+    box-shadow: 0 8px 30px #0005;
+    backdrop-filter: blur(8px);
+}
+
+.map-status {
+    top: 16px;
+    left: 16px;
+    max-width: min(440px, calc(100% - 32px));
+    padding: 9px 12px;
+    border-radius: var(--radius);
+    color: #e9e2ce;
+    font-size: 0.74rem;
+    pointer-events: none;
+}
+
+.performance-status {
+    top: 56px;
+    right: 16px;
+    padding: 7px 10px;
+    border-radius: var(--radius);
+    color: #aab9bd;
+    font-size: 0.64rem;
+    font-variant-numeric: tabular-nums;
+    pointer-events: none;
+}
+
+.map-tools {
+    right: 16px;
+    bottom: 16px;
+    display: flex;
+    align-items: center;
+    gap: 4px;
+    padding: 4px;
+    border-radius: var(--radius);
+}
+
+.map-tools button {
+    min-width: 34px;
+    padding: 0 8px;
+}
+
+.zoom-value {
+    min-width: 44px;
+    text-align: center;
+    color: var(--muted);
+    font-size: 0.68rem;
+    font-variant-numeric: tabular-nums;
+}
+
+.map-key {
+    bottom: 16px;
+    left: 16px;
+    display: flex;
+    gap: 14px;
+    padding: 9px 11px;
+    border-radius: var(--radius);
+    color: var(--muted);
+    font-size: 0.65rem;
+    pointer-events: none;
+}
+
+.map-key span {
+    display: flex;
+    align-items: center;
+    gap: 5px;
+}
+
+.map-key i {
+    width: 9px;
+    height: 9px;
+    display: inline-block;
+    background: #d2695e;
+}
+
+.map-key .control-swatch {
+    background: #4e8fc4;
+}
+
+.map-key .army-swatch {
+    background: #4e8fc4;
+    transform: rotate(45deg);
+    border: 1px solid #f4e5bc;
+}
+
+.lab-inspector h2 {
+    margin-bottom: 18px;
+    font-size: 1.55rem;
+}
+
+.owner-line {
+    display: flex;
+    justify-content: space-between;
+    gap: 10px;
+    margin-bottom: 20px;
+    padding-bottom: 16px;
+    border-bottom: 1px solid var(--line-soft);
+    color: var(--muted);
+    font-size: 0.72rem;
+}
+
+.owner-line strong {
+    color: var(--nation-color);
+    text-align: right;
+}
+
+.control-row + .control-row {
+    margin-top: 15px;
+}
+
+.control-row > div:first-child {
+    display: grid;
+    grid-template-columns: 9px 1fr auto;
+    align-items: center;
+    gap: 7px;
+    font-size: 0.68rem;
+}
+
+.control-row i {
+    width: 8px;
+    height: 8px;
+    border-radius: 50%;
+    background: var(--nation-color);
+}
+
+.control-row span,
+.control-row small {
+    color: var(--muted);
+}
+
+.bar {
+    height: 5px;
+    margin: 6px 0;
+    overflow: hidden;
+    border-radius: 5px;
+    background: #0d1316;
+}
+
+.bar span {
+    display: block;
+    height: 100%;
+    background: var(--nation-color);
+}
+
+.control-row small,
+.damage-total {
+    font-size: 0.64rem;
+}
+
+.damage-total {
+    margin: 16px 0 0;
+    color: #c9a698;
+}
+
+.cell-card,
+.design-question {
+    margin-top: 24px;
+    padding: 15px;
+    border: 1px solid var(--line);
+    border-radius: var(--radius);
+    background: #11181c;
+}
+
+.cell-card h3 {
+    margin-bottom: 12px;
+    font-size: 1rem;
+}
+
+.cell-card dl {
+    margin: 0;
+}
+
+.cell-card dl div {
+    display: flex;
+    justify-content: space-between;
+    gap: 10px;
+    padding: 6px 0;
+    border-top: 1px solid var(--line-soft);
+    font-size: 0.69rem;
+}
+
+.cell-card dt {
+    color: var(--muted);
+}
+
+.cell-card dd {
+    margin: 0;
+    text-align: right;
+}
+
+.design-question {
+    border-color: #695b3d;
+    background: #241f17;
+}
+
+.design-question p:last-child {
+    margin-bottom: 0;
+    color: #ded2b5;
+}
+
+@media (max-width: 1000px) {
+    .lab-shell {
+        grid-template-columns: 230px minmax(360px, 1fr);
+    }
+    .lab-inspector {
+        position: absolute;
+        z-index: 2;
+        top: 92px;
+        right: 16px;
+        width: 250px;
+        max-height: calc(100% - 124px);
+        border: 1px solid var(--line);
+        border-radius: var(--radius);
+        box-shadow: var(--shadow);
+    }
+}
+
+@media (max-width: 720px) {
+    body {
+        overflow: auto;
+    }
+    #map-lab-root,
+    .lab-shell {
+        min-height: 100%;
+        height: auto;
+    }
+    .lab-shell {
+        grid-template-columns: 1fr;
+        grid-template-rows: auto 64vh auto auto;
+    }
+    .lab-header {
+        grid-column: 1;
+    }
+    .prototype-badge {
+        display: none;
+    }
+    .lab-map {
+        grid-row: 2;
+        min-height: 480px;
+    }
+    .lab-controls {
+        grid-row: 3;
+        border: 0;
+        border-top: 1px solid var(--line);
+    }
+    .lab-inspector {
+        position: static;
+        grid-row: 4;
+        width: auto;
+        max-height: none;
+        border-width: 1px 0 0;
+        border-radius: 0;
+        box-shadow: none;
+    }
+    .map-key {
+        display: none;
+    }
+}

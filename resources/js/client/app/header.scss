@@ -1,0 +1,359 @@
+.no-client {
+    .ui-label-short {
+        display: none;
+    }
+    @media (max-width: 1000px) {
+        .game-hud .ui-compact-label .ui-label-full {
+            display: none;
+        }
+        .game-hud .ui-compact-label .ui-label-short {
+            display: inline;
+        }
+        .game-hud .ui-compact-label {
+            min-width: 36px;
+            justify-content: center;
+        }
+    }
+    .game-hud {
+        position: relative;
+        z-index: 20;
+        flex-shrink: 0;
+        gap: var(--space-2);
+        padding: var(--space-2) var(--space-3);
+        background: linear-gradient(var(--surface-raised), var(--surface-panel));
+        border-bottom-color: var(--accent-command);
+        box-shadow: 0 3px 14px #0005;
+        .ui-button,
+        summary {
+            font-size: 0.75rem;
+        }
+        .header-context {
+            flex-shrink: 0;
+            margin: 0;
+        }
+        .ui-disclosure-content {
+            position: absolute;
+            top: calc(100% + 1px);
+            right: var(--space-2);
+            width: min(350px, calc(100vw - 16px));
+            max-height: min(70dvh, 580px);
+            overflow: auto;
+            z-index: 25;
+        }
+        .game-menu .ui-disclosure-content {
+            left: var(--space-2);
+            right: auto;
+        }
+        .game-menu > summary {
+            font-size: 1.2rem;
+        }
+        .game-menu > summary::after {
+            display: none;
+        }
+        .ui-disclosure-content h2 {
+            font: 1.1rem var(--font-display);
+            color: var(--accent-command);
+            margin-top: 0;
+        }
+        .ui-disclosure-content small,
+        .ui-disclosure-content p {
+            font-size: 0.8rem;
+        }
+        .hud-layers {
+            padding: 0;
+            border: 0;
+            margin: 0;
+        }
+        .hud-layers > summary {
+            max-width: 150px;
+            white-space: nowrap;
+            overflow: hidden;
+            text-overflow: ellipsis;
+        }
+        .hud-layers label {
+            display: flex;
+            align-items: center;
+            gap: var(--space-3);
+            min-height: var(--control-height);
+        }
+    }
+    .hud-mark {
+        font: 1.7rem var(--font-display);
+        color: var(--accent-command);
+        padding-inline: var(--space-1);
+    }
+    .hud-resources {
+        display: flex;
+        flex: 1;
+        justify-content: center;
+        min-width: 0;
+    }
+    .hud-resource {
+        flex: 1;
+        max-width: 130px;
+        min-width: 0;
+    }
+    .hud-resource > summary {
+        display: flex;
+        gap: var(--space-1);
+        align-items: center;
+        border: 0;
+        border-left: 1px solid var(--border-default);
+        border-radius: 0;
+        padding: var(--space-1) var(--space-2);
+        &::after {
+            display: none;
+        }
+        img {
+            width: 24px;
+            height: 24px;
+            object-fit: contain;
+        }
+    }
+    .hud-resource-values {
+        display: grid;
+        font-variant-numeric: tabular-nums;
+        line-height: 1.4;
+        min-width: 0;
+    }
+    .hud-resource-values strong {
+        font-size: 0.8rem;
+        font-weight: 600;
+    }
+    .hud-resource-values > span {
+        font-size: var(--font-tiny);
+        color: var(--text-muted);
+    }
+    .hud-resource [data-tone='danger'] {
+        color: var(--action-danger);
+    }
+    .hud-resource [data-tone='ready'] {
+        color: var(--status-ready);
+    }
+    .hud-resource dl {
+        display: grid;
+        grid-template-columns: 1fr auto;
+        gap: var(--space-2);
+        font-variant-numeric: tabular-nums;
+    }
+    .hud-resource dd {
+        margin: 0;
+        text-align: right;
+    }
+    .hud-navigation {
+        display: flex;
+        align-items: center;
+        gap: var(--space-1);
+    }
+    .hud-navigation-link {
+        width: var(--control-height);
+        min-width: var(--control-height);
+        padding: var(--space-2);
+        &::before {
+            margin-inline-end: 0;
+        }
+    }
+    .hud-settings {
+        display: grid;
+        gap: var(--space-2);
+    }
+    .hud-settings a {
+        display: block;
+        padding: var(--space-2);
+        text-decoration: none;
+        border-radius: var(--radius);
+    }
+    .hud-navigation a:hover,
+    .hud-navigation a[aria-current='page'] {
+        background: var(--accent-soft);
+        border-color: var(--accent-command);
+    }
+    .hud-settings {
+        border-top: 1px solid var(--border-default);
+        margin-top: var(--space-3);
+        padding-top: var(--space-3);
+    }
+    .hud-ready {
+        white-space: nowrap;
+    }
+    .game-hud[data-freshness='stale'] .hud-resources {
+        border-bottom: 2px solid var(--status-warning);
+    }
+    .turn-briefing {
+        width: min(820px, calc(100vw - 24px));
+        max-height: 88dvh;
+        overflow: auto;
+        color: var(--text-primary);
+        background: var(--surface-panel);
+        border: 1px solid var(--accent-command);
+        border-radius: var(--radius);
+        padding: var(--space-5);
+        box-shadow: var(--shadow-panel);
+        &::backdrop {
+            background: #060b10a8;
+        }
+        h2 {
+            font-family: var(--font-display);
+        }
+        > header h2 {
+            margin-top: var(--space-2);
+            color: var(--accent-command);
+        }
+        h3 {
+            font-size: 0.9rem;
+        }
+        > footer {
+            display: flex;
+            justify-content: flex-end;
+            gap: var(--space-3);
+            position: sticky;
+            bottom: calc(-1 * var(--space-5));
+            background: var(--surface-panel);
+            padding-block: var(--space-3);
+        }
+        .briefing-summary,
+        .briefing-reports {
+            display: grid;
+            gap: var(--space-3);
+            margin-block: var(--space-3);
+        }
+        .briefing-summary {
+            grid-template-columns: 1fr 1fr;
+        }
+        .ui-panel {
+            --panel-padding: var(--space-4);
+        }
+        .report-text {
+            white-space: pre-wrap;
+            overflow-wrap: anywhere;
+            font: 0.85rem/1.6 var(--font-ui);
+        }
+        summary {
+            cursor: pointer;
+            padding-block: var(--space-2);
+        }
+    }
+    .world-minimap[data-collapsed='true'] {
+        height: 38px;
+    }
+    .world-minimap .ui-panel-heading .ui-button {
+        min-height: 28px;
+        padding: 0 var(--space-2);
+    }
+    .world-minimap .ui-panel-title {
+        min-width: 0;
+        overflow-wrap: anywhere;
+    }
+    .world-minimap .ui-panel-heading {
+        flex-wrap: nowrap;
+    }
+    .world-minimap .ui-panel-actions {
+        flex-shrink: 0;
+    }
+    @media (min-width: 761px) {
+        .shell-content:has(.world-minimap[data-collapsed='true']) .world-command-dock,
+        .shell-content:has(.world-minimap[data-collapsed='true']) > .inspector-panel {
+            top: 62px;
+        }
+    }
+    @media (max-width: 1200px) {
+        .game-hud {
+            flex-wrap: wrap;
+        }
+        .hud-resources {
+            order: 10;
+            flex-basis: 100%;
+        }
+        .game-hud .header-context {
+            margin-right: auto;
+        }
+        .hud-resource {
+            max-width: none;
+        }
+    }
+    @media (min-width: 1201px) and (max-width: 1600px) {
+        .hud-resources {
+            min-width: 360px;
+        }
+        .hud-resource > summary {
+            gap: 2px;
+            padding-inline: 3px;
+        }
+        .hud-resource > summary img {
+            width: 17px;
+            height: 17px;
+        }
+        .hud-resource-values strong {
+            font-size: 0.68rem;
+        }
+        .hud-resource-reserve,
+        .hud-resource-turn {
+            display: none;
+        }
+    }
+    @media (max-width: 760px) {
+        .world-minimap .ui-panel-heading {
+            gap: 2px;
+            padding-inline: 4px;
+        }
+        .world-minimap .ui-panel-title {
+            font-size: var(--font-tiny);
+            flex: 1 1 0;
+            white-space: nowrap;
+            overflow: hidden;
+            text-overflow: ellipsis;
+        }
+        .game-hud {
+            padding: var(--space-1);
+            gap: var(--space-1);
+        }
+        .hud-mark {
+            display: inline-block;
+            font-size: 1.35rem;
+        }
+        .game-hud .ui-button,
+        .game-hud summary {
+            font-size: var(--font-tiny);
+            padding-inline: var(--space-2);
+        }
+        .game-hud .hud-layers > summary {
+            max-width: 76px;
+        }
+        .hud-resource > summary {
+            flex-direction: column;
+            gap: 0;
+            padding-inline: 2px;
+        }
+        .hud-resource > summary img {
+            width: 18px;
+            height: 18px;
+        }
+        .hud-resource-values {
+            text-align: center;
+        }
+        .hud-resource-values strong {
+            font-size: 0.7rem;
+        }
+        .hud-resource-values > span {
+            font-size: var(--font-tiny);
+        }
+        .turn-briefing {
+            padding: var(--space-3);
+        }
+        .turn-briefing .briefing-summary {
+            grid-template-columns: 1fr;
+        }
+        .turn-briefing > footer {
+            bottom: calc(-1 * var(--space-3));
+        }
+    }
+}
+.nation-identity {
+    max-height: 90dvh;
+    overflow: auto;
+}
+.nation-identity canvas {
+    display: block;
+    max-width: 100%;
+    margin: var(--space-3) auto;
+}

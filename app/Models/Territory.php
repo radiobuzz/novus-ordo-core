@@ -8,7 +8,6 @@ use App\Domain\TerritoryConnection;
 use App\Domain\TerritoryData;
 use App\ReadModels\DemographicStat;
 use App\ReadModels\TerritoryBasePublicInfo;
-use App\Services\StaticJavascriptResource;
 use App\Utils\GuardsForAssertions;
 use Closure;
 use Illuminate\Database\Eloquent\Builder;
@@ -272,14 +271,6 @@ class Territory extends Model
                 new DemographicStat('Maximum population', Territory::calculateMaxPopulationSize($t->usable_land_ratio, $terrainInfoByType->get($t->terrain_type)->maxPopulationDensity), StatUnit::WholeNumber->name)
             ]),
         ]), $territories);
-    }
-
-    public static function getAllTerritoriesBaseInfoClientResource(Game $game): StaticJavascriptResource {
-        return StaticJavascriptResource::permanentForGame(
-            'territories-base-js',
-            fn() => "let allTerritoriesBaseInfo = " . json_encode(Territory::exportAllBasePublicInfo($game)) . ";",
-            $game
-        );
     }
 
     private static function statsFromRow(object $t): array {

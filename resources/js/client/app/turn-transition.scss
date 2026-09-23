@@ -1,0 +1,53 @@
+.no-client .turn-transition {
+    width: min(440px, calc(100vw - 32px));
+    box-sizing: border-box;
+    padding: var(--space-5);
+    color: var(--text-primary);
+    background: var(--surface-panel);
+    border: 1px solid var(--accent-command);
+    border-radius: var(--radius);
+    box-shadow: var(--shadow-panel);
+    text-align: center;
+    &::backdrop {
+        background: #060b1070;
+        backdrop-filter: blur(5px);
+    }
+    h2 {
+        font-family: var(--font-display);
+        font-size: 1.4rem;
+    }
+    [role='status'] {
+        color: var(--text-muted);
+        min-height: 3em;
+        line-height: 1.5;
+    }
+    .turn-transition-orbit {
+        position: relative;
+        display: grid;
+        place-items: center;
+        width: 64px;
+        height: 64px;
+        margin: 0 auto var(--space-4);
+        font: 2rem var(--font-display);
+        color: var(--accent-command);
+        &::before {
+            content: '';
+            position: absolute;
+            inset: 0;
+            border: 2px solid var(--border-default);
+            border-top-color: var(--accent-command);
+            border-radius: 50%;
+            animation: turn-orbit 3s linear infinite;
+        }
+    }
+    @media (prefers-reduced-motion: reduce) {
+        .turn-transition-orbit::before {
+            animation: none;
+        }
+    }
+}
+@keyframes turn-orbit {
+    to {
+        transform: rotate(360deg);
+    }
+}

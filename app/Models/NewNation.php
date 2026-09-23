@@ -11,6 +11,8 @@ use Illuminate\Database\Eloquent\Builder;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Relations\BelongsTo;
 use Illuminate\Support\Facades\Cache;
+use Illuminate\Support\Facades\DB;
+use Illuminate\Validation\ValidationException;
 use Illuminate\Support\Str;
 use Illuminate\Validation\Rule;
 use Illuminate\Validation\Rules\Unique;
@@ -69,11 +71,13 @@ class NewNation extends Model
         ?string $formalName = null,
         ?string $leaderTitleOrNull = null,
         ?ImageSource $leaderPictureSrcOrNull = null,
+        ?int $primaryColorId = null,
+        ?int $secondaryColorId = null,
     ): Nation {
         if (!is_null($formalName)) {
             $formalName = Str::trim($formalName);
 
-            if (strlen($formalName) < 2 || strlen($formalName) > 1024) {
+            if (mb_strlen($formalName) < 2 || mb_strlen($formalName) > 1024) {
                 throw new LogicException('The formal name must be between 2 and 1024 characters long.');
             }
         }
@@ -82,8 +86,17 @@ class NewNation extends Model
             throw new LogicException("Parameter homeTerritoryIds: expecting " . Game::NUMBER_OF_STARTING_TERRITORIES . " IDs, " . count($homeTerritoryIds) . " specified");
         }
 
-        $nation = Cache::lock(NewNation::CRITICAL_SECTION_HOME_TERRITORIES_SELECT_CACHE_NAME, 10)->block(2, function () use ($flagSrc, $formalName, $homeTerritoryIds, $leaderName, $leaderTitleOrNull, $leaderPictureSrcOrNull) {
+        $nation = Cache::lock(NewNation::CRITICAL_SECTION_HOME_TERRITORIES_SELECT_CACHE_NAME . ":{$this->game_id}", 60)->block(3, function () use ($flagSrc, $formalName, $homeTerritoryIds, $leaderName, $leaderTitleOrNull, $leaderPictureSrcOrNull, $primaryColorId, $secondaryColorId) {
+            return DB::transaction(function () use ($flagSrc, $formalName, $homeTerritoryIds, $leaderName, $leaderTitleOrNull, $leaderPictureSrcOrNull, $primaryColorId, $secondaryColorId) {
+                $record = Nation::withoutGlobalScopes()->lockForUpdate()->findOrFail($this->getId());
+                if ((int) $record->nation_setup_status === NationSetupStatus::FinishedSetup->value) abort(409, __('entry.already_created'));
+                $validate = Territory::createValidationSuitableHomeTerritory($this->getGame());
+                $validate('territory_ids', $homeTerritoryIds, function () {
+                    throw ValidationException::withMessages(['territory_ids' => __('entry.territories')]);
+            });
             $nation = Nation::notNull(Nation::withoutGlobalScopes()->find($this->getId()));
+            if ($primaryColorId !== null && $secondaryColorId !== null)
+                NationColorAssignment::choose($nation, $primaryColorId, $secondaryColorId);
             
             $homeTerritories = $nation->getGame()->freeSuitableTerritoriesInTurn()->whereIn('id', $homeTerritoryIds)->get();
             
@@ -120,6 +133,7 @@ class NewNation extends Model
             Metacache::expireAllforTurn($nation->getGame()->getCurrentTurn());
 
             return $nation;
+            });
         });
 
         assert($nation instanceof Nation);
@@ -180,7 +194,7 @@ class NewNation extends Model
     public static function tryCreate(Game $game, User $user, string $usualName): NewNation|NationWithSameNameAlreadyExists {
         $usualName = Str::trim($usualName);
 
-        if (strlen($usualName) < 2 || strlen($usualName) > 100) {
+        if (mb_strlen($usualName) < 2 || mb_strlen($usualName) > 100) {
             throw new LogicException('The usual name must be between 2 and 100 characters long.');
         }
 
@@ -192,13 +206,25 @@ class NewNation extends Model
             return new NationWithSameNameAlreadyExists($usualName);
         }
 
-        $nation = new NewNation();
-        $nation->game_id = $game->getId();
-        $nation->user_id = $user->getId();
-        $nation->nation_setup_status = NationSetupStatus::HomeTerritoriesSelection->value;
-        $nation->name = $usualName;
-        $nation->save();
+        return DB::transaction(function () use ($game, $user, $usualName) {
+            Game::whereKey($game->getId())->lockForUpdate()->firstOrFail();
+            // Recheck under the same lock used to reserve a colour.
+            if (NewNation::userAlreadyHasANationInGame($game, $user)) {
+                throw new LogicException('This user already has a nation in this game.');
+            }
+            if (NewNation::nationWithSameNameAlreadyExistsInGame($game, $usualName)) {
+                return new NationWithSameNameAlreadyExists($usualName);
+            }
+            $nation = new NewNation();
+            $nation->game_id = $game->getId();
+            $nation->user_id = $user->getId();
+            $nation->nation_setup_status = NationSetupStatus::HomeTerritoriesSelection->value;
+            $nation->name = $usualName;
+            $nation->save();
 
-        return $nation;
+            NationColorAssignment::assignAvailable($game->getId(), $nation->getId());
+
+            return $nation;
+        });
     }
 }

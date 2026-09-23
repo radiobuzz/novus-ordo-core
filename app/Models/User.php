@@ -100,7 +100,7 @@ class User extends Authenticatable
     }
 
     public function hasJoinedGame(Game $game): bool {
-        return $game->isActive(); //Assumes there is only one active game and all users auto join.
+        return app(\App\Services\GameAccess::class)->allows($game, $this); // Initial open-game eligibility.
     }
 
     public function getNationSetupStatus(Game $game): NationSetupStatus {

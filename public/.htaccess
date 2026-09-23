@@ -5,6 +5,9 @@
 
     RewriteEngine On
 
+    # Missing notification files are static 404s, never a Laravel/PHP request.
+    RewriteRule ^var/turn-status/ - [END]
+
     # Handle Authorization Header
     RewriteCond %{HTTP:Authorization} .
     RewriteRule .* - [E=HTTP_AUTHORIZATION:%{HTTP:Authorization}]

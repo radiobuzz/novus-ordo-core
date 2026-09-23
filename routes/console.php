@@ -13,43 +13,24 @@ Schedule::command(ServerUpkeep::class, [])
     ->everyFiveMinutes()
     ->withoutOverlapping();
 
-Artisan::command('app:next-turn {gameId?}', function (int $gameId = 0) {
-    assert($this instanceof Command);
-
-    if ($gameId == 0) {
-        $game = Game::getCurrent();
-    }
-    else {
-        $gameOrNull = Game::find($gameId);
-
-        if (is_null($gameOrNull)) {
-            $this->fail("Game ID '$gameId' is invalid.");
-        }
-
-        $game = Game::notNull($gameOrNull);
-
-        if (!$game->isActive()) {
-            $this->fail("Game with ID '$gameId' is not active.");
-        }
-    }
-
+Artisan::command('app:next-turn {gameId}', function (int $gameId) {
+    $game = Game::findOrFail($gameId);
     $turn = $game->getCurrentTurn();
-
-    echo "Game {$game->getId()} was on turn {$turn->getNumber()}" . PHP_EOL;
-
     $newTurn = $game->tryNextTurn($turn);
+    $this->info("Game {$gameId} is now on turn {$newTurn->getNumber()}.");
+})->purpose('Advance the explicitly selected active game.');
 
-    $this->info("Game {$game->getId()} is now on turn {$newTurn->getNumber()}");
-})->purpose('Move the game to next turn.');
-
-Artisan::command('app:rollback-turn', function () {
-    $game = Game::getCurrent();
-    $game->rollbackLastTurn();
-})->purpose('Move the game to next turn.');
+Artisan::command('app:rollback-turn {gameId}', function (int $gameId) {
+    $game = Game::findOrFail($gameId);
+    if ($game->getCurrentTurn()->getNumber() === 1) $this->fail('The first turn cannot be rolled back.');
+    $game->rollbackLastTurn($game->getCurrentTurn()->getId());
+    $this->info("Rolled back game {$gameId}.");
+})->purpose('Roll back the explicitly selected active game.');
 
 Artisan::command('app:start-game', function () {
-    Game::createNew();
-})->purpose('Start a new game.');
+    $game = Game::createNew();
+    $this->info("Created game {$game->getId()}. Existing games remain active.");
+})->purpose('Create an independent active game.');
 
 Artisan::command('app:provision-admin {userName}', function (string $userName) {
     assert($this instanceof Command);

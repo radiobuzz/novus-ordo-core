@@ -1,0 +1,64 @@
+import { chromium, expect } from '@playwright/test';
+import assert from 'node:assert/strict';
+const origin = 'http://127.0.0.1:8792';
+const browser = await chromium.launch({ executablePath: '/opt/google/chrome/chrome', args: ['--no-sandbox'] });
+try {
+    const page = await browser.newPage({ viewport: { width: 1280, height: 900 } });
+    const errors = [];
+    page.on('pageerror', error => errors.push(error.message));
+    const session = await (await page.request.get(origin + '/client/session')).json();
+    const login = await page.request.post(origin + '/login-user', {
+        headers: { Accept: 'application/json', 'X-CSRF-TOKEN': session.csrfToken },
+        data: { username: 'map-admin', password: 'fixture-password' },
+    });
+    assert.equal(login.status(), 200);
+    const games = await (await page.request.get(origin + '/client/admin/api/games')).json();
+    const game = games.games.filter(g => g.active && g.nation_count === 3).sort((a, b) => b.game_id - a.game_id)[0];
+    assert(game, 'Expected isolated three-bot script fixture');
+    const read = async () => (await page.request.get(origin + '/client/admin/api/games/' + game.game_id + '/ai')).json();
+    await page.goto(origin + '/client/admin#/overview?game=' + game.game_id);
+    const selector = page.getByLabel('AI script', { exact: true });
+    await expect(selector).toBeVisible();
+    await selector.selectOption('holding');
+    const before = await read();
+    const target = before.status.players[0].nation_id;
+    await page.getByLabel('AI nation to release').selectOption(String(target));
+    await page.getByRole('button', { name: 'Change AI script', exact: true }).click();
+    await page.getByRole('button', { name: 'Cancel', exact: true }).click();
+    assert.equal((await read()).status.generation, before.status.generation);
+    await page.getByRole('button', { name: 'Change AI script', exact: true }).click();
+    await page.getByRole('button', { name: 'Change script', exact: true }).click();
+    await expect(page.locator('.admin-notice')).toContainText('AI script changed');
+    const selected = await read();
+    assert.equal(selected.status.players[0].script, 'holding');
+    assert.equal(selected.status.players[0].ready, before.status.players[0].ready);
+    await page.getByLabel('Snapshot nation', { exact: true }).selectOption(String(target));
+    const snapshotDownload = page.waitForEvent('download');
+    await page.getByRole('button', { name: 'Download player snapshot', exact: true }).click();
+    const snapshot = await snapshotDownload;
+    assert(snapshot.suggestedFilename().endsWith('-snapshot.json'));
+    const kitDownload = page.waitForEvent('download');
+    await page.getByRole('link', { name: 'Download AI author kit (.zip)' }).click();
+    assert.equal((await kitDownload).suggestedFilename(), 'novus-ai-author.zip');
+    await page.getByRole('button', { name: 'Release to manual control', exact: true }).click();
+    await page.getByRole('button', { name: 'Release controller', exact: true }).click();
+    await expect(page.locator('.admin-notice')).toContainText('Controller removed');
+    await page.getByLabel('Manual nation to assign to AI').selectOption(String(target));
+    await selector.selectOption('broken');
+    await page.getByRole('button', { name: 'Assign AI control', exact: true }).click();
+    await page.getByRole('button', { name: 'Assign controller', exact: true }).click();
+    await expect(page.locator('.admin-notice')).toContainText('AI controller assigned');
+    await page.getByRole('button', { name: 'step', exact: true }).click();
+    await expect(page.locator('.admin-notice')).toContainText('AI step completed');
+    const final = await read();
+    const report = final.reports.find(p => p.nation_id === target);
+    assert.equal(report.result.script, 'experimental-v1');
+    assert.equal(report.result.fallback.script, 'broken');
+    assert.equal(report.script, 'broken');
+    await expect(page.getByText(/Fallback from broken/)).toBeVisible();
+    await page.setViewportSize({ width: 390, height: 844 });
+    await expect(selector).toBeVisible();
+    await page.screenshot({ path: '/tmp/novus-ai-admin-mobile.png', fullPage: true });
+    assert.deepEqual(errors, []);
+    console.log('PASS real admin selection/cancel, preserved readiness, snapshot/kit downloads, release/reassign, fallback report and narrow layout');
+} finally { await browser.close(); }

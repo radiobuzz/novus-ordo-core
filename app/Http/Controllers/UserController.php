@@ -32,6 +32,6 @@ class UserController extends Controller
     public function logoutCurrentUser(): Response {
         User::logoutCurrentUser();
 
-        return response('Logged out. <a href="' . route('login') . '">go to login</a>');
+        return redirect()->route('client.entry');
     }
 }

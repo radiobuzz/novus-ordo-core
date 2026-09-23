@@ -19,11 +19,7 @@ class LoggedInGameContext {
         }
         $this->user = $userOrNull;
         
-        $gameOrNull = Game::getCurrentOrNull();
-        if(is_null($gameOrNull)) {
-            abort(HttpStatusCode::BadRequest, 'Bad context: need an authenticated user that joined a game. No active game.');
-        }
-        $this->game = $gameOrNull;
+        $this->game = app(SelectedGame::class)->resolve();
     }
 
     public function getGame(): Game {

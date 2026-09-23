@@ -21,11 +21,7 @@ class NationContext {
         }
         $user = $userOrNull;
 
-        $gameOrNull = Game::getCurrentOrNull();
-        if(is_null($gameOrNull)) {
-            abort(HttpStatusCode::BadRequest, 'd context: need an authenticated user with a nation. No active game.');
-        }
-        $this->game = $gameOrNull;
+        $this->game = app(SelectedGame::class)->resolve();
         
         $nationOrNull = Nation::getForUserOrNull($this->game, $user);
         if (is_null($nationOrNull)) {

@@ -1,0 +1,6 @@
+@mixin eyebrow {
+    font: 500 0.65rem/1.5 var(--font-ui);
+    letter-spacing: 0.14em;
+    text-transform: uppercase;
+    color: var(--muted);
+}

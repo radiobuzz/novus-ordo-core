@@ -24,6 +24,7 @@
     },
     "autoload": {
         "psr-4": {
+            "ExperimentalAI\\": "modules/ai-player/",
             "App\\": "app/",
             "Database\\Factories\\": "database/factories/",
             "Database\\Seeders\\": "database/seeders/"

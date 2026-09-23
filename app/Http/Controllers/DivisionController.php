@@ -29,13 +29,8 @@ class DivisionController extends Controller
     public function sendDisbandOrders(SendDisbandOrdersRequest $request, NationContext $context): JsonResponse {
         $nation = $context->getNation();
 
-        $sentOrders = [];
-
-        foreach($request->getDisbandOrders() as $order) {
-            assert($order instanceof SentDisbandOrder);
-            $division = $nation->getDetail()->getActiveDivisionWithId($order->division_id);
-            $sentOrders[] = $division->sendDisbandOrder();
-        };
+        $sentOrders = app(\App\Services\NationCommands::class)->disband($nation,
+            array_map(fn (SentDisbandOrder $order) => $order->division_id, $request->getDisbandOrders()));
 
         return response()->json(['data' => array_map(fn (Order $o) => $o->exportForOwner(), $sentOrders)], HttpStatusCode::Created);
     }
@@ -44,39 +39,11 @@ class DivisionController extends Controller
     #[Payload(SendMoveOrdersRequest::class)]
     #[ResponseCollection('data', DisbandOrderInfo::class, 'List of move/attack orders sent.')]
     public function sendMoveOrders(SendMoveOrdersRequest $request, NationContext $context): JsonResponse {
-        $game = $context->getGame();
-        $nation = $context->getNation();
-        $detail = $nation->getDetail();
-
-        $startAttackingTypes = collect($request->getMoveOrders())
-            ->filter(function (SentMoveOrder $mo) use ($detail, $game) {
-                return $detail->isHostileTerritory($game->getTerritoryWithId($mo->destination_territory_id));
-            })
-            ->map(fn (SentMoveOrder $mo) => $detail->getActiveDivisionWithId($mo->division_id))
-            ->filter(fn (Division $d) => !$d->getDetail()->isOperating())
-            ->map(fn (Division $d) => $d->getDivisionType());
-
-        if (!$nation->getDetail()->canAffordCosts(DivisionType::calculateTotalAttackCostsByResourceType(...$startAttackingTypes))) {
-            abort(HttpStatusCode::UnprocessableContent, "Nation doesn't have enough resources to afford move/attack costs.");
-        }
-
-        $sentOrders = [];
-
-        foreach($request->getMoveOrders() as $order) {
-            assert($order instanceof SentMoveOrder);
-            $division = $detail->getActiveDivisionWithId($order->division_id);
-            $destination = $game->getTerritoryWithId($order->destination_territory_id);
-            if (!$division->getDetail()->canMoveTo($destination, ...collect($order->path_territory_ids)->map(fn (int $territoryId) => $game->getTerritoryWithId($territoryId, true)))) {
-                abort(HttpStatusCode::UnprocessableContent, "Division ID {$order->division_id} can't reach Territory ID {$order->destination_territory_id}.");
-            }
-        }
-        
-        foreach($request->getMoveOrders() as $order) {
-            assert($order instanceof SentMoveOrder);
-            $division = $detail->getActiveDivisionWithId($order->division_id);
-            $destination = $game->getTerritoryWithId($order->destination_territory_id);
-            $sentOrders[] = $division->sendMoveAttackOrder($destination, ...collect($order->path_territory_ids)->map(fn (int $territoryId) => $game->getTerritoryWithId($territoryId, true)));
-        };
+        $sentOrders = app(\App\Services\NationCommands::class)->move($context->getNation(),
+            array_map(fn (SentMoveOrder $order) => [
+                'division_id' => $order->division_id, 'destination_territory_id' => $order->destination_territory_id,
+                'path_territory_ids' => $order->path_territory_ids,
+            ], $request->getMoveOrders()));
         
         return response()->json(['data' => array_map(fn (Order $o) => $o->exportForOwner(), $sentOrders)], HttpStatusCode::Created);
     }
@@ -87,10 +54,7 @@ class DivisionController extends Controller
     public function cancelOrders(CancelOrdersRequest $request, NationContext $context): JsonResponse {
         $nation = $context->getNation();
 
-        foreach($request->division_ids as $divisionId) {
-            $division = $nation->getDetail()->getActiveDivisionWithId($divisionId);
-            $division->cancelOrder();
-        };
+        app(\App\Services\NationCommands::class)->cancelOrders($nation, $request->division_ids);
         
         return response()->json(null, HttpStatusCode::NoContent);
     }

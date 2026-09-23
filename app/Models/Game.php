@@ -4,6 +4,7 @@ namespace App\Models;
 
 use App\Domain\SharedAssetType;
 use App\Domain\GenerationData;
+use App\Domain\GeneratedMapData;
 use App\Domain\Ranking;
 use App\Domain\TerritoryConnectionData;
 use App\Domain\VictoryGoal;
@@ -16,15 +17,15 @@ use App\ReadModels\GameReadyStatusInfo;
 use App\ReadModels\RankingInfo;
 use App\ReadModels\VictoryGoalInfo;
 use App\ReadModels\VictoryStatusInfo;
-use App\Services\StaticJavascriptResource;
+use App\Services\GameTurnStatus;
 use Illuminate\Database\Eloquent\Builder;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Relations\HasMany;
 use Illuminate\Database\Eloquent\Relations\HasOne;
 use Illuminate\Support\Collection;
 use Illuminate\Support\Facades\Cache;
+use Illuminate\Support\Facades\DB;
 use LogicException;
-use PhpOption\Option;
 
 readonly class GameHasNotEnoughFreeTerritories {
     public function __construct(
@@ -58,6 +59,10 @@ class Game extends Model
 
     public function territories(): HasMany {
         return $this->hasMany(Territory::class);
+    }
+
+    public function map(): HasOne {
+        return $this->hasOne(GameMap::class);
     }
 
     public function turns(): HasMany {
@@ -103,11 +108,11 @@ class Game extends Model
         if ($cache) {
             static $cachedTerritoriesByGameIdTerritoryId = [];
 
-            if (!isset($cachedTerritoriesByGameIdTerritoryId[$this->game_id][$territoryId])) {
-                $cachedTerritoriesByGameIdTerritoryId[$this->game_id][$territoryId] = $this->territories()->find($territoryId);
+            if (!isset($cachedTerritoriesByGameIdTerritoryId[$this->getId()][$territoryId])) {
+                $cachedTerritoriesByGameIdTerritoryId[$this->getId()][$territoryId] = $this->territories()->find($territoryId);
             }
 
-            return $cachedTerritoriesByGameIdTerritoryId[$this->game_id][$territoryId];
+            return $cachedTerritoriesByGameIdTerritoryId[$this->getId()][$territoryId];
         }
 
         return $this->territories()->find($territoryId);
@@ -164,7 +169,9 @@ class Game extends Model
 
     public function exportReadyStatus(): GameReadyStatusInfo {
         Cache::lock($this->getCacheLockKeyForChangeTurn(), RuntimeInfo::maxExectutionTimeSeconds() * 0.8)
-            ->block(RuntimeInfo::maxExectutionTimeSeconds() * 0.8, function () {});
+            ->block(RuntimeInfo::maxExectutionTimeSeconds() * 0.8, function () {
+                app(GameTurnStatus::class)->ensure(Turn::getCurrentForGame($this));
+            });
         $turn = $this->getCurrentTurn();
         return new GameReadyStatusInfo(
             turn_number: $turn->getNumber(),
@@ -204,25 +211,20 @@ class Game extends Model
     }
 
     public function isUpkeeping(): bool {
-        $creatingGame = !Cache::lock(Game::CacheLockKeyCritalSectionCreateGame, 1)
-            ->get(fn () => true);
-
-        if ($creatingGame) {
-            return true;
-        }
-
         return !Cache::lock($this->getCacheLockKeyForChangeTurn(), 1)
             ->get(fn () => true);
     }
 
-    private function getCacheLockKeyForChangeTurn(): string {
+    public function getCacheLockKeyForChangeTurn(): string {
         return "critical_section:change_turn_game_{$this->getId()}";
     }
 
     public function tryNextTurn(Turn $turnToEnd): Turn {
+        if ($turnToEnd->getGameId() !== $this->getId()) abort(409, 'The turn belongs to another game.');
         $lock = Cache::lock($this->getCacheLockKeyForChangeTurn(), RuntimeInfo::maxExectutionTimeSeconds() * 0.8);
 
         $gotLock = $lock->get(function () use ($turnToEnd) {
+                if (!$this->fresh()->isActive()) abort(409, 'This game is archived.');
                 $currentTurn = Turn::getCurrentForGame($this);
 
                 if ($turnToEnd->getId() != $currentTurn->getId()) {
@@ -233,76 +235,61 @@ class Game extends Model
                     return;
                 }
 
-                $currentTurn->end();
-
-                $nextTurn = $currentTurn->createNext();
-
-                // Upkeep.
-                $this->nations()->get()->each(fn (Nation $n) => $n->onNextTurn($currentTurn, $nextTurn));
-                $this->territories()->get()->each(fn (Territory $t) => $t->onNextTurn($currentTurn, $nextTurn));
-                $this->activeDivisionsInTurn($currentTurn)->get()->each(fn (Division $d) => $d->onNextTurn($currentTurn, $nextTurn));
-
-                // Move divisions.
-                $this->activeDivisionsInTurn($currentTurn)->get()->each(fn (Division $d) => $d->onMovePhase($currentTurn, $nextTurn));
-
-                $territoriesByAttackerNationId = [];
-
-                // Attacks.
-                $divisionsByOwnerAndDestinationTerritory = $this->activeDivisionsInTurn($currentTurn)->get()
-                    ->filter(fn (Division $d) => $d->getDetail($currentTurn)->isEngaging())
-                    ->groupBy([
-                        fn (Division $d) => $d->getNation()->getId() . '-' . $d->getDetail($currentTurn)->getOrder()->getTargetTerritory()->getId()
-                    ])
-                    ->shuffle();
-                foreach ($divisionsByOwnerAndDestinationTerritory as $attackingDivisions) {
-                    $firstDivision = Division::notNull($attackingDivisions->first());
-                    $destinationTerritoryId = $firstDivision
-                        ->getDetail($currentTurn)
-                        ->getOrder()
-                        ->getTargetTerritory()
-                        ->getId();
-                    $destinationTerritory = $this->getTerritoryWithId($destinationTerritoryId);
-
-                    $territoriesByAttackerNationId[$firstDivision->getNationId()] ??= [];
-                    $territoriesByAttackerNationId[$firstDivision->getNationId()][] = $destinationTerritory;
-
-                    Battle::resolveBattle($destinationTerritory, $currentTurn, $nextTurn, $attackingDivisions);
-                    $attackingDivisions->each(fn (Division $d) => $d->getDetail($currentTurn)->getOrder()->onExecution());
+                if (!app(\App\Services\GameParticipants::class)->canAdvance($this, $currentTurn)) {
+                    abort(409, 'Automated participants must finish their turns before resolution.');
                 }
 
-                foreach ($territoriesByAttackerNationId as $attackerNationId => $targets) {
-                    $conqueredTerritories = [];
-                    $repelledOnTerritoriees = [];
+                return app(GameTurnStatus::class)->during($this->getId(), $currentTurn->getNumber(), function () use ($currentTurn) {
+                    $currentTurn->end();
 
-                    foreach ($targets as $targetTerritory) {
-                        if ($targetTerritory->getDetail($nextTurn)->ownerIdEquals($attackerNationId)) {
-                            $conqueredTerritories[] = $targetTerritory;
+                    $nextTurn = $currentTurn->createNext();
+
+                    // Upkeep.
+                    $this->nations()->get()->each(fn (Nation $n) => $n->onNextTurn($currentTurn, $nextTurn));
+                    $this->territories()->get()->each(fn (Territory $t) => $t->onNextTurn($currentTurn, $nextTurn));
+                    $this->activeDivisionsInTurn($currentTurn)->get()->each(fn (Division $d) => $d->onNextTurn($currentTurn, $nextTurn));
+
+                    // Move divisions.
+                    $this->activeDivisionsInTurn($currentTurn)->get()->each(fn (Division $d) => $d->onMovePhase($currentTurn, $nextTurn));
+
+                    // Attacks.
+                    $divisionsByOwnerAndDestinationTerritory = $this->activeDivisionsInTurn($currentTurn)->get()
+                        ->filter(fn (Division $d) => $d->getDetail($currentTurn)->isEngaging())
+                        ->groupBy([
+                            fn (Division $d) => $d->getNation()->getId() . '-' . $d->getDetail($currentTurn)->getOrder()->getTargetTerritory()->getId()
+                        ])
+                        ->shuffle();
+                    foreach ($divisionsByOwnerAndDestinationTerritory as $attackingDivisions) {
+                        $firstDivision = Division::notNull($attackingDivisions->first());
+                        $destinationTerritoryId = $firstDivision
+                            ->getDetail($currentTurn)
+                            ->getOrder()
+                            ->getTargetTerritory()
+                            ->getId();
+                        $destinationTerritory = $this->getTerritoryWithId($destinationTerritoryId);
+
+                        if (app(\App\Services\GameParticipants::class)->canEngage($firstDivision->getNation(), $destinationTerritory, $nextTurn)) {
+                            $battle = Battle::resolveBattle($destinationTerritory, $currentTurn, $nextTurn, $attackingDivisions);
+                            News::createBattle($nextTurn, $battle);
+                        } else {
+                            News::create($nextTurn, 'An automated attack was held because the territory is now protected.');
                         }
-                        else {
-                            $repelledOnTerritoriees[] = $targetTerritory;
-                        }
+                        $attackingDivisions->each(fn (Division $d) => $d->getDetail($currentTurn)->getOrder()->onExecution());
                     }
 
-                    if (count($conqueredTerritories) > 0) {
-                        News::create($nextTurn, News::getNationUsualNameTag($this->getNationWithIdOrNull($attackerNationId)->getDetail($nextTurn)) . " conquered territories " . collect($conqueredTerritories)->map(fn (Territory $t) => News::getTerritoryNameTag($t))->join(", ") . ".");
-                    }
+                    $this->activeDivisionsInTurn($currentTurn)->get()->each(fn (Division $d) => $d->afterBattlePhase($currentTurn, $nextTurn));
 
-                    if (count($repelledOnTerritoriees) > 0) {
-                        News::create($nextTurn, News::getNationUsualNameTag($this->getNationWithIdOrNull($attackerNationId)->getDetail($nextTurn)) . " was repelled on territories " . collect($repelledOnTerritoriees)->map(fn (Territory $t) => News::getTerritoryNameTag($t))->join(", ") . ".");
-                    }
-                }
+                    $this->nations()->get()->each(fn (Nation $n) => $n->onTurnUpkeepEnding($currentTurn, $nextTurn));
 
-                $this->activeDivisionsInTurn($currentTurn)->get()->each(fn (Division $d) => $d->afterBattlePhase($currentTurn, $nextTurn));
+                    $this->updateVictoryStatus($nextTurn);
 
-                $this->nations()->get()->each(fn (Nation $n) => $n->onTurnUpkeepEnding($currentTurn, $nextTurn));
+                    $this->save();
 
-                $this->updateVictoryStatus($nextTurn);
+                    $nextTurn->activate();
 
-                $this->save();
-
-                $nextTurn->activate();
-
-                Nation::resetAllReadyForNextTurnStatuses($this);
+                    Nation::resetAllReadyForNextTurnStatuses($this);
+                    return $nextTurn;
+                });
             });
         
         if (!$gotLock) {
@@ -313,23 +300,33 @@ class Game extends Model
         return Turn::getCurrentForGame($this);
     }
 
-    public function rollbackLastTurn(): void {
+    public function rollbackLastTurn(?int $expectedTurnId = null): void {
         $lock = Cache::lock($this->getCacheLockKeyForChangeTurn(), RuntimeInfo::maxExectutionTimeSeconds() * 0.8);
 
-        $gotLock = $lock->get(function () {
+        $gotLock = $lock->get(function () use ($expectedTurnId) {
+            if (!$this->fresh()->isActive()) abort(409, 'This game is archived.');
             $lastTurn = Turn::getCurrentForGame($this);
+
+            if ($expectedTurnId !== null && $lastTurn->getId() !== $expectedTurnId) {
+                abort(409, 'The turn changed. Refresh before rolling back.');
+            }
 
             if ($lastTurn->getNumber() == 1) {
                 throw new LogicException("Can't roll back the first turn!");
             }
 
-            $lastTurn->delete(); // Will cascade.
+            return app(GameTurnStatus::class)->during($this->getId(), $lastTurn->getNumber(), function () use ($lastTurn) {
+                $lastTurn->delete(); // Will cascade.
 
-            $currentTurn = Turn::getCurrentForGame($this);
+                $currentTurn = Turn::getCurrentForGame($this);
 
-            $currentTurn->reset();
+                $currentTurn->reset();
 
-            $this->updateVictoryStatus($currentTurn);
+                app(\App\Services\GameParticipants::class)->reset($this, $currentTurn);
+
+                $this->updateVictoryStatus($currentTurn);
+                return $currentTurn;
+            });
         });
 
         if (!$gotLock) {
@@ -341,7 +338,7 @@ class Game extends Model
     private function updateVictoryStatus(Turn $turn): void {
         $winnerOrNull = $this->getWinnerOrNull($turn);
 
-        $this->victory_status = is_null($winnerOrNull) ? VictoryStatus::HasNotBeenWon : VictoryStatus::HasBeenWon->value;
+        $this->victory_status = is_null($winnerOrNull) ? VictoryStatus::HasNotBeenWon->value : VictoryStatus::HasBeenWon->value;
 
         $this->save();
     }
@@ -365,6 +362,7 @@ class Game extends Model
             $rankedNations = $nationRankings[$index];
             assert($rankedNations instanceof Collection);
             $exported[] = new RankingInfo(
+                key: $rankingMeta->key,
                 title: $rankingMeta->title,
                 ranked_nation_ids: $rankedNations->keys()->map(fn ($nationId) => $nationId)->values()->all(),
                 data_unit: $rankingMeta->unit->name,
@@ -382,14 +380,6 @@ class Game extends Model
             winnerNationId: $this->getWinnerOrNull($turn)?->getId(),
             goals: collect($this->getGoals($turn)),
             progressions: collect($this->getVictoryProgression($turn)),
-        );
-    }
-
-    public function getRankingsClientResource(Turn $turn): StaticJavascriptResource {
-        return StaticJavascriptResource::forTurn(
-            'rankings-turn-js',
-            fn() => "let allRankings = " . json_encode($this->exportRankings($turn)) . ";",
-            $turn
         );
     }
 
@@ -446,51 +436,41 @@ class Game extends Model
         return new GameHasEnoughFreeTerritories();
     }
 
+    /** Compatibility only: callers must supply a game once multiple games are active. */
     public static function getCurrentOrNull(): ?Game {
-        return Game::where('is_active', 1)
-            ->first();
+        $games = app(\App\Services\GameAccess::class)->availableGames()->limit(2)->get();
+        if ($games->count() > 1) abort(409, 'Multiple games are active. Supply an explicit game ID.');
+        return $games->first();
     }
 
     public static function getCurrent(): Game {
-        return Game::where('is_active', 1)
-            ->first();
-    }
-    private const CacheLockKeyCritalSectionCreateGame = "critical_section:create_game";
-
-    public static function createNew(): Game {
-        $lock = Cache::lock(Game::CacheLockKeyCritalSectionCreateGame, RuntimeInfo::maxExectutionTimeSeconds() * 0.8);
-
-        $gameOrFalsy = $lock->get(function () {
-            $currentGameOrNull = Game::getCurrentOrNull();
-
-            Option::fromValue($currentGameOrNull)->forAll(function (Game $currentGame) {
-                $currentGame->disable();
-                $currentGame->save();
-            });
-
-            return Game::create();
-        });
-
-        if (!$gameOrFalsy) {
-            // Assuming that another create game command is executing, waiting for the execution to finish.
-            $lock->block(RuntimeInfo::maxExectutionTimeSeconds() * 0.8, function () {});
-
-            return Game::getCurrent();
-        }
-        else {
-            return $gameOrFalsy;
-        }
+        return self::getCurrentOrNull() ?? abort(409, 'No active game is available.');
     }
 
-    private static function create() {
+    // Serializes creation only; existing games never acquire this lock.
+    public const CacheLockKeyCritalSectionCreateGame = "critical_section:create_game";
+
+    public static function createNew(?GeneratedMapData $generatedMap = null, ?\Closure $prepare = null): Game {
+        $result = Cache::lock(self::CacheLockKeyCritalSectionCreateGame, RuntimeInfo::maxExectutionTimeSeconds() * 0.8)
+            ->get(fn () => DB::transaction(function () use ($generatedMap, $prepare) {
+                $game = Game::create($generatedMap);
+                if ($prepare) $prepare($game);
+                return $game;
+            }));
+        if ($result === false) abort(409, 'Another game is being created. Check the game list before retrying.');
+        return $result;
+    }
+
+    private static function create(?GeneratedMapData $generatedMap = null) {
         $game = new Game();
         $game->is_active = true;
-        $game->victory_status = VictoryStatus::HasNotBeenWon;
+        $game->victory_status = VictoryStatus::HasNotBeenWon->value;
         $game->save();
 
         $turn = Turn::createFirst($game);
 
-        $mapData = GenerationData::getMapData();
+        $mapData = $generatedMap?->mapData ?? GenerationData::getMapData();
+        if ($generatedMap !== null) GameMap::create($game, $generatedMap);
 
         $territoriesByCoords = [];
 
@@ -507,6 +487,9 @@ class Game extends Model
         GameSharedStaticAsset::inventory($game);
 
         $turn->activate();
+
+        // The new game's notification is visible only after its creation transaction commits.
+        DB::afterCommit(fn () => app(GameTurnStatus::class)->publish($game->getId(), $turn->getNumber(), 'ready'));
 
         return $game;
     }

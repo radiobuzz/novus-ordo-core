@@ -1,0 +1,102 @@
+.production-panel {
+    padding: var(--space-3);
+}
+.production-panel h3,
+.production-card h4 {
+    margin: 0;
+}
+.production-panel > p,
+.production-card p {
+    font-size: var(--font-small);
+}
+.production-cards {
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(min(100%, 260px), 1fr));
+    gap: var(--space-3);
+}
+.production-card {
+    border: 1px solid var(--border-default);
+    padding: var(--space-3);
+    border-radius: var(--radius);
+    background: var(--surface-panel);
+    min-width: 0;
+}
+.production-card header {
+    display: flex;
+    align-items: center;
+    gap: var(--space-2);
+}
+.production-card form {
+    display: grid;
+    gap: var(--space-2);
+}
+.production-plan {
+    border-top: 1px solid var(--border-default);
+    padding-top: var(--space-2);
+}
+.production-plan-status {
+    margin-block: 0 var(--space-2);
+}
+.production-plan-status[data-tone='ready'] {
+    color: var(--status-ready);
+}
+.production-plan-status[data-tone='warning'] {
+    color: var(--status-warning);
+}
+.production-plan-status[data-tone='danger'] {
+    color: var(--action-danger);
+}
+.production-plan-status[data-tone='muted'],
+.production-plan-note {
+    color: var(--text-muted);
+}
+.production-plan-stats {
+    display: grid;
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+    gap: var(--space-2);
+    margin: 0;
+}
+.production-plan-stats div {
+    min-width: 0;
+}
+.production-plan-stats dt {
+    color: var(--text-muted);
+    font-size: var(--font-tiny);
+}
+.production-plan-stats dd {
+    margin: 0;
+    overflow-wrap: anywhere;
+}
+.production-plan-note {
+    margin-block: var(--space-2);
+    font-size: var(--font-tiny);
+}
+.production-territories summary {
+    cursor: pointer;
+    color: var(--accent-command);
+    font-size: var(--font-small);
+}
+.production-territories ul {
+    margin-block: var(--space-2) 0;
+    padding-inline-start: var(--space-4);
+}
+.production-territories li {
+    margin-block: var(--space-1);
+    font-size: var(--font-tiny);
+}
+.production-territories li[data-eligible='false'] {
+    color: var(--text-muted);
+}
+.production-card .ui-field {
+    margin-block: 0;
+}
+.production-card [data-tone='danger'] {
+    color: var(--action-danger);
+}
+.production-territory {
+    border-left: 2px solid var(--accent-command);
+    padding-left: var(--space-2);
+}
+.production-territory p {
+    font-size: var(--font-small);
+}

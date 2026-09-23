@@ -16,9 +16,17 @@
 /public/build
 /public/hot
 /public/storage
+/public/var/turn-status/*.json
+/public/var/turn-status/.turn-*
 /storage/*.key
 /storage/pail
 /vendor
+/test-results
+/playwright-report
+/artifacts
+/[1-6].png
+/.no7-deployed
+/storage/app/client-backups
 Homestead.json
 Homestead.yaml
 Thumbs.db

@@ -37,7 +37,7 @@ class LaborPool extends Model
                 'labor_pools.turn_id',
                 'labor_pools.territory_id',
                 'labor_pools.size',
-                DB::raw('labor_pools.size - (SELECT SUM(labor_pool_allocations.allocation) FROM labor_pool_allocations WHERE labor_pool_allocations.labor_pool_id = labor_pools.id AND labor_pool_allocations.resource_type != ' . ResourceType::Capital->value . ') as free_labor')
+                DB::raw('labor_pools.size - COALESCE((SELECT SUM(labor_pool_allocations.allocation) FROM labor_pool_allocations WHERE labor_pool_allocations.labor_pool_id = labor_pools.id AND labor_pool_allocations.resource_type != ' . ResourceType::Capital->value . '), 0) as free_labor')
             ])
             ->groupBy(
                 'labor_pools.id',
