@@ -6,6 +6,8 @@ Basis: [Economy and policies — philosophical foundation](economy-and-policies-
 
 Purpose: give the discussion a concrete vocabulary for persistent conditions, turn activity, systems, and configurable policies. Distinguish recommendations below from already established direction. Numeric units, coefficients, exact storage, and balance remain undecided.
 
+Latest scope clarification: migration and emerging urban centres are included in the initial proposed system; ports, explicit maritime trade routes/blockades and physical goods transport are deferred. Abstract geographic access can still influence local opportunity. Preserve the Map Lab's climate/hydrology information as world data. The [geography, population and map visuals discussion](geography-population-and-map-visuals-discussion.md) distinguishes agreed direction from proposed bay/shore heuristics and visual representations; no implementation is authorized by that discussion. The [completed copper lab](economy-lab.md) is evidence for the investment/price loop, not a frozen production formula.
+
 ## 1. Accepted high-level model boundary
 
 The accepted scope is recorded in the [philosophical foundation](economy-and-policies-discussion.md). Acceptance establishes the aggregate local-economy concept, not every candidate field, effect, or algorithm below.

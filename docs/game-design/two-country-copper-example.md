@@ -6,6 +6,8 @@ Status: illustrative proposal, not accepted balance, a selected pricing algorith
 
 Basis: [economic discussion](economy-and-policies-discussion.md), [simulation foundations](economy-simulation-foundations.md), and [policy effects](policy-effect-vocabulary.md).
 
+Follow-up: the user subsequently preferred testing a simpler aggregate market. The [Economy Lab](economy-lab.md) implements posted seasonal prices, funded requests and explicit shortage allocation, with different assumptions and numerical results. The auction below remains historical illustrative reasoning, not the chosen lab algorithm.
+
 ## Purpose and boundary
 
 Follow a normal season and an alternative military-buildup season from the same opening situation. The alternatives are comparisons, not consecutive turns reusing the same supplies. They demonstrate public/private ownership, civilian demand, funded military procurement, international exchange, scarcity, and political choices.

@@ -4,6 +4,8 @@ Discussion captured: 2026-09-23.
 
 Expanded to include the subsequent discussion of trade, civilian demand, services, policy inheritance, and the V2 world foundation.
 
+Latest discussion update: 2026-09-24. The companion [geography, population and map visuals discussion](geography-population-and-map-visuals-discussion.md) records the initial migration/urban scope, deferred maritime systems, coastal/lake opportunities, proposed bay/shore interpretation and accepted aggregate visual direction. No implementation of those additions is authorized by this update.
+
 Status: the local-economy concept was accepted as the high-level foundation on 2026-09-24. Detailed mechanisms, indicator definitions, balance, and data structures remain open. The acceptance below does not turn every exploratory example in this document into a frozen decision.
 
 ## Central direction
@@ -13,6 +15,10 @@ Novus Ordo is moving toward a **policy-driven geopolitical economy: the player g
 This high-level direction is now the foundation to realize and develop further. Several detailed choices remain open.
 
 ## High-level acceptance — 2026-09-24
+
+Experimental follow-up: the user authorized a standalone [Economy Lab](economy-lab.md) to test the simpler aggregate market approach in the browser without a database or game engine. It separates needs, funded requests and deliveries, and exposes all resource/money accounts. Its shared price, allocation rules and externally renewed budgets are laboratory hypotheses, not newly frozen game decisions.
+
+Final experiment on this theme: the user then approved delayed private investment, driven by recent operating margins and actual earned funds. Capacity under construction becomes operational later; low prices can idle capacity without destroying it. The lab compares stable demand, sustained buildup and temporary buildup with investment on/off. Overbuilding is a possible consequence, not a guaranteed event. This concludes the authorized experiment scope; its formulas, binary utilization rule and outcome values are not frozen game decisions. The lab handoff records observations and the remaining limits.
 
 The user accepted the following local-economy hypothesis as the basic concept:
 
@@ -88,6 +94,8 @@ Economic opportunities and living conditions influence where people concentrate.
 Cities would emerge visually from sustained population concentration and local conditions. They would not require building-by-building simulation. Dense settlement and prosperity would remain distinct: a crowded, poorly serviced area is different from a developed urban center.
 
 Migration is important to this vision, but its complexity and level of detail remain open. We have not committed to a full employment or individual household simulation.
+
+Scope clarified: migration and emerging urban centres are included in the first version of the proposed economic/settlement system. Ports, naval trade routes, blockades and physical goods transport are deferred. Internal-only migration is a recommendation to evaluate, not an accepted restriction; cross-border movement remains open. Detailed concepts and map representation are in the [geography/population companion](geography-population-and-map-visuals-discussion.md).
 
 ## 6. Economic intervention and political administration have different geographies
 
@@ -184,6 +192,7 @@ Public-service policy and the service sector are different concepts. Health and 
 - Map Lab experiments provide evidence and inspiration. Their implementation and demo rules are not automatically production contracts.
 - Custom X × Y means region counts: more regions means a larger world. Microcell density is a separate dimension whose physical and gameplay consequences still need definition.
 - Terrain V2 is the desired visual direction, but rendering, caching, and interaction performance still need testing.
+- Climate, moisture, rainfall, elevation and drainage information must remain available as world data in the eventual game. Lakes should create economic opportunities and be ownable; naval use is a later possibility. Geographic accessibility can support coastal settlement initially without explicit maritime transport. Named bays and shoreline/exposure interpretation are the user's preferred next Map Lab discussion, before a migration prototype.
 - The real map workspace should evolve into a world-authoring environment.
 - Geographic features should have persistent identities and coherent names, independent of changing political boundaries. A named river is one feature across its course. Exact database representation remains open; features can span multiple regions, cells, or edges.
 - Cultural naming influence centers, diminishing with distance and backed by naming datasets with a default, are an agreed direction for exploration. Precise naming rules remain open.
@@ -193,6 +202,8 @@ Public-service policy and the service sector are different concepts. Health and 
 - Intended play cadence is roughly one or two turns per real day. Longer turn resolution is tolerable, with ten minutes previously described as an undesirable but acceptable upper tolerance. Wall-clock resolution time is separate from the simulated season. Ordinary commands should remain responsive.
 
 ## Open decisions and next discussion
+
+The [copper/investment experiment](economy-lab.md) is complete for this theme and accepted as a useful starting point. It demonstrates aggregate investment, construction delay, supply response and possible overbuilding; its coefficients and binary idling remain provisional. Subsequent discussion turns to geography and demographic/land-use representation, with implementation to be discussed separately in the dedicated task.
 
 The principal unresolved decisions are the persistent local conditions, the meaning of dynamism and other indicators, sector and resource boundaries, public/private investment behavior, monetary accounting, trade settlement, resource depletion and renewal, and the timing of actions within a seasonal turn.
 
