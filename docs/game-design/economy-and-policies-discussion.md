@@ -200,6 +200,8 @@ Funding-percentage semantics, facility counts, city thresholds, unrest mechanics
 
 The companion [economic simulation foundations](economy-simulation-foundations.md) goes one level deeper. It records the accepted high-level boundary and proposals for the remaining details; not every listed mechanism has been accepted.
 
+The [two-country copper example](two-country-copper-example.md) explores a normal season and military-buildup alternative using provisional prices and conserved material/money flows. Its market rule and numbers are examples, not frozen mechanics.
+
 ## Related background
 
 - [Historical Novus Ordo — gameplay feature inventory](historical-novus-ordo-2010-features.md): evidence about the legacy game, separate from the proposed future direction in this document.

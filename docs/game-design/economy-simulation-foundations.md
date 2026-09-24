@@ -198,3 +198,5 @@ A future counsellor, potentially AI-based and using game data, is an optional la
 6. Work through one complete turn in a small illustrative world, then decide exchange, timing, and shortage rules exposed by that example.
 
 This sequence is a recommendation for discussion. It is not a request to build every system or a declaration that the candidate model is final.
+
+A first [two-country copper example](two-country-copper-example.md) now tests funded demand, public/private exchange, military competition, prices, and accounting with explicit illustrative numbers. It does not select the final pricing algorithm or close the full household/producer income cycle.
