@@ -12,6 +12,8 @@ Define what a policy can change before choosing how to store it. Policies compos
 
 The vocabulary below groups economic and institutional responsibilities. These are candidate effect families, not necessarily the final number of software operations. Detailed electoral, diplomatic, or military mechanics may require additional families later.
 
+Initial-scope clarification, 2026-09-24: the player is the national government; provinces initially offer regional reporting and public-budget allocation. Provincial legislation and simulated political-consent requirements are deferred. Examples involving provincial tax authority or autonomy below illustrate possible future uses of this vocabulary, not initial implementation requirements. Governing choices can still create unrest and other consequences.
+
 ## Candidate effect families
 
 | Family | Direct change | Example | What still has to be calculated |

@@ -16,6 +16,8 @@ Use shared physical constraints for public and private activity. Institutions de
 
 Microcells provide geographic precision. They need not independently execute every national or regional process. The exact resolution of social and economic state must be chosen deliberately; changing administrative borders must not create resources, people, or productive capacity.
 
+Initial player scope, clarified 2026-09-24: the player acts as the national government. Provinces initially provide reporting and regional public-budget allocation; their own policies and autonomous political actors are deferred. Simulated political consent is not required to enact decisions initially. References below to provincial legislative authority describe possible later extensions. Governing styles still have economic and political consequences, and the game supports roleplay rather than a single prescribed national ideal.
+
 ## 2. First distinction: conditions, flows, measurements, and rules
 
 | Category | Meaning | Examples |
@@ -46,6 +48,8 @@ This is a candidate inventory to refine, not an instruction to implement every r
 Workforce availability can initially be an aggregate constraint rather than a full employment market. The same people and funds must not be fully allocated to several activities simultaneously.
 
 Ownership can be represented as public/private portions of aggregate activity without creating individual enterprises. Whether public enterprises retain separate funds is still a design choice.
+
+Unrest is now an explicit candidate local political condition. The user favors progressive consequences, from nuisance to productivity stoppage, infrastructure damage, developmental regression, and possible secession in foreign annexed territory. A normalized 0–100 intensity index is a proposal for interpreting the percentage, not a selected formula or percentage of insurgents. Causes, response delays, coercion/backlash, spreading, recovery, and secession remain to be specified. Regional funding unfairness is one possible cause; fiscal transfers alone must not automatically imply unfairness.
 
 ## 4. Candidate economic activities
 
@@ -120,6 +124,8 @@ Separate a policy definition from the player's enacted choice, and from a funded
 
 Effective local rules come from inheritance and authorized exceptions. Some rules replace a default, some establish a minimum, some add funding, and some cannot vary locally. Overlapping zones must not silently double benefits or charge the same commitment twice. A conflict should have an explicit rule or be surfaced before enactment.
 
+For the initial provincial scope, focus on spending allocation under national policies. Do not make provincial tax powers, constitutional consent, or detailed federalism prerequisites for regional development. Regional percentage controls must reconcile to actual public expenditure and national affordability; whether they represent budget shares, funding coverage, or allocation weights remains open.
+
 ### Policy catalogue storage idea — 2026-09-24
 
 The user proposed storing policy definitions, effects, prerequisites, and blockers as data to make balancing easier, then explicitly clarified that database storage is not frozen and needs more implementation understanding before choosing it. The following are considerations for evaluating that option, not an accepted storage direction or schema. The next design step is the storage-independent [policy-effect vocabulary](policy-effect-vocabulary.md).
@@ -180,13 +186,15 @@ Preview a proposed package against continuing current policy. Use the same mecha
 
 A useful preview can show costs, affected areas, expected constraints, direction of change, and timing without pretending to predict every foreign decision. Saved drafts and visible enacted choices remove the need for players to memorize their previous settings.
 
+A future counsellor, potentially AI-based and using game data, is an optional later direction. Initially, explain important changes and consequences directly from the simulation's results. Advice should respect the player's chosen national identity; low liberty, for example, may be intentional rather than a mistake to correct automatically.
+
 ## 12. Suggested order for the next decisions
 
 1. Use the working seasonal timescale to define action timing; separately clarify the physical relationship between world extent and microcell resolution.
 2. Agree the minimum persistent conditions and the geographic scale at which each is tracked; decide what dynamism means.
 3. Test the activity/resource set and civilian final-demand model against a few contrasting economies.
 4. Define public/private purchasing power, income flows, and investment commitments clearly enough to close the accounts.
-5. Establish policy authority, inheritance, permitted effect types, and funding relationships.
+5. Define national policy effects and funding relationships, including simple provincial allocations; defer provincial legislation and political-consent systems.
 6. Work through one complete turn in a small illustrative world, then decide exchange, timing, and shortage rules exposed by that example.
 
 This sequence is a recommendation for discussion. It is not a request to build every system or a declaration that the candidate model is final.

@@ -26,6 +26,31 @@ The user accepted the following local-economy hypothesis as the basic concept:
 
 The particular role of dynamism and all numeric formulas remain undecided. Database storage for policies is an idea to evaluate, explicitly not a frozen decision. The next discussion is the [policy-effect vocabulary](policy-effect-vocabulary.md), independently of storage, while the simulation defines what those effects mean.
 
+## Player role and initial political scope — clarified 2026-09-24
+
+- The player roleplays the national government. The game should support different national identities and governing styles, including authoritarian ones, with recognizable indicators and consequences. It should not impose one preferred political identity or assume that maximizing every indicator is the player's objective.
+- Initially, policy decisions do not require simulated political consent from legislatures, provincial governments, or voters. Institutions and governing choices still have consequences. More elaborate political procedures may be added later.
+- Provinces initially organize regional information and public budget allocation. Provincial policies, autonomous governments, and a detailed constitutional division of powers are deferred. Fundamental economic arrangements remain national.
+- National defaults should let the country operate without mandatory province-by-province configuration. Provincial funding percentages are a possible simple customization control; their exact denominator, costs, and allocation rules are not settled.
+- Regional needs can differ substantially between the founding core, later acquisitions, and damaged areas. Actual conditions determine needs; acquisition date alone does not determine development.
+- Regional funding can cause resentment where perceived injustice is pronounced and persistent. Contributions, unmet needs, public provision, and circumstances should matter; transfers from richer to poorer areas are not automatically unjust. This is a direction for modeling, not a selected formula.
+- A basic aggregate economy capable of producing meaningful domestic and international market prices is the initial ambition. Full company, employment, household, banking, or electricity systems are not prerequisites.
+- A future counsellor, potentially a small AI informed by real game data, is an aspiration rather than an initial requirement. Accessible explanations should not depend on that future capability.
+
+### Unrest direction and remaining design work
+
+The user proposed unrest as a percentage-like measure escalating from nuisance through serious productivity loss, possible production stoppage, infrastructure damage, and broader developmental regression. Severe unrest in foreign annexed territory could ultimately lead to secession. Thresholds, spatial scale, timing, recovery, and secession rules remain open.
+
+Forceful suppression is a possible policy response with financial and political costs. It should not be treated as a free unrest reduction or as categorically impossible in a democracy. The discussed possibility is that coercion, particularly when inconsistent with the country's institutions and rights, can produce backlash or spread unrest; exact rules are undecided.
+
+Recommendations to evaluate: define the visible percentage as an intensity index rather than automatically a fraction of rebels or a probability of secession; derive deterioration through disrupted activity, maintenance, provision, and actual damage rather than applying a universal penalty to every quantity. These are assistant proposals, not frozen mechanics.
+
+### Roleplay and strategic balance
+
+The user's answer to national success emphasizes freedom to rule according to the chosen identity. Political profiles can express that identity even when some welfare or liberty indicators are low. Formal victory conditions remain a separate unresolved design topic.
+
+A reported historical strategic problem is that players who enter war first expose themselves to opportunistic attacks, encouraging a low profile. Trade dependencies, environmental consequences, alliances, diplomacy, and potentially AI nations are hoped to create richer strategic relationships. They are not assumed to solve this incentive problem automatically; it requires playtesting and balance work.
+
 ## 1. The player governs through policies, priorities, and funding
 
 Decisions concern taxation, public services, ownership, environmental rules, infrastructure investment, and regional development programs. Choosing a policy and funding its implementation are separate commitments.
@@ -68,9 +93,9 @@ Migration is important to this vision, but its complexity and level of detail re
 
 Development zones could follow farmland, deposits, or other useful areas across existing regional boundaries.
 
-Provinces or states could provide more stable political jurisdictions, reflecting history, communities, identity, and potentially autonomy. They need not coincide with development zones or contain a single population identity.
+Provinces or states provide stable administrative areas for reporting and regional budget allocation, potentially reflecting history and communities. They need not coincide with development zones or contain a single population identity. Autonomous governments and provincial policy authority are later possibilities, not initial requirements.
 
-This would allow national policy to establish broad conditions while selected places receive specific priorities or arrangements.
+National policies establish the common framework. Regional budgets address different local needs, while development programs target specific places or activities.
 
 ## 7. Stable simulation concepts support configurable policies
 
@@ -103,6 +128,8 @@ Dynamism had an economic role in the legacy game. Its future meaning is unresolv
 ## 10. Development programs bundle policies and inherit unchanged rules
 
 A development program can contain several measures applied to a geographic zone. Unchanged settings inherit the applicable higher-level rules; selected settings can establish explicit exceptions where institutions authorize them.
+
+Scope clarification: the multi-level policy hierarchy below records an explored future direction. The initial provincial role has since been narrowed to reporting and budget allocation; implementing provincial legislation or constitutional amendment procedures is deferred.
 
 Inheritance remains live: changing an inherited provincial or national rule changes what applies locally. An explicit exception retains its setting while it remains permitted. A smaller area does not automatically have authority to override a higher government.
 
@@ -169,7 +196,7 @@ Public-service policy and the service sector are different concepts. Health and 
 
 The principal unresolved decisions are the persistent local conditions, the meaning of dynamism and other indicators, sector and resource boundaries, public/private investment behavior, monetary accounting, trade settlement, resource depletion and renewal, and the timing of actions within a seasonal turn.
 
-Percentages, facility counts, city thresholds, province powers, and exact geographic/economic simulation scales remain open. No complete employment, company, household, banking, or electricity-grid simulation has been accepted.
+Funding-percentage semantics, facility counts, city thresholds, unrest mechanics, and exact geographic/economic simulation scales remain open. Provincial legislative powers and political-consent procedures are deferred. No complete employment, company, household, banking, or electricity-grid simulation has been accepted.
 
 The companion [economic simulation foundations](economy-simulation-foundations.md) goes one level deeper. It records the accepted high-level boundary and proposals for the remaining details; not every listed mechanism has been accepted.
 
