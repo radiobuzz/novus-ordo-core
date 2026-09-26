@@ -36,6 +36,9 @@ Route::view('/dev-panel/portrait-lab', 'dev.portrait-lab')
 // Local flag composition proof: no game data, uploads or server commands.
 Route::view('/dev-panel/identity-lab', 'dev.identity-lab')
     ->middleware(EnsureWhenRunningInDevelopmentOnly::class)->name('dev.identity-lab');
+// In-memory copper market experiment: no game engine or database operations.
+Route::view('/dev-panel/economy-lab', 'dev.economy-lab')
+    ->middleware(EnsureWhenRunningInDevelopmentOnly::class)->name('dev.economy-lab');
 // Static synthetic UI samples only: no game/session data and no commands.
 Route::view('/dev-panel/ui-foundations', 'dev.ui-foundations')
     ->middleware(EnsureWhenRunningInDevelopmentOnly::class)->name('dev.ui-foundations');
@@ -48,6 +51,7 @@ Route::middleware(['auth', EnsureWhenRunningInDevelopmentOnly::class, NoStoreRes
         Route::post('/games', [AdminController::class, 'start'])->name('admin.start');
         Route::get('/games/{game}', [AdminController::class, 'game'])->name('admin.game');
         Route::get('/games/{game}/map', [AdminController::class, 'gameMap'])->name('admin.game-map');
+        Route::post('/games/{game}/lifecycle', [AdminController::class, 'lifecycle'])->name('admin.lifecycle');
         Route::post('/games/{game}/turn', [AdminController::class, 'turn'])->name('admin.turn');
         Route::get('/games/{game}/inspect', [AdminController::class, 'inspect'])->name('admin.inspect');
         Route::get('/games/{game}/ai', [\App\Integrations\AIPlayers\Controller::class, 'report']);
@@ -102,6 +106,18 @@ Route::get('/game/news', [NewsController::class, 'news'])
     ->name('ajax.get-game-news');
 
 // Nation routes.
+Route::middleware(['auth', NoStoreResponse::class])->prefix('nation/diplomacy')->group(function () {
+    Route::get('/', [\App\Http\Controllers\DiplomacyController::class, 'inbox'])->name('ajax.get-diplomacy-inbox');
+    Route::get('/conversations/{nationId}', [\App\Http\Controllers\DiplomacyController::class, 'conversation'])
+        ->whereNumber('nationId')->name('ajax.get-nation-conversation');
+    Route::post('/read', [\App\Http\Controllers\DiplomacyController::class, 'readMessages'])->name('ajax.read-nation-messages');
+    Route::middleware([\App\Http\Middleware\EnsureClientCommandContext::class, 'throttle:nation-messages'])->group(function () {
+        Route::post('/messages', [\App\Http\Controllers\DiplomacyController::class, 'send'])->name('ajax.send-nation-message');
+        Route::post('/offers', [\App\Http\Controllers\DiplomacyController::class, 'propose'])->name('ajax.propose-nation-offer');
+        Route::post('/offers/respond', [\App\Http\Controllers\DiplomacyController::class, 'respond'])->name('ajax.respond-nation-offer');
+        Route::post('/cancel-treaty', [\App\Http\Controllers\DiplomacyController::class, 'cancel'])->name('ajax.cancel-nation-treaty');
+    });
+});
 Route::middleware('auth')->group(function () {
     Route::post('/nation/experimental-ai-step', [\App\Integrations\AIPlayers\Controller::class, 'step'])
         ->middleware(EnsureGameIsNotUpkeeping::class);
@@ -113,6 +129,8 @@ Route::middleware('auth')->group(function () {
         ->name('ajax.get-nation-budget');
     Route::get('/nation/battle-logs', [NationController::class, 'nationBattleLogs'])
         ->name('ajax.get-nation-battle-logs');
+    Route::get('/nation/defense-coverage', [NationController::class, 'defenseCoverage'])
+        ->name('ajax.get-nation-defense-coverage');
     Route::post('/nation/production-bids', [ProductionController::class, 'placeProductionBid'])
         ->middleware(\App\Http\Middleware\EnsureClientCommandContext::class)
         ->name('ajax.place-production-bid');
@@ -167,6 +185,9 @@ Route::middleware('auth')->group(function () {
             Route::post('/nation/divisions/disband-orders', [DivisionController::class, 'sendDisbandOrders'])
                 ->middleware(\App\Http\Middleware\EnsureClientCommandContext::class)
                 ->name('ajax.send-disband-orders');
+            Route::post('/nation/divisions/guard-orders', [DivisionController::class, 'sendGuardOrders'])
+                ->middleware(\App\Http\Middleware\EnsureClientCommandContext::class)
+                ->name('ajax.send-guard-orders');
             Route::post('/nation/divisions:cancel-orders', [DivisionController::class, 'cancelOrders'])
                 ->middleware(\App\Http\Middleware\EnsureClientCommandContext::class)
                 ->name('ajax.cancel-orders');

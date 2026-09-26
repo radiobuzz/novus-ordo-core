@@ -10,6 +10,7 @@ import { StatusBadge } from '../../ui/StatusBadge.js';
 import { Tooltip } from '../../ui/Tooltip.js';
 import { CompactMessage } from '../../ui/CompactMessage.js';
 import { battleParticipants, reportEvent } from '../../ui/ReportEvent.js';
+import { ownershipNewsAction } from '../../app/OwnershipComparison.js';
 import { draftMoveOrders } from '../../services/militaryCommands.js';
 import { reportText } from '../../services/reportText.js';
 import { MapViewport } from '../../ui/map/MapViewport.js';
@@ -572,6 +573,19 @@ class GameplayWorkspace extends Component {
                     if (requireSelection())
                         void this.command('cancelOrders', { division_ids: [...selected] });
                 }),
+                ...(this.snapshot.guard_enabled
+                    ? [
+                          this.action('Place selected divisions on Guard', () => {
+                              if (
+                                  requireSelection() &&
+                                  window.confirm(
+                                      `Place ${selected.size} divisions on persistent Guard duty? Readiness costs 25% of normal operations; responding brings that turn's cost to 100%. Releasing them later requires one stand-down turn.`,
+                                  )
+                              )
+                                  void this.command('sendGuardOrders', { division_ids: [...selected] });
+                          }),
+                      ]
+                    : []),
                 this.action(
                     'Disband selected divisions',
                     () => {
@@ -748,6 +762,9 @@ class GameplayWorkspace extends Component {
         const load = loadControl.element;
         const form = el('form', { class: 'report-controls' }, field('Battle report turn', turn), load);
         const body = el('div', { class: 'game-cards' });
+        const ownershipAction = ownershipNewsAction(this.scope, this.services, body, () => ({
+            snapshot: this.snapshot,
+        }));
         const rankingsView = new RankingsView({
             scope: this.scope,
             i18n: this.services.i18n,
@@ -774,7 +791,10 @@ class GameplayWorkspace extends Component {
                 this.reportIdentities = report;
                 const names = new Map(report.nations.map((n) => [n.nation_id, n.usual_name]));
                 const name = (id) => names.get(id) ?? (id ? `Nation ${id}` : 'Unclaimed');
-                const news = section(`News · current turn ${this.snapshot.turn_number}`);
+                const news = panel({
+                    title: `News · current turn ${this.snapshot.turn_number}`,
+                    actions: ownershipAction(),
+                });
                 const reportOptions = {
                     ...report,
                     territories: this.snapshot.territories,

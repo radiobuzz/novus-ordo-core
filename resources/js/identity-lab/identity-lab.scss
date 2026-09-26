@@ -267,6 +267,9 @@
     }
 }
 @media (max-width: 450px) {
+    .identity-colors {
+        grid-template-columns: minmax(0, 1fr);
+    }
     .identity-lab-page .ui-panel {
         --panel-padding: 14px;
     }
@@ -424,4 +427,54 @@
     .identity-shelf {
         grid-template-columns: minmax(0, 1fr);
     }
+}
+
+.identity-palette-dialog {
+    width: min(480px, calc(100vw - 32px));
+    max-height: calc(100dvh - 32px);
+    overflow: auto;
+    padding: 22px;
+    border: 1px solid var(--border-default);
+    border-radius: 8px;
+    background: var(--surface-panel);
+    color: var(--text-primary);
+    &::backdrop {
+        background: rgb(0 0 0 / 65%);
+    }
+    h2 {
+        font-size: 1.5rem;
+    }
+    .identity-actions {
+        margin-top: 16px;
+    }
+}
+.identity-palette-base {
+    display: grid;
+    grid-template-columns: 1fr 2fr;
+    gap: 16px;
+}
+.identity-palette-preview {
+    display: block;
+    width: 100%;
+    height: auto;
+}
+.identity-palette-swatches {
+    display: grid;
+    grid-template-columns: repeat(3, minmax(0, 1fr));
+    gap: 10px;
+    margin-bottom: 16px;
+    > div {
+        display: grid;
+        gap: 3px;
+        min-width: 0;
+        font-size: 12px;
+    }
+}
+.identity-palette-chip {
+    display: block;
+    height: 30px;
+    border: 1px solid var(--border-default);
+}
+#identity-build-palette {
+    margin-bottom: 14px;
 }

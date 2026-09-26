@@ -21,11 +21,13 @@ const data = {
             ...division(8, 'Infantry', 'Move', null),
             order: { order_type: 'Move', destination_territory_id: 21 },
         },
+        division(9, 'Infantry', 'Guard', null),
+        division(10, 'Infantry', 'StandDown', null),
     ],
 };
 const before = JSON.stringify(data);
 const groups = pendingOrderGroups(data);
-assert.equal(groups.length, 6);
+assert.equal(groups.length, 8);
 assert.equal(JSON.stringify(data), before);
 assert.deepEqual(groups[1].counts, { Infantry: 1, Armored: 1 });
 assert.deepEqual(
@@ -40,4 +42,9 @@ assert.notEqual(groups[0].items[0].key, groups[1].items[0].key);
 assert.equal(groups[4].destination, null);
 assert.equal(groups[4].items.length, 2);
 assert.equal(groups[5].destination, 21);
+assert.equal(groups[6].action, 'Guard');
+assert.equal(groups[6].command, 'cancelOrders');
+assert.equal(groups[6].release, true);
+assert.equal(groups[7].action, 'StandDown');
+assert.equal(groups[7].command, null);
 assert.deepEqual(pendingOrderGroups({ deployments: [], divisions: [] }), []);

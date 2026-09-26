@@ -85,13 +85,46 @@ export function layoutUnits(context, camera, divisions, deployments = [], draft 
     return result;
 }
 
+export function stackBadgeMetrics(units) {
+    const guardUnits = units.filter((unit) => unit.state === 'active' && unit.order?.order_type === 'Guard');
+    const regularUnits = units.filter(
+        (unit) => unit.state === 'active' && unit.order?.order_type !== 'Guard',
+    );
+    const pending = units.filter((unit) => unit.state === 'pending').length;
+    const draft = units.filter((unit) => unit.state === 'draft').length;
+    const regularText = `${regularUnits.length}${pending ? ` +${pending}` : ''}${draft ? ` ◇${draft}` : ''}`;
+    const regularWidth =
+        regularUnits.length || pending || draft ? Math.max(28, regularText.length * 7 + 12) : 0;
+    const guardWidth = guardUnits.length ? Math.max(34, String(guardUnits.length).length * 7 + 27) : 0;
+    const gap = guardWidth && regularWidth ? 4 : 0;
+    return {
+        guardUnits,
+        regularUnits,
+        regularText,
+        regularWidth,
+        guardWidth,
+        gap,
+        totalWidth: guardWidth + regularWidth + gap,
+    };
+}
+
 export function hitUnits(layout, point) {
-    return [...layout]
-        .reverse()
-        .find(
-            (unit) =>
-                Math.abs(unit.x - point.x) <= unit.size / 2 && Math.abs(unit.y - point.y) <= unit.size / 2,
-        );
+    for (const unit of [...layout].reverse()) {
+        if (unit.state !== 'stack') {
+            if (Math.abs(unit.x - point.x) <= unit.size / 2 && Math.abs(unit.y - point.y) <= unit.size / 2)
+                return unit;
+            continue;
+        }
+        if (Math.abs(unit.y - point.y) > 13) continue;
+        const metrics = stackBadgeMetrics(unit.units);
+        const left = unit.x - metrics.totalWidth / 2;
+        if (metrics.guardWidth && point.x >= left && point.x <= left + metrics.guardWidth)
+            return { ...unit, units: metrics.guardUnits, hitGroup: 'guard' };
+        const regularLeft = left + metrics.guardWidth + metrics.gap;
+        if (metrics.regularWidth && point.x >= regularLeft && point.x <= regularLeft + metrics.regularWidth)
+            return { ...unit, units: metrics.regularUnits, hitGroup: 'regular' };
+    }
+    return undefined;
 }
 
 export function unitsInBox(layout, box) {

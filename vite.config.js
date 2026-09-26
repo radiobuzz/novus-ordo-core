@@ -16,6 +16,7 @@ export default defineConfig({
                 'resources/js/map-lab/main.js',
                 'resources/js/portrait-lab/main.js',
                 'resources/js/identity-lab/main.js',
+                'resources/js/economy-lab/main.js',
             ],
             refresh: true,
         }),

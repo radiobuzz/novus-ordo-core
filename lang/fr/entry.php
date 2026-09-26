@@ -1,5 +1,6 @@
 <?php
 return [
+    'flag_design_invalid' => 'Ce modèle de drapeau est invalide ou non pris en charge. Rouvrez le créateur de drapeau et réessayez.',
     'no_game' => 'Aucun monde actif n’est disponible pour le moment.',
     'upkeep' => 'Le monde passe au tour suivant. Réessayez dans un instant.',
     'credentials' => 'Le nom d’utilisateur ou le mot de passe n’a pas été reconnu.',

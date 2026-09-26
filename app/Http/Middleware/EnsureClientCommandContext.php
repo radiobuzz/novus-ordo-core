@@ -7,10 +7,15 @@ use Closure;
 use Illuminate\Http\Request;
 use Symfony\Component\HttpFoundation\Response;
 
-/** Optional identity fence for callers that carry a confirmed client context. */
+/** Serialize player writes and validate their confirmed context; required in diplomacy-enabled games. */
 class EnsureClientCommandContext
 {
     public function handle(Request $request, Closure $next): Response {
+        $game = app(\App\Services\SelectedGame::class)->resolve($request);
+        return app(\App\Services\GameMutation::class)->run($game, fn () => $this->insideLock($request, $next));
+    }
+
+    private function insideLock(Request $request, Closure $next): Response {
         $context = new NationContext;
         if (!app(\App\Services\GameParticipants::class)->canCommand($context->getNation())) {
             abort(409, 'This nation is controlled by experimental AI. Take control in administration before issuing orders.');
@@ -26,7 +31,10 @@ class EnsureClientCommandContext
                 abort(409, 'The automation context changed. Refresh before continuing.');
             }
         }
-        if (!$request->exists('client_context')) return $next($request);
+        if (!$request->exists('client_context')) {
+            if ($context->getGame()->diplomacy_enabled) abort(409, 'A current command context is required.');
+            return $next($request);
+        }
 
         $values = $request->validate([
             'client_context' => 'required|array',
@@ -34,8 +42,14 @@ class EnsureClientCommandContext
             'client_context.turn_number' => 'required|integer|min:1',
             'client_context.nation_id' => 'required|integer|min:1',
             'client_context.user_id' => 'required|integer|min:1',
+            'client_context.turn_context_revision' => 'sometimes|uuid',
         ])['client_context'];
         $context = new NationContext;
+        $revision = $context->getGame()->turn_context_revision;
+        if (($context->getGame()->diplomacy_enabled || isset($values['turn_context_revision']))
+            && $revision !== ($values['turn_context_revision'] ?? null)) {
+            abort(409, 'The turn was advanced or reset. Refresh before continuing.');
+        }
         if ($context->getGame()->isUpkeeping()) abort(503, 'The turn is advancing.');
         if ((int) $values['game_id'] !== $context->getGame()->getId()
             || (int) $values['turn_number'] !== $context->getCurrentTurn()->getNumber()

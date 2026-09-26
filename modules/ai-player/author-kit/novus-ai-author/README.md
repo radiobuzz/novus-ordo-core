@@ -17,10 +17,11 @@ Install PHP 8.3 or later, open a terminal in this extracted folder, and run:
 ```sh
 php -l scripts/my-first-bot.php
 php runtime/run.php scripts/my-first-bot.php snapshots/opening.json
+php runtime/run.php scripts/my-first-bot.php snapshots/second-turn.json
 php runtime/run.php scripts/experimental-v1.php snapshots/opening.json
 ```
 
-The last command exercises the real existing strategy. Repeat with the other snapshots. Output is JSON; errors go to stderr and exit with code 1. No server or credentials are needed for these examples. The standalone runner has no wall-clock watchdog: interrupt a hung script locally. The game enforces a 20-second decision limit.
+The second-turn snapshot contains a synthetic incoming diplomatic message, so the starter demonstrates a reply and message-ID memory. The last command exercises the real existing strategy. Repeat with the other snapshots. Output is JSON; errors go to stderr and exit with code 1. No server or credentials are needed for these examples. The standalone runner has no wall-clock watchdog: interrupt a hung script locally. The game enforces a 20-second decision limit.
 
 Copy the starter to a filename such as `continental-defender.php` and edit its `@ai-name` label. Keep all your strategy helpers inside the anonymous class. Send only that file back to the game owner.
 
@@ -37,3 +38,5 @@ The game validates and commits a complete plan. A failed custom script gets one 
 Snapshots are fixed positions. The runner checks JSON/action structure and uses the actual production forecast, but does not reproduce authoritative ownership validation, movement, battles, turn resolution or opponent reactions. Final testing happens in the game. No LLM integration is bundled.
 
 The available gameplay interface is documented in references/api.md. It does not expose account administration, cosmetics, arbitrary historical queries or a remote game API. Scripts run as trusted local code.
+
+Private nation text is available in `view.diplomacy.messages`, and a plan can return `send_message`. Replies are delivered only when the bot takes its normal decision turn. Keep the last handled message ID in memory so old messages are not answered again. If a bot sends player text to an LLM, treat it as untrusted in-game content: delimit it from instructions and never allow it to request tools, secrets or changes to the script's rules.

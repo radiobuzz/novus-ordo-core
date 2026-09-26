@@ -1,3 +1,37 @@
+import { stackBadgeMetrics } from './unitLayout.js';
+
+const abbreviations = { Infantry: 'INF', Armored: 'ARM', Artillery: 'ART', Fighter: 'FTR', Bomber: 'BMB' };
+
+export function summarizeStack(units) {
+    const active = units.filter((unit) => unit.state === 'active');
+    const guard = active.filter((unit) => unit.order?.order_type === 'Guard').length;
+    const composition = Object.entries(
+        active.reduce((counts, unit) => {
+            counts[unit.division_type] = (counts[unit.division_type] ?? 0) + 1;
+            return counts;
+        }, {}),
+    ).map(([type, count]) => ({ type, count }));
+    return {
+        guard,
+        active: active.length - guard,
+        pending: units.filter((unit) => unit.state === 'pending').length,
+        draft: units.filter((unit) => unit.state === 'draft').length,
+        composition,
+    };
+}
+
+function shield(ctx, x, y, size) {
+    ctx.beginPath();
+    ctx.moveTo(x, y - size * 0.55);
+    ctx.lineTo(x + size * 0.48, y - size * 0.34);
+    ctx.lineTo(x + size * 0.36, y + size * 0.25);
+    ctx.quadraticCurveTo(x, y + size * 0.65, x, y + size * 0.65);
+    ctx.quadraticCurveTo(x, y + size * 0.65, x - size * 0.36, y + size * 0.25);
+    ctx.lineTo(x - size * 0.48, y - size * 0.34);
+    ctx.closePath();
+    ctx.fill();
+}
+
 /** Own-army markers only. No demo data or opponent-private units. */
 export function militaryOverlay(divisions, deployments, selected, draftOrders, presentation = {}) {
     return (ctx, renderer) => {
@@ -79,16 +113,72 @@ export function militaryOverlay(divisions, deployments, selected, draftOrders, p
             ctx.textBaseline = 'middle';
             ctx.font = 'bold 11px system-ui';
             if (token.state === 'stack') {
-                const active = units.filter((u) => u.state === 'active').length;
-                const pending = units.filter((u) => u.state === 'pending').length;
-                const draft = units.filter((u) => u.state === 'draft').length;
-                const text = `${active}${pending ? ` +${pending}` : ''}${draft ? ` ◇${draft}` : ''}`;
-                const width = Math.max(32, ctx.measureText(text).width + 12);
-                ctx.fillStyle = colors.surface;
-                ctx.fillRect(x - width / 2, y - 13, width, 26);
-                ctx.strokeRect(x - width / 2, y - 13, width, 26);
-                ctx.fillStyle = colors.text;
-                ctx.fillText(text, x, y);
+                const summary = summarizeStack(units);
+                const metrics = stackBadgeMetrics(units);
+                const guardChosen = metrics.guardUnits.some((unit) => selected.has(unit.division_id));
+                const regularChosen = metrics.regularUnits.some((unit) => selected.has(unit.division_id));
+                let left = x - metrics.totalWidth / 2;
+                if (metrics.guardWidth) {
+                    ctx.fillStyle = colors.surface;
+                    ctx.fillRect(left, y - 13, metrics.guardWidth, 26);
+                    ctx.strokeStyle = colors.selected;
+                    ctx.lineWidth = guardChosen ? 2.5 : 1;
+                    ctx.strokeRect(left, y - 13, metrics.guardWidth, 26);
+                    ctx.fillStyle = colors.selected;
+                    shield(ctx, left + 11, y, 11);
+                    ctx.fillStyle = colors.text;
+                    ctx.fillText(String(summary.guard), left + metrics.guardWidth - 10, y);
+                    left += metrics.guardWidth + metrics.gap;
+                }
+                if (metrics.regularWidth) {
+                    ctx.fillStyle = colors.surface;
+                    ctx.strokeStyle = regularChosen ? colors.selected : colors.own;
+                    ctx.lineWidth = regularChosen ? 2.5 : 1;
+                    ctx.fillRect(left, y - 13, metrics.regularWidth, 26);
+                    ctx.strokeRect(left, y - 13, metrics.regularWidth, 26);
+                    ctx.fillStyle = colors.text;
+                    ctx.fillText(metrics.regularText, left + metrics.regularWidth / 2, y);
+                }
+                const defense = presentation.defense?.(token.territory_id);
+                let detailY = y + 16;
+                if (Number.isFinite(defense)) {
+                    const text = `DEF ${defense}`;
+                    ctx.font = 'bold 9px system-ui';
+                    const width = ctx.measureText(text).width + 10;
+                    ctx.fillStyle = colors.surface;
+                    ctx.globalAlpha = 0.9;
+                    ctx.fillRect(x - width / 2, detailY, width, 15);
+                    ctx.globalAlpha = 1;
+                    ctx.fillStyle = colors.text;
+                    ctx.fillText(text, x, detailY + 7.5);
+                    detailY += 17;
+                    ctx.font = 'bold 11px system-ui';
+                }
+                if (presentation.details?.() && summary.composition.length) {
+                    const entries = summary.composition.slice(0, 5);
+                    const widths = entries.map(({ type, count }) =>
+                        Math.max(31, ctx.measureText(`${abbreviations[type] ?? '?'} ${count}`).width + 9),
+                    );
+                    const rowWidth = widths.reduce((sum, width) => sum + width, 0) + (widths.length - 1) * 2;
+                    let detailLeft = x - rowWidth / 2;
+                    ctx.font = 'bold 8px system-ui';
+                    for (let index = 0; index < entries.length; index++) {
+                        const { type, count } = entries[index],
+                            width = widths[index];
+                        ctx.fillStyle = colors.surface;
+                        ctx.globalAlpha = 0.9;
+                        ctx.fillRect(detailLeft, detailY, width, 15);
+                        ctx.globalAlpha = 1;
+                        ctx.fillStyle = colors.text;
+                        ctx.fillText(
+                            `${abbreviations[type] ?? '?'} ${count}`,
+                            detailLeft + width / 2,
+                            detailY + 7.5,
+                        );
+                        detailLeft += width + 2;
+                    }
+                    ctx.font = 'bold 11px system-ui';
+                }
             } else {
                 const aircraft = ['Fighter', 'Bomber'].includes(token.division_type);
                 const image =
@@ -109,13 +199,7 @@ export function militaryOverlay(divisions, deployments, selected, draftOrders, p
                     ctx.fillStyle = presentation.palette?.().paint ?? colors.own;
                     ctx.fillRect(x - 17, y - 14, 34, 4);
                     ctx.fillStyle = colors.text;
-                    ctx.fillText(
-                        { Infantry: 'INF', Armored: 'ARM', Artillery: 'ART', Fighter: 'FTR', Bomber: 'BMB' }[
-                            token.division_type
-                        ] ?? '?',
-                        x,
-                        y,
-                    );
+                    ctx.fillText(abbreviations[token.division_type] ?? '?', x, y);
                 }
                 ctx.globalAlpha = 1;
                 ctx.strokeRect(x - size / 2, y - size / 2, size, size);

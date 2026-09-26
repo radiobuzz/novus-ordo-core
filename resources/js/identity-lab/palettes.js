@@ -61,3 +61,52 @@ export function generatePalette(rnd, harmony = HARMONIES[Math.floor(rnd() * HARM
     const supporting = hslToHex(hue + offsets[1], 18 + rnd() * 22, 94 + rnd() * 4);
     return { primary, secondary, supporting };
 }
+
+/** Derive an editable palette without ever adjusting the user's primary colour. */
+export function paletteFromBase(base, harmony, variation = 0) {
+    if (!/^#[0-9a-f]{6}$/i.test(base) || !HARMONIES.includes(harmony))
+        throw new Error('Invalid base colour or harmony');
+    const [r, g, b] = [1, 3, 5].map((i) => parseInt(base.slice(i, i + 2), 16) / 255);
+    const max = Math.max(r, g, b),
+        min = Math.min(r, g, b),
+        delta = max - min;
+    const lightness = (max + min) / 2;
+    const saturation = delta ? (delta / (1 - Math.abs(2 * lightness - 1))) * 100 : 0;
+    const hue = !delta
+        ? 0
+        : 60 * (max === r ? ((g - b) / delta) % 6 : max === g ? (b - r) / delta + 2 : (r - g) / delta + 4);
+    const direction = variation % 2 ? -1 : 1;
+    const offsets = {
+        monochromatic: [0, 0],
+        analogous: [30 * direction, -30 * direction],
+        complementary: [180, 0],
+        'split-complementary': [150, 210],
+    }[harmony];
+    const dark = contrast(base, '#000000') > contrast(base, '#ffffff');
+    const phase = (((variation * 0.61803398875) % 1) + 1) % 1;
+    const tone = (offset, sat, desired) => {
+        let result,
+            distance = Infinity;
+        for (let l = 0; l <= 100; l++) {
+            const hex = hslToHex(hue + offset, sat, l);
+            if (contrast(base, hex) >= 3 && Math.abs(l - desired) < distance) {
+                result = hex;
+                distance = Math.abs(l - desired);
+            }
+        }
+        return result;
+    };
+    return {
+        primary: base.toLowerCase(),
+        secondary: tone(
+            offsets[0],
+            saturation * (0.75 + phase * 0.25),
+            dark ? 20 + phase * 20 : 58 + phase * 20,
+        ),
+        supporting: tone(
+            offsets[1],
+            saturation * (0.2 + phase * 0.25),
+            dark ? 4 + phase * 12 : 94 - phase * 12,
+        ),
+    };
+}

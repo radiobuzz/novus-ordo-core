@@ -2,7 +2,15 @@
 
 Discussion recorded: 2026-09-24.
 
+Follow-up, 2026-09-26: the user authorized the first Coasts & bays test in the dedicated Map Lab task. The [Map Lab handoff](map-lab.md#coasts-and-bays--first-interpretation-test-2026-09-26) records its candidate detector, separate exposure/access views and limitations. The original discussion below remains the conceptual record; migration, urban/activity rendering and economic integration are still not implemented by this test.
+
+Second follow-up, 2026-09-26: after accepting the first coastal test with detection tuning left open, the user requested the next experiment. The [development visual study](map-lab.md#development-visuals--second-interpretation-test-2026-09-26) now previews terrain-suitable settlements, fields, industry and extraction using independent built-extent/activity values. Stable decorative placements persist through idling. This implements a bounded rendering study from section 8, not population migration, emerging cities driven by a simulation, production or economic integration. The historical implementation boundaries below describe the original discussion, not the later authorized lab work.
+
 Status: agreed conceptual direction with explicitly provisional mechanisms. The user will authorize actual geography changes in the dedicated Map Lab task when ready. This document does not authorize implementation or start another economic experiment.
+
+Visual-integration follow-up, 2026-09-26: the user approved a focused riverside woodland/farmland scene and permanent Terrain V2 in the Map Lab. Development now shares its clearing footprint with the terrain renderer rather than covering pre-drawn forest with opaque parcels. Built extent changes visible land use; activity alone does not restore trees. This remains a lab-only illustration, not resource depletion or real construction. See [ADR 0027](../client/decisions/0027-map-lab-integrated-landscape.md).
+
+Artwork follow-up, 2026-09-26: the approved beauty pass now uses transparent painted structures and quarry detail over the integrated ground. A separate Urban intensity preview tests downtown high-rises, urban blocks, lower outskirts and an industrial fringe. Mines/oil/factory examples use terrain-constrained compounds instead of repeated small working symbols. This does not turn the illustrative buildings or paths into simulation entities; built extent, architecture intensity and current activity remain independent. See [ADR 0028](../client/decisions/0028-map-lab-development-art.md).
 
 Read with the [economy and policies foundation](economy-and-policies-discussion.md), [simulation foundations](economy-simulation-foundations.md), [Map Lab](map-lab.md), and the completed [copper investment experiment](economy-lab.md).
 

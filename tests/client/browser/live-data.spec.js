@@ -110,7 +110,6 @@ test('a confirmation opened in an old turn cannot submit into the new turn', asy
     await start(page);
     await page.locator('[data-tool="forces"]').click();
     await page.getByLabel('Select division 11', { exact: true }).check();
-    await page.getByText('More actions', { exact: true }).click();
     await page.getByRole('button', { name: 'Disband selected units', exact: true }).click();
     await expect(page.getByRole('dialog', { name: 'Disband selected units' })).toBeVisible();
     turn = 2;

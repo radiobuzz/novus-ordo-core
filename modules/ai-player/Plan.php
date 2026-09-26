@@ -7,13 +7,13 @@ final class Plan
 {
     public static function normalize(mixed $plan): array {
         if (!is_array($plan)) throw new \InvalidArgumentException('Decision must be an object.');
-        $allowed = ['bids', 'deployments', 'orders', 'disband', 'cancel_orders', 'cancel_deployments', 'memory', 'explanation'];
+        $allowed = ['bids', 'deployments', 'orders', 'disband', 'cancel_orders', 'cancel_deployments', 'memory', 'explanation', 'diplomacy'];
         if (array_diff(array_keys($plan), $allowed)) throw new \InvalidArgumentException('Unknown decision field.');
         foreach (['bids', 'deployments', 'orders', 'disband', 'memory'] as $key) {
             if (!isset($plan[$key]) || !is_array($plan[$key])) throw new \InvalidArgumentException("Decision requires array: $key");
         }
-        $plan += ['cancel_orders' => [], 'cancel_deployments' => []];
-        foreach (['bids' => 4, 'deployments' => 2000, 'orders' => 2000, 'disband' => 2000, 'cancel_orders' => 2000, 'cancel_deployments' => 2000] as $key => $limit) {
+        $plan += ['cancel_orders' => [], 'cancel_deployments' => [], 'diplomacy' => []];
+        foreach (['diplomacy' => 20, 'bids' => 4, 'deployments' => 2000, 'orders' => 2000, 'disband' => 2000, 'cancel_orders' => 2000, 'cancel_deployments' => 2000] as $key => $limit) {
             if (!is_array($plan[$key]) || !array_is_list($plan[$key]) || count($plan[$key]) > $limit) throw new \InvalidArgumentException("Invalid list: $key");
         }
         if (!is_string($plan['explanation'] ?? null) || $plan['explanation'] === '' || strlen($plan['explanation']) > 3000)
@@ -22,6 +22,25 @@ final class Plan
         $id = function ($value) {
             if (!is_int($value) || $value < 1) throw new \InvalidArgumentException('IDs must be positive integers.');
         };
+        $messageRecipients = []; $messageCount = 0;
+        foreach ($plan['diplomacy'] as $action) {
+            if (!is_array($action) || !in_array($action['action'] ?? null,
+                ['send_message', 'propose_peace', 'accept_peace', 'decline_peace'], true))
+                throw new \InvalidArgumentException('Unsupported diplomacy action.');
+            if ($action['action'] === 'send_message') {
+                $id($action['nation_id'] ?? null);
+                $body = $action['body'] ?? null;
+                $length = is_string($body) ? (function_exists('mb_strlen') ? mb_strlen($body) : strlen($body)) : 0;
+                if (!is_string($body) || trim($body) === '' || $length > 2000)
+                    throw new \InvalidArgumentException('Messages must contain 1–2000 characters.');
+                if (isset($messageRecipients[$action['nation_id']]))
+                    throw new \InvalidArgumentException('Only one message may be sent to each nation per turn.');
+                $messageRecipients[$action['nation_id']] = true;
+                if (++$messageCount > 5) throw new \InvalidArgumentException('At most five messages may be sent per turn.');
+            } else {
+                $id($action[$action['action'] === 'propose_peace' ? 'nation_id' : 'offer_id'] ?? null);
+            }
+        }
         foreach (['disband', 'cancel_orders', 'cancel_deployments'] as $key) {
             foreach ($plan[$key] as $value) $id($value);
             if (count(array_unique($plan[$key])) !== count($plan[$key])) throw new \InvalidArgumentException("Duplicate IDs: $key");

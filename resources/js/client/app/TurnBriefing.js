@@ -5,6 +5,7 @@ import { panel } from '../ui/Panel.js';
 import { battleParticipants, reportEvent } from '../ui/ReportEvent.js';
 import { reportText } from '../services/reportText.js';
 import { turnKey } from '../services/turnBriefing.js';
+import { ownershipNewsAction } from './OwnershipComparison.js';
 
 /** Game composition. The service reads reports; this owns the presentation and seen marker. */
 export class TurnBriefing {
@@ -17,6 +18,9 @@ export class TurnBriefing {
         this.title = el('h2', { id: 'turn-briefing-title' });
         this.summary = el('div', { class: 'briefing-summary' });
         this.reportBody = el('div', { class: 'briefing-reports' });
+        this.ownershipAction = ownershipNewsAction(scope, services, this.reportBody, () => ({
+            snapshot: this.snapshot,
+        }));
         this.notice = el('p', { role: 'status', class: 'muted' });
         this.retry = new Button({ label: this.t('retryNews') });
         this.retry.element.hidden = true;
@@ -235,7 +239,7 @@ export class TurnBriefing {
             );
         }
         if (!report.battles.length) battles.append(el('p', { text: this.t('noBattles') }));
-        const news = panel({ title: this.t('headlines') });
+        const news = panel({ title: this.t('headlines'), actions: this.ownershipAction() });
         for (const item of report.news) news.append(reportEvent(item, reportOptions));
         if (!report.news.length) news.append(el('p', { text: this.t('noNews') }));
         this.reportBody.replaceChildren(battles, news);

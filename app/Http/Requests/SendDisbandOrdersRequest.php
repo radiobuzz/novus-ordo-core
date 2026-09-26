@@ -2,8 +2,6 @@
 
 namespace App\Http\Requests;
 
-use App\Models\DivisionDetail;
-use App\Services\NationContext;
 use Illuminate\Foundation\Http\FormRequest;
 
 class SendDisbandOrdersRequest extends FormRequest {
@@ -21,21 +19,14 @@ class SendDisbandOrdersRequest extends FormRequest {
         return $this->disbandOrders;
     }
 
-    public function __construct(
-        private readonly NationContext $context
-    )
-    {
-        
-    }
-
     public function rules(): array
     {
+        // NationCommands checks active ownership for the whole batch inside the command lock.
         return [
             'orders' => 'required|array|min:1',
             'orders.*.division_id' => [
                 'required',
                 'integer',
-                DivisionDetail::createRuleValidActiveDivision($this->context->getNation()),
             ],
         ];
     }

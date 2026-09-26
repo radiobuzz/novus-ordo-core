@@ -11,6 +11,8 @@ return new class
         $world = array_column($view['territories'], null, 'id');
         $own = array_filter($world, fn ($t) => $t['owner'] === $view['nation_id']);
         $result = ['bids' => [], 'deployments' => [], 'orders' => [], 'disband' => [], 'memory' => $memory, 'explanation' => 'Developing economy'];
+        [$result['diplomacy'], $protected, $memory] = $this->peace($view, $memory, $settings);
+        $settings['peace_protected'] = $protected;
         if (!$own) {
             $result['explanation'] = 'No territory remains; no further orders.';
             $result['memory'] = [...$memory, 'state' => 'Eliminated'];
@@ -337,10 +339,35 @@ return new class
         return $land[0] ?? $reachable[0] ?? null;
     }
 
+    /** Small deterministic peace policy; no alliance, grant, or free-text interpretation. */
+    private function peace(array $view, array $memory, array $settings): array {
+        $actions = []; $protected = []; $pending = []; $ownArmy = count($view['divisions']);
+        foreach ($view['diplomacy']['offers'] ?? [] as $offer) {
+            if (count($actions) >= 20) break;
+            $other = $offer['other_nation_id']; $pending[] = $other;
+            if ($offer['sender_nation_id'] === $view['nation_id']) continue;
+            $accept = $settings['aggression'] <= 60 || $ownArmy <= ($view['opponents'][$other]['army'] ?? 0);
+            $actions[] = ['action' => $accept ? 'accept_peace' : 'decline_peace', 'offer_id' => $offer['id']];
+            if ($accept) $protected[] = $other;
+        }
+        foreach ($view['diplomacy']['relations'] ?? [] as $relation) {
+            $other = $relation['nation_a_id'] === $view['nation_id'] ? $relation['nation_b_id'] : $relation['nation_a_id'];
+            if (in_array($relation['state'], ['Peace', 'Allied'], true)) $protected[] = $other;
+            $last = $memory['peace_proposed'][(string) $other] ?? 0;
+            if ($relation['state'] === 'War' && !in_array($other, $pending, true)
+                && $view['turn_number'] >= $last + 8 && count($actions) < 20
+                && ($settings['aggression'] < 35 || $ownArmy < ($view['opponents'][$other]['army'] ?? 0))) {
+                $actions[] = ['action' => 'propose_peace', 'nation_id' => $other];
+                $memory['peace_proposed'][(string) $other] = $view['turn_number'];
+            }
+        }
+        return [$actions, $protected, $memory];
+    }
+
     private function target(array $view, array $world, array $own, array $memory, array $settings, array $strategy): array {
         $candidates = [];
         foreach ($world as $t) {
-            if ($t['water'] || $t['owner'] === $view['nation_id']) continue;
+            if ($t['water'] || $t['owner'] === $view['nation_id'] || in_array($t['owner'], $settings['peace_protected'] ?? [], true)) continue;
             if ($settings['protect_humans'] && $t['owner'] !== null && in_array($t['owner'], $view['human_ids'], true)) continue;
             $reachable = false;
             foreach ($own as $origin) if ($this->canAttack($origin['id'], $t['id'], $world)) { $reachable = true; break; }

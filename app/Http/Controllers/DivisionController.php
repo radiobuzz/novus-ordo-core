@@ -13,6 +13,7 @@ use App\Models\Division;
 use App\Models\Order;
 use App\ReadModels\DisbandOrderInfo;
 use App\ReadModels\OwnedDivisionInfo;
+use App\ReadModels\GuardOrderInfo;
 use App\Services\NationContext;
 use App\Utils\Annotations\Payload;
 use App\Utils\Annotations\Response;
@@ -23,6 +24,14 @@ use App\Utils\Annotations\ResponseCollection;
 
 class DivisionController extends Controller
 {
+    #[Summary('Place divisions on persistent Guard duty.')]
+    #[Payload(CancelOrdersRequest::class)]
+    #[ResponseCollection('data', GuardOrderInfo::class, 'List of Guard orders sent.')]
+    public function sendGuardOrders(CancelOrdersRequest $request, NationContext $context): JsonResponse {
+        $orders = app(\App\Services\NationCommands::class)->guard($context->getNation(), $request->division_ids);
+        return response()->json(['data' => array_map(fn (Order $order) => $order->exportForOwner(), $orders)], HttpStatusCode::Created);
+    }
+
     #[Summary('Send disband orders.')]
     #[Payload(SendDisbandOrdersRequest::class)]
     #[ResponseCollection('data', DisbandOrderInfo::class, 'List of disband orders sent.')]

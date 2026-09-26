@@ -6,6 +6,20 @@ Start here when resuming work. This folder records accepted decisions, implement
 
 ## Current position
 
+2026-09-26: the [Map Lab scale checkpoint study](decisions/0029-map-lab-development-scale.md) adds fixed-camera Current / Half / Quarter comparisons, separate structure-size/spacing controls and editable synthetic microcell allowance/intensity. The previous artwork remains restorable; projected clearing and parcels stay coordinated. This is lab-only visual evaluation, not real population or production.
+
+2026-09-26: the [Map Lab development art pass](decisions/0028-map-lab-development-art.md) adds transparent painted structures/quarries, resource-constrained compounds and independent Town / City / Metropolis intensity previews. Existing geography, Terrain V2 and other experiments remain independent; no production economics or live-game renderer changes.
+
+2026-09-26: the [Map Lab integrated-landscape study](decisions/0027-map-lab-integrated-landscape.md) makes Terrain V2 the lab baseline and couples development's visible ground/forest clearing. A focused riverside settlement/farmland scene uses the existing preview controls; no live-game renderer, generator or economic rule is changed.
+
+2026-09-26: optional [primitive Guard orders](decisions/0025-guard-orders.md) are implemented. Existing games opt in through `games.guard_enabled`; new games enable the rule. Guard reserves one-quarter operation cost while waiting and tops up to the full cost before responding, preallocates one response per unit across all attacks before randomized sequential combat, and requires a full Stand Down turn to release. Ground responders persist at the defended territory; aircraft return to base after combat. Multi-turn queued orders remain deferred.
+
+2026-09-25: [military order overhead](decisions/0024-order-submission-performance.md) is reduced through grouped validation/exports, shared preview routes and fewer client round trips. Existing combat behavior and server context checks remain. Main regression/HTTP checks passed; an extended disband HTTP check is pending because the approval reviewer failed authentication. Guard was implemented separately in ADR 0025; queued orders remain deferred.
+
+2026-09-25: the news section now offers one button for a world [ownership comparison](decisions/0023-news-ownership-comparison.md) from the briefing and Reports. All previous/current ownership changes fade together in an independent map dialog fitted to the world with manual controls and reduced-motion support. It uses retained public snapshots and needs no migration. Full turn-by-turn map history remains a separate feature.
+
+2026-09-26: [primitive diplomacy](../game-design/primitive-diplomacy-plan.md) now lets custom AI scripts read a bounded private conversation history and send text replies during their normal decision turn. Peace support remains; AI alliances and grants remain unavailable. [ADR 0020](decisions/0020-primitive-diplomacy.md) records the boundary.
+
 As of 2026-09-23, [all five multi-game and retirement stages](multi-game-plan.md) are delivered: independent active games, explicit request/game context, scoped turns/AI, disposable selected-game instances, Games/Administration/Tools navigation, accepted gameplay additions and final legacy-interface removal. `/` and retired screen bookmarks now enter the new client. The follow-up header uses icon workspace navigation with Games in its menu; compact unit stacks and a mobile destination-picking state reduce command-panel obstruction. Nation colours are selected during nation creation rather than edited from a gameplay setting. [ADR 0017](decisions/0017-multiple-active-games.md) supersedes the earlier single-current-game/replacement assumption.
 
 `/client` is the default playable interface, with generated-map beta support and the map-first military UI. See [the gameplay handoff](gameplay-experiment.md), [game UI pass 1](game-ui-pass-1.md) and [map beta notes](../game-design/map-beta.md) for delivered scope, tests and limits. Earlier phase documents describe their original authorization, not the current delivery status; any fallback references in those historical records are superseded by the retirement plan.
@@ -22,6 +36,10 @@ World rankings in Reports now use current bar charts plus a lazy History tab der
 
 | Document | Purpose | Status |
 | --- | --- | --- |
+| [Primitive Guard orders](decisions/0025-guard-orders.md) | Persistent reserve duty, threat preallocation and mandatory Stand Down | Implemented; migration/operator opt-in pending for existing games |
+| [Nation flag editor](decisions/0021-nation-flag-editor.md) | Identity-step dialog, matched recipe/PNG drafts and transactional persistence | Implemented; flag-design migration still requires operator application |
+| [Primitive diplomacy implementation plan](../game-design/primitive-diplomacy-plan.md) | Private conversations, bilateral treaties, stockpiled resource grants, limited AI peace and a separate flag-editor release item | Implemented for new games; isolated checks passed; running-database migration and release playtest pending |
+| [Economy Lab](../game-design/economy-lab.md) | Browser-only copper market, delayed private investment, controlled on/off stories and visible accounts | Final experiment for this theme; rules provisional |
 | [Decision 0016](decisions/0016-geographic-feature-atlas.md) | One overlapping geographic-feature registry, separate from terrain and politics | Accepted; Map Lab prototype |
 | [AI Player V1 plan](../game-design/ai-nations-plan.md) | Temporary V1Experimental, viable economy/combat, sequential turns and watching options | Implemented; experimental; complete future removal required |
 | [AI Player handoff](../../modules/ai-player/README.md) | Script selection, author kit, setup, watching, verification and removal inventory | Current implementation evidence |

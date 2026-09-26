@@ -22,7 +22,7 @@ export class GameHeader {
         this.menu = new Disclosure(scope, { label: '☰', className: 'game-menu', group: 'game-hud' });
         this.menu.trigger.setAttribute('aria-label', this.t('menu'));
         this.navigation = el('nav', { class: 'hud-navigation', 'aria-label': this.t('navigation') });
-        for (const page of ['world', 'nation', 'economy', 'military', 'reports']) {
+        for (const page of ['world', 'nation', 'economy', 'military', 'reports', 'diplomacy']) {
             const label = el('span', { class: 'ui-visually-hidden', text: this.t(page) });
             const link = el('a', {
                 class: 'ui-button ui-button--quiet hud-navigation-link',
@@ -35,6 +35,18 @@ export class GameHeader {
             setButtonIcon(link, page === 'economy' ? 'economic' : page === 'reports' ? 'news' : page);
             this.navigation.append(link);
         }
+        const diplomacyLink = this.navigation.querySelector('[data-page="diplomacy"]');
+        const unread = el('span', { class: 'diplomacy-unread', hidden: true });
+        diplomacyLink.append(unread);
+        services.world.store.subscribe(scope, ({ snapshot }) => {
+            diplomacyLink.hidden = !snapshot?.nation?.diplomacy?.enabled;
+        });
+        services.diplomacy?.store.subscribe(scope, ({ inbox }) => {
+            const count = inbox.reduce((sum, row) => sum + row.unread, 0);
+            unread.hidden = count === 0;
+            unread.textContent = String(count);
+            diplomacyLink.setAttribute('aria-label', `${this.t('diplomacy')}${count ? ` (${count})` : ''}`);
+        });
         const games = new Button({ label: services.i18n.t('games.title'), icon: 'games', variant: 'quiet' });
         scope.listen(games.element, 'click', () => {
             this.menu.close();

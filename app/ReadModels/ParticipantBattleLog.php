@@ -11,6 +11,10 @@ readonly class ParticipantBattleLog {
         public ?int $defender_nation_id,
         public ?int $winner_nation_id,
         public string $text,
+        public ?int $attacker_formation_losses,
+        public ?int $attacker_division_losses,
+        public ?int $defender_formation_losses,
+        public ?int $defender_division_losses,
     )
     {
         

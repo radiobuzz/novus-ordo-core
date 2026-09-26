@@ -25,6 +25,7 @@ export class GameDataService {
     #activityWork;
     #activityRevision = 0;
     #map = null;
+    #base = null;
     #publish;
     #pollingStarted = false;
     #refreshWasCurrent = false;
@@ -67,7 +68,11 @@ export class GameDataService {
         return Boolean(a && b && a.game_id === b.game_id && a.setup.nation_id === b.setup.nation_id);
     }
     same(a, b) {
-        return this.sameScope(a, b) && a.turn_number === b.turn_number;
+        return (
+            this.sameScope(a, b) &&
+            a.turn_number === b.turn_number &&
+            a.turn_context_revision === b.turn_context_revision
+        );
     }
     async marker(signal) {
         const generation = this.#generation;
@@ -99,6 +104,17 @@ export class GameDataService {
         this.#map = freezeValue(result);
         return this.#map;
     }
+    async baseForContext(context, signal) {
+        // Geography is fixed within a turn context. Reset/rollback revisions invalidate it.
+        const key = `${context.game_id}:${context.turn_number}:${context.turn_context_revision ?? ''}`;
+        if (this.#base?.key === key) return this.#base.value;
+        const generation = this.#generation;
+        const value = await this.api.getAllTerritoriesBaseInfo({ signal });
+        signal.throwIfAborted();
+        collection(value);
+        if (generation === this.#generation) this.#base = { key, value: freezeValue(value) };
+        return value;
+    }
     #cancelReads() {
         ++this.#generation;
         this.#request?.abort();
@@ -109,6 +125,7 @@ export class GameDataService {
     invalidate(error) {
         this.#cancelReads();
         this.#map = null;
+        this.#base = null;
         this.#hint = null;
         this.#appliedHint = null;
         this.#state('error', { snapshot: null, error, confirmedAt: null, turnTransition: false });
@@ -208,7 +225,7 @@ export class GameDataService {
                 this.#observeScope(before);
                 const query = { turn_number: before.turn_number };
                 const [base, turn, own, map, nation] = await Promise.all([
-                    this.api.getAllTerritoriesBaseInfo({ signal }),
+                    this.baseForContext(before, signal),
                     this.api.getAllTerritoriesTurnInfo({ query, signal }),
                     before.setup.nation_id
                         ? this.api.getNationTerritoriesTurnInfo({ query, signal })
@@ -235,6 +252,7 @@ export class GameDataService {
                     before.setup.nation_id &&
                     (nation?.game_id !== before.game_id ||
                         nation?.turn_number !== before.turn_number ||
+                        nation?.turn_context_revision !== before.turn_context_revision ||
                         nation?.nation?.nation_id !== before.setup.nation_id ||
                         nation?.budget?.turn_number !== before.turn_number ||
                         nation?.identity?.turn_number !== before.turn_number ||
@@ -475,6 +493,7 @@ export class GameDataService {
         this.#finishCommand?.();
         await this.scope.dispose();
         this.#map = null;
+        this.#base = null;
         this.#state('empty', { snapshot: null, confirmedAt: null, turnTransition: false });
     }
 }

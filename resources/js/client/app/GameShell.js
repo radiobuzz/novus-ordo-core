@@ -127,10 +127,13 @@ export class GameShell {
                 if (!compatible || mountedPage !== page) {
                     mountedSnapshot = world.snapshot;
                     mountedPage = page;
-                    void workspace.open(page === 'world' ? 'world' : 'gameplay', {
-                        snapshot: world.snapshot,
-                        page,
-                    });
+                    void workspace.open(
+                        page === 'world' ? 'world' : page === 'diplomacy' ? 'diplomacy' : 'gameplay',
+                        {
+                            snapshot: world.snapshot,
+                            page,
+                        },
+                    );
                 }
                 // World modes decide whether selection means territory inspection or a military tool.
                 if (page !== 'world') void panel.close();

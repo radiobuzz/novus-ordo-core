@@ -18,6 +18,7 @@ use App\ReadModels\RankingInfo;
 use App\ReadModels\VictoryGoalInfo;
 use App\ReadModels\VictoryStatusInfo;
 use App\Services\GameTurnStatus;
+use App\Services\GameMutation;
 use Illuminate\Database\Eloquent\Builder;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Relations\HasMany;
@@ -163,15 +164,17 @@ class Game extends Model
         return new GameInfo(
             game_id: $this->getId(),
             turn_number: $turn->getNumber(),
-            
+            turn_context_revision: $this->fresh()->turn_context_revision,
+            diplomacy_enabled: (bool) $this->diplomacy_enabled,
+            guard_enabled: (bool) ($this->guard_enabled ?? false),
         );
     }
 
     public function exportReadyStatus(): GameReadyStatusInfo {
-        Cache::lock($this->getCacheLockKeyForChangeTurn(), RuntimeInfo::maxExectutionTimeSeconds() * 0.8)
-            ->block(RuntimeInfo::maxExectutionTimeSeconds() * 0.8, function () {
-                app(GameTurnStatus::class)->ensure(Turn::getCurrentForGame($this));
-            });
+        app(GameMutation::class)->run($this, function () {
+            \Illuminate\Support\Facades\DB::afterCommit(fn () => app(GameTurnStatus::class)->ensure(Turn::getCurrentForGame($this)));
+        });
+        $this->unsetRelation('currentTurn');
         $turn = $this->getCurrentTurn();
         return new GameReadyStatusInfo(
             turn_number: $turn->getNumber(),
@@ -191,6 +194,8 @@ class Game extends Model
     {
         return [
             'is_active' => 'boolean',
+            'diplomacy_enabled' => 'boolean',
+            'guard_enabled' => 'boolean',
         ];
     }
 
@@ -211,8 +216,10 @@ class Game extends Model
     }
 
     public function isUpkeeping(): bool {
-        return !Cache::lock($this->getCacheLockKeyForChangeTurn(), 1)
-            ->get(fn () => true);
+        if (GameMutation::holds($this)) return false;
+        $status = app(GameTurnStatus::class)->read($this->getId());
+        return ($status['state'] ?? null) === 'processing'
+            && (int) ($status['updated_at'] ?? 0) > (int) (microtime(true) * 1000) - 300000;
     }
 
     public function getCacheLockKeyForChangeTurn(): string {
@@ -221,9 +228,7 @@ class Game extends Model
 
     public function tryNextTurn(Turn $turnToEnd): Turn {
         if ($turnToEnd->getGameId() !== $this->getId()) abort(409, 'The turn belongs to another game.');
-        $lock = Cache::lock($this->getCacheLockKeyForChangeTurn(), RuntimeInfo::maxExectutionTimeSeconds() * 0.8);
-
-        $gotLock = $lock->get(function () use ($turnToEnd) {
+        app(GameMutation::class)->run($this, function () use ($turnToEnd) {
                 if (!$this->fresh()->isActive()) abort(409, 'This game is archived.');
                 $currentTurn = Turn::getCurrentForGame($this);
 
@@ -243,6 +248,7 @@ class Game extends Model
                     $currentTurn->end();
 
                     $nextTurn = $currentTurn->createNext();
+                    app(\App\Services\DiplomacyService::class)->copyTurn($this, $currentTurn, $nextTurn);
 
                     // Upkeep.
                     $this->nations()->get()->each(fn (Nation $n) => $n->onNextTurn($currentTurn, $nextTurn));
@@ -257,8 +263,13 @@ class Game extends Model
                         ->filter(fn (Division $d) => $d->getDetail($currentTurn)->isEngaging())
                         ->groupBy([
                             fn (Division $d) => $d->getNation()->getId() . '-' . $d->getDetail($currentTurn)->getOrder()->getTargetTerritory()->getId()
-                        ])
-                        ->shuffle();
+                        ]);
+                    $guardAllocator = app(\App\Services\GuardAllocator::class);
+                    $guardResponses = $guardAllocator->allocate(
+                        $this, $currentTurn, $nextTurn, $divisionsByOwnerAndDestinationTerritory
+                    );
+                    $allGuardResponses = $guardResponses->flatMap(fn ($responses) => $responses)->values();
+                    $divisionsByOwnerAndDestinationTerritory = $divisionsByOwnerAndDestinationTerritory->shuffle();
                     foreach ($divisionsByOwnerAndDestinationTerritory as $attackingDivisions) {
                         $firstDivision = Division::notNull($attackingDivisions->first());
                         $destinationTerritoryId = $firstDivision
@@ -269,15 +280,23 @@ class Game extends Model
                         $destinationTerritory = $this->getTerritoryWithId($destinationTerritoryId);
 
                         if (app(\App\Services\GameParticipants::class)->canEngage($firstDivision->getNation(), $destinationTerritory, $nextTurn)) {
-                            $battle = Battle::resolveBattle($destinationTerritory, $currentTurn, $nextTurn, $attackingDivisions);
-                            News::createBattle($nextTurn, $battle);
+                            $battle = app(\App\Services\DiplomacyService::class)->resolveAttack(
+                                $destinationTerritory, $currentTurn, $nextTurn, $attackingDivisions,
+                                $guardResponses->pull($destinationTerritoryId, collect()),
+                            );
+                            if ($battle) News::createBattle($nextTurn, $battle);
                         } else {
                             News::create($nextTurn, 'An automated attack was held because the territory is now protected.');
                         }
                         $attackingDivisions->each(fn (Division $d) => $d->getDetail($currentTurn)->getOrder()->onExecution());
                     }
+                    $guardAllocator->returnAircraft($this, $nextTurn, $allGuardResponses);
 
-                    $this->activeDivisionsInTurn($currentTurn)->get()->each(fn (Division $d) => $d->afterBattlePhase($currentTurn, $nextTurn));
+                    $guardEnabled = (bool) ($this->guard_enabled ?? false);
+                    $this->activeDivisionsInTurn($currentTurn)->get()
+                        ->each(fn (Division $d) => $d->afterBattlePhase($currentTurn, $nextTurn, $guardEnabled));
+
+                    app(\App\Services\DiplomacyService::class)->finishTurn($this, $nextTurn);
 
                     $this->nations()->get()->each(fn (Nation $n) => $n->onTurnUpkeepEnding($currentTurn, $nextTurn));
 
@@ -292,18 +311,12 @@ class Game extends Model
                 });
             });
         
-        if (!$gotLock) {
-            // Assuming that another next turn or rollback command is executing, waiting for the execution to finish.
-            $lock->block(RuntimeInfo::maxExectutionTimeSeconds() * 0.8, function () {});
-        }
 
         return Turn::getCurrentForGame($this);
     }
 
     public function rollbackLastTurn(?int $expectedTurnId = null): void {
-        $lock = Cache::lock($this->getCacheLockKeyForChangeTurn(), RuntimeInfo::maxExectutionTimeSeconds() * 0.8);
-
-        $gotLock = $lock->get(function () use ($expectedTurnId) {
+        app(GameMutation::class)->run($this, function () use ($expectedTurnId) {
             if (!$this->fresh()->isActive()) abort(409, 'This game is archived.');
             $lastTurn = Turn::getCurrentForGame($this);
 
@@ -316,6 +329,7 @@ class Game extends Model
             }
 
             return app(GameTurnStatus::class)->during($this->getId(), $lastTurn->getNumber(), function () use ($lastTurn) {
+                app(\App\Services\DiplomacyService::class)->beforeRollback($this, $lastTurn);
                 $lastTurn->delete(); // Will cascade.
 
                 $currentTurn = Turn::getCurrentForGame($this);
@@ -329,10 +343,6 @@ class Game extends Model
             });
         });
 
-        if (!$gotLock) {
-            // Assuming that another next turn or rollback command is executing, waiting for the execution to finish.
-            $lock->block(RuntimeInfo::maxExectutionTimeSeconds() * 0.8, function () {});
-        }
     }
     
     private function updateVictoryStatus(Turn $turn): void {
@@ -465,6 +475,13 @@ class Game extends Model
         $game = new Game();
         $game->is_active = true;
         $game->victory_status = VictoryStatus::HasNotBeenWon->value;
+        $game->save();
+        $game->refresh();
+        // Existing games remain opted out; only newly created games adopt the new rules.
+        if (array_key_exists('diplomacy_enabled', $game->getAttributes())) {
+            $game->diplomacy_enabled = true;
+        }
+        if (array_key_exists('guard_enabled', $game->getAttributes())) $game->guard_enabled = true;
         $game->save();
 
         $turn = Turn::createFirst($game);

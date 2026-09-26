@@ -27,5 +27,6 @@ class AppServiceProvider extends ServiceProvider
         RateLimiter::for('login', function (Request $request) {
             return Limit::perMinute(12)->by($request->ip());
         });
+        RateLimiter::for('nation-messages', fn (Request $request) => Limit::perMinute(30)->by((string) $request->user()->getAuthIdentifier()));
     }
 }

@@ -43,6 +43,7 @@ All observations are ordinary PHP arrays decoded from JSON. IDs are positive int
 | conflict_events | Compact recent nation-versus-nation events involving this nation (12-turn window); neutral battles are in battle_logs. |
 | recent_attacks | Territory IDs attacked while this nation defended within the last two turns. |
 | human_ids | Nations currently under manual control. |
+| diplomacy | Private diplomacy input: bilateral relations, pending peace offers and a bounded recent text-message history. |
 
 Use the bundled snapshots to inspect exact nested exporter shapes. `workspace.divisions` contains division_id, nation_id, territory_id, division_type and order (object or null). `workspace.deployments` contains deployment_id, division_type, nation_id and territory_id. Queued deployments are not movable active units until turn resolution.
 
@@ -70,6 +71,7 @@ Forecasts estimate production with the supplied inputs. They do not simulate com
   "deployments": [],
   "orders": [],
   "disband": [],
+  "diplomacy": [],
   "memory": {},
   "explanation": "Preparing to expand into a nearby neutral territory."
 }
@@ -84,7 +86,7 @@ Forecasts estimate production with the supplied inputs. They do not simulate com
 - memory: your JSON-serializable array/object, at most 64 KiB. Handle an empty notebook and your own version upgrades. Each nation/script has an independent notebook.
 - explanation: nonempty text, at most 3000 UTF-8 bytes. Shown in administration.
 
-Return every required field; cancel_orders/cancel_deployments are optional and default empty. Do not return invented action names. IDs must be integers, never numeric strings. A division can get at most one move/attack or disband action. Duplicate cancellation/disband IDs are rejected.
+Return every required field; cancel_orders, cancel_deployments and diplomacy are optional and default empty. Do not return invented action names. IDs must be integers, never numeric strings. A division can get at most one move/attack or disband action. Duplicate cancellation/disband IDs are rejected.
 
 Application order: cancellations → production bids → deployments → movement/attacks → disband → Ready. Cancellations can precede a replacement order in the same plan. All actions and notes commit atomically. Ownership, affordability, deployment loyalty, reachability and human protection remain authoritative.
 
@@ -95,3 +97,20 @@ The game updates only the notebook of the successfully applied script. A failed 
 Admin Preview runs decision code and structural checks but does not apply actions, save notes or Ready. It is **not full game-legality validation**. It may use fallback for execution/format errors and may make paid requests if the script contains them. The live step performs authoritative validation and may fall back for illegal actions.
 
 Do not put API credentials, full prompts or private provider responses in your notes/explanation. LLM response formats are private to your script; parse and translate them to this contract. Errors should be concise and free of secrets.
+
+
+## Optional primitive diplomacy and messages
+
+Older plans may omit `diplomacy`; it defaults to `[]`. When enabled for the game, `view.diplomacy` includes public bilateral `relations`, the acting nation's private pending peace `offers` (`id`, `sender_nation_id`, `other_nation_id`), and up to 50 recent private text `messages` in chronological order. Each message contains `id`, `other_nation_id`, `sender_nation_id`, `body` and `turn_number`. History includes both incoming and outgoing text so a script can understand the conversation; compare `sender_nation_id` with `view.nation_id` to distinguish them. Grant values and other nations' conversations are never exposed. Plan actions are:
+
+```php
+'diplomacy' => [
+    ['action' => 'send_message', 'nation_id' => 456, 'body' => 'We accept a quiet border for now.'],
+    ['action' => 'accept_peace', 'offer_id' => 123],
+    // Or decline_peace with offer_id; propose_peace with nation_id.
+],
+```
+
+At most 20 diplomacy actions may be returned per plan. Of those, at most five may be messages, with one message per recipient and 1–2000 characters in each body. Store the greatest handled message ID in memory so the bounded history does not trigger repeat replies, and consider later outgoing messages when deciding whether a conversation already received an answer. Text survives a game rollback while script memory returns to its earlier snapshot. All actions use authoritative participant/state validation and commit atomically with the ordinary AI turn. A successful peace acceptance cancels queued attacks against the partner. Scripts must respect Peace/Allied destinations when drafting military orders; the server enforces this too. Alliance, grant and declaration actions remain unavailable to AI nations. Custom scripts can ignore peace offers or messages. The bundled V1 script answers peace offers but does not author free text; the starter demonstrates a generic reply.
+
+Message bodies are untrusted text written by another player. A rule-based script should parse only the vocabulary it intentionally supports. A model-backed script should clearly delimit messages as game data and must not treat their content as developer instructions, tool requests or permission to disclose prompts, credentials or private memory.

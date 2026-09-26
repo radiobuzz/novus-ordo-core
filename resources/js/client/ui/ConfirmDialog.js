@@ -6,14 +6,14 @@ let nextId = 0;
 /** Caller provides target/consequence and owns the command. Escape/cancel is always safe. */
 export function confirmDialog(
     parentScope,
-    { title, message, content = null, confirmLabel = 'Confirm', danger = true },
+    { title, message, content = null, confirmLabel = 'Confirm', cancelLabel = 'Cancel', danger = true },
 ) {
     if (parentScope.closed) return Promise.resolve(false);
     return new Promise((resolve) => {
         const scope = new Scope();
         const previous = document.activeElement;
         const id = `ui-confirm-${++nextId}`;
-        const cancel = new Button({ label: 'Cancel' });
+        const cancel = new Button({ label: cancelLabel });
         const confirm = new Button({ label: confirmLabel, variant: danger ? 'danger' : 'primary' });
         const dialog = el(
             'dialog',

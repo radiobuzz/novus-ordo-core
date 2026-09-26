@@ -1,0 +1,100 @@
+.diplomacy-workspace {
+    padding: var(--space-4, 1rem);
+    max-width: 76rem;
+    margin-inline: auto;
+    h1,
+    h2 {
+        font-family: var(--font-display);
+    }
+    .diplomacy-status {
+        color: var(--text-muted);
+    }
+    .diplomacy-layout {
+        display: grid;
+        grid-template-columns: minmax(12rem, 1fr) minmax(0, 3fr);
+        gap: 1rem;
+    }
+    .diplomacy-nations {
+        display: flex;
+        flex-direction: column;
+        gap: 0.35rem;
+        align-items: stretch;
+    }
+    .diplomacy-nations button {
+        justify-content: flex-start;
+        overflow-wrap: anywhere;
+    }
+    .diplomacy-nations [aria-current='true'] {
+        outline: 1px solid var(--accent-command);
+    }
+    .diplomacy-conversation {
+        min-width: 0;
+        padding: 1rem;
+        border: 1px solid var(--border-default);
+        border-radius: var(--radius, 0.5rem);
+        background: var(--surface-panel);
+    }
+    .diplomacy-messages {
+        height: min(42vh, 32rem);
+        overflow: auto;
+        overflow-anchor: none;
+        margin-block: 1rem;
+        padding: 0.5rem;
+        border: 1px solid var(--border-default);
+    }
+    .diplomacy-message {
+        border-bottom: 1px solid var(--border-default);
+        padding: 0.75rem;
+        overflow-wrap: anywhere;
+    }
+    .diplomacy-message p {
+        white-space: pre-wrap;
+        margin-block: 0.5rem;
+    }
+    .diplomacy-message small {
+        display: block;
+        margin-bottom: var(--space-2);
+        color: var(--text-muted);
+    }
+    .diplomacy-message button + button {
+        margin-inline-start: 0.5rem;
+    }
+    textarea {
+        width: 100%;
+        resize: vertical;
+        min-height: 5rem;
+        font: inherit;
+    }
+    .diplomacy-grant {
+        margin-top: 1rem;
+    }
+    .diplomacy-grant-form {
+        display: grid;
+        grid-template-columns: 1fr 1fr;
+        gap: 0.75rem;
+        padding-top: 0.75rem;
+    }
+    .diplomacy-grant-form button {
+        grid-column: 1 / -1;
+        justify-self: start;
+    }
+    @media (max-width: 700px) {
+        .diplomacy-layout {
+            display: block;
+        }
+        .diplomacy-layout:not(.diplomacy-selected) .diplomacy-conversation {
+            display: none;
+        }
+        .diplomacy-selected .diplomacy-nations {
+            display: none;
+        }
+        .diplomacy-conversation {
+            padding: 0.65rem;
+        }
+    }
+}
+.diplomacy-unread {
+    min-width: 1em;
+    font-size: 0.75rem;
+    color: var(--accent-command);
+}

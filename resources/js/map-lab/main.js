@@ -17,6 +17,11 @@ import { flagMarkup } from './military-renderer.js';
 import { initializeExperiments, renderExperiments, installExperiments } from './experiment-panels.js';
 import { recomputeEconomy, recordOilUse } from './economy.js';
 import { atlasControls, atlasInspector, renderAtlas, installAtlas } from './atlas-controls.js';
+import { coastControls, coastInspector, renderCoasts, installCoasts } from './coast-controls.js';
+import { coastActive } from './coasts.js';
+import { developmentActive, builtPlots } from './development.js';
+import { studyCells } from './development-scale.js';
+import { developmentControls, developmentInspector, installDevelopment } from './development-controls.js';
 import { administrationActive, administrativeMembership } from './administration.js';
 import {
     administrationControls,
@@ -43,25 +48,19 @@ root.innerHTML = html`
             </div>
         </header>
         <aside class="lab-controls" aria-label="Experiment controls">
-            ${administrationControls}
+            ${developmentControls} ${coastControls} ${administrationControls}
             <section>
-                <p class="eyebrow">Lab-only visual comparison</p>
-                <h2>Terrain v2</h2>
-                <div class="layer-controls">
-                    <label
-                        ><input type="checkbox" data-layer="terrainV2" /> Terrain v2 · layered
-                        landscape</label
-                    >
-                </div>
+                <p class="eyebrow">Permanent landscape renderer</p>
+                <h2>Terrain V2</h2>
                 <button type="button" class="secondary-button" data-action="terrain-v2-detail">
-                    Find terrain comparison
+                    Find landscape detail
                 </button>
                 <p class="hint">
-                    Toggle at the same camera position to compare. V2 adds continuous ground, tree clusters,
-                    shorelines and softer rivers at close zoom. World overview and gameplay geography stay
-                    unchanged. Existing terrain, relief, transition and grid controls still apply.
+                    Continuous ground, tree clusters, shorelines and softer rivers are now the lab baseline.
+                    World overview and gameplay geography stay unchanged. Terrain, relief, transition and grid
+                    controls still apply. Development clears vegetation before buildings are drawn.
                 </p>
-                <p class="hint" data-field="terrain-v2-status">Original terrain renderer selected.</p>
+                <p class="hint" data-field="terrain-v2-status">Terrain V2 ready.</p>
             </section>
             ${atlasControls}
             <section>
@@ -257,6 +256,8 @@ root.innerHTML = html`
         <aside class="lab-inspector" aria-live="polite">
             <div class="inspector-tabs" role="group" aria-label="Inspector focus">
                 <button type="button" data-inspect="geography">Inspect geography</button>
+                <button type="button" data-inspect="coasts">Inspect coasts</button>
+                <button type="button" data-inspect="development">Inspect development</button>
                 <button type="button" data-inspect="military">Inspect formations</button>
                 <button type="button" data-inspect="economy">Inspect economy</button>
                 <button type="button" data-inspect="naval">Inspect navy</button>
@@ -264,7 +265,7 @@ root.innerHTML = html`
             </div>
             <section class="experiment-panel" data-field="economy-panel" hidden></section>
             <section class="experiment-panel" data-field="naval-panel" hidden></section>
-            ${atlasInspector} ${administrationInspector}
+            ${atlasInspector} ${administrationInspector} ${coastInspector} ${developmentInspector}
             <div data-legacy-inspector>
                 <section class="military-panel" data-field="military-panel" hidden></section>
                 <div class="faction-key" data-field="faction-key" hidden>
@@ -336,8 +337,13 @@ const state = {
         islandNames: false,
         mountainNames: false,
         lakeNames: false,
+        bayNames: false,
+        coasts: false,
+        development: false,
+        developmentNames: true,
+        developmentCells: false,
         resources: false,
-        terrainV2: false,
+        terrainV2: true,
         administration: false,
         adminCountries: true,
         adminProvinces: true,
@@ -359,6 +365,8 @@ const state = {
     resourceSettings: { abundance: 50, concentration: 50, richness: 100 },
     selectedFeature: null,
     atlasSettings: { continentMinimum: 20 },
+    coastLens: 'exposure',
+    selectedShoreId: null,
 };
 state.military = createMilitary(state.model);
 initializeExperiments(state);
@@ -371,22 +379,24 @@ const renderer = new MapLabRenderer(
     (metrics) => {
         state.metrics = metrics;
         const v2 = renderer.terrainV2.diagnostics();
-        root.querySelector('[data-field="terrain-v2-status"]').textContent = !state.layers.terrainV2
-            ? 'Original terrain renderer selected.'
-            : v2.active
-              ? `Terrain v2 · ${v2.pending ? `${v2.pending} detail patches preparing` : 'detail ready'} · ${((v2.pixels * 4) / 1048576).toFixed(1)} MiB raster cache.`
-              : 'Terrain v2 selected. Zoom in for detail; illustrated terrain must be enabled. Diagnostic views retain their original colours.';
+        const artStatus = root.querySelector('[data-development-art-status]');
+        const artMessage = {
+            'not-loaded': 'Structure artwork loads when development detail is visible.',
+            loading: 'Loading structure artwork…',
+            ready: 'Painted structures and quarry detail ready.',
+            error: 'Some structure artwork is unavailable. Simplified fallback remains usable; reload to retry.',
+        }[renderer.developmentOverlay.art.status];
+        if (artStatus.textContent !== artMessage) artStatus.textContent = artMessage;
+        root.querySelector('[data-field="terrain-v2-status"]').textContent = v2.active
+            ? `Terrain v2 · ${v2.pending ? `${v2.pending} detail patches preparing` : 'detail ready'} · ${((v2.pixels * 4) / 1048576).toFixed(1)} MiB raster cache.`
+            : 'Terrain V2 baseline. Zoom in for detail; illustrated terrain must be enabled. Diagnostic views retain their original colours.';
         root.querySelector('.zoom-value').textContent =
             `${Math.round((camera.zoom / camera.fitZoom) * 100)}%`;
         root.querySelector('.performance-status').textContent =
             `${metrics.visibleCells.toLocaleString()} / ${metrics.totalCells.toLocaleString()} visible cells · ${metrics.frameMs.toFixed(1)} ms draw CPU · ${metrics.transitionsPending ? 'preparing blends' : metrics.detail}`;
         root.querySelector('[data-field="tile-status"]').textContent = v2.active
             ? 'Terrain v2 uses procedural ground and canopy sprites, independent of the original artwork. Relief, transitions, rivers, and the grid remain selectable.'
-            : metrics.tileStatus === 'ready'
-              ? 'Zoom in for blended terrain and shorelines. Toggle Terrain transitions to compare; hide the micro-cell grid for a continuous landscape.'
-              : metrics.tileStatus === 'loading'
-                ? 'Loading terrain artwork…'
-                : 'Artwork unavailable. Terrain colors remain usable.';
+            : 'Simplified terrain at world scale. Zoom in for the continuous landscape; no old tile artwork is used.';
     },
 );
 
@@ -409,6 +419,8 @@ function updateInspector() {
     renderExperiments(root, state);
     renderAtlas(root, state);
     renderAdministration(root, state);
+    renderCoasts(root, state);
+    development.render();
     updateMilitaryPanel();
     const summary = regionControl(state.model, state.selectedRegionId);
     const region = summary.region;
@@ -615,6 +627,20 @@ for (const button of root.querySelectorAll('[data-scale]'))
 for (const input of root.querySelectorAll('[data-layer]'))
     input.addEventListener('change', () => {
         state.layers[input.dataset.layer] = input.checked;
+        if (input.dataset.layer === 'development' && input.checked) {
+            state.labFocus = 'development';
+            state.armySelected = false;
+            state.commandMode = null;
+            state.orderPreview = null;
+            state.selectingBeach = false;
+        }
+        if (input.dataset.layer === 'coasts' && input.checked) {
+            state.labFocus = 'coasts';
+            state.armySelected = false;
+            state.commandMode = null;
+            state.orderPreview = null;
+            state.selectingBeach = false;
+        }
         if (input.dataset.layer === 'administration') {
             state.labFocus = input.checked ? 'administration' : 'geography';
             state.armySelected = false;
@@ -665,7 +691,6 @@ root.querySelector('[data-action="zoom-out"]').addEventListener('click', () => {
 root.querySelector('[data-action="fit"]').addEventListener('click', fitMap);
 root.querySelector('[data-action="terrain-v2-detail"]').addEventListener('click', () => {
     state.layers.terrainV2 = true;
-    root.querySelector('[data-layer="terrainV2"]').checked = true;
     state.labFocus = 'geography';
     state.commandMode = null;
     state.orderPreview = null;
@@ -688,8 +713,7 @@ root.querySelector('[data-action="terrain-v2-detail"]').addEventListener('click'
         Math.min(camera.width, camera.height) / (state.model.cellSize * 22),
     );
     camera.constrain();
-    state.message =
-        'Same map, new drawing. Toggle Terrain v2 to compare without moving the camera or changing the seed.';
+    state.message = 'Terrain V2 landscape detail. Geography and seed are unchanged.';
     updateInspector();
     renderer.invalidate();
 });
@@ -803,11 +827,17 @@ canvas.addEventListener('pointerup', (event) => {
         const x = event.clientX - bounds.left,
             y = event.clientY - bounds.top;
         const marker =
-            !administrationActive(state) && state.layers.formations && state.view === 'terrain'
+            !administrationActive(state) &&
+            !coastActive(state) &&
+            !developmentActive(state) &&
+            state.layers.formations &&
+            state.view === 'terrain'
                 ? renderer.militaryOverlay.markerAt(x, y)
                 : null;
         const navalMarker =
             !administrationActive(state) &&
+            !coastActive(state) &&
+            !developmentActive(state) &&
             state.layers.naval &&
             state.view === 'terrain' &&
             renderer.experimentOverlay.navalMarkers.find(
@@ -883,6 +913,8 @@ canvas.addEventListener('keydown', (event) => {
 function selectCell(cell) {
     state.selectedFeature = null;
     if (!cell) return;
+    if (development.inspectCell(cell)) return;
+    if (coasts.inspectCell(cell)) return;
     if (administration.inspectCell(cell)) return;
     if (experiments.inspectCell(cell)) return;
     if (state.layers.formations && state.view === 'terrain') {
@@ -1158,6 +1190,8 @@ const experiments = installExperiments({
 });
 installAtlas({ root, state, camera, renderer, updateInspector, fitMap });
 const administration = installAdministration({ root, state, camera, renderer, updateInspector, fitMap });
+const coasts = installCoasts({ root, state, camera, renderer, updateInspector });
+const development = installDevelopment({ root, state, camera, renderer, updateInspector });
 
 fitMap();
 updateInspector();
@@ -1176,6 +1210,67 @@ Object.defineProperty(window, 'mapLabDiagnostics', {
             generation: state.model.generation,
             layers: { ...state.layers },
             labFocus: state.labFocus,
+            development: {
+                active: developmentActive(state),
+                visible: renderer.developmentOverlay.visible,
+                detail: renderer.developmentOverlay.detail,
+                artwork: renderer.developmentOverlay.art.status,
+                architecture: { ...renderer.developmentOverlay.drawnArchitecture },
+                drawnPlots: renderer.developmentOverlay.drawnPlots,
+                labels: renderer.developmentOverlay.labels,
+                selectedId: state.selectedDevelopmentId,
+                omissions: state.development.omissions,
+                sites: state.development.sites.map((s) => ({
+                    id: s.id,
+                    kind: s.kind,
+                    living: Boolean(s.living),
+                    streets: s.streets?.length ?? 0,
+                    name: s.name,
+                    built: s.built,
+                    activity: s.activity,
+                    urbanIntensity: s.urbanIntensity,
+                    footprintScale: s.footprintScale,
+                    structureScale: s.structureScale,
+                    spacing: s.spacing,
+                    useCellData: s.useCellData,
+                    layoutKey: s.layoutKey,
+                    excluded: { ...s.excluded },
+                    parcelArea: studyCells(state.development, s).reduce((n, c) => n + c.area, 0),
+                    studyCells: studyCells(state.development, s).map((c) => ({
+                        ...c,
+                        ...camera.worldToScreen(
+                            state.model.cellById.get(c.cellId).x,
+                            state.model.cellById.get(c.cellId).y,
+                        ),
+                    })),
+                    complex: Boolean(s.complex),
+                    resource: s.resource,
+                    count: builtPlots(s).length,
+                    capacity: s.plots.length,
+                    cells: s.cellIds.size,
+                    sample: builtPlots(s)
+                        .slice(0, 12)
+                        .map((p) => ({ id: p.id, x: p.x, y: p.y, use: p.use })),
+                    ...camera.worldToScreen(s.x, s.y),
+                })),
+            },
+            coasts: {
+                active: coastActive(state),
+                visible: renderer.coastOverlay.visible,
+                lens: state.coastLens,
+                shoreCount: state.cartography.coasts.shores.length,
+                selected: state.cartography.coasts.shoreById.get(state.selectedShoreId) ?? null,
+                bays: state.cartography.bays.map((b) => ({
+                    id: b.id,
+                    name: b.name,
+                    area: b.area,
+                    waterType: b.waterType,
+                    mouthWidth: b.mouthWidth,
+                    inward: b.inward,
+                    anchorId: b.anchorId,
+                    ...camera.worldToScreen(b.anchor.x, b.anchor.y),
+                })),
+            },
             administration: {
                 active: administrationActive(state),
                 editor: { ...state.adminEditor },

@@ -65,50 +65,13 @@ class DivisionDetail extends Model
     public function canMoveTo(Territory $destination, Territory ...$pathOfTerritories): bool {
         $nationDetail = $this->getNation()->getDetail($this->getTurn());
         $meta = DivisionType::getMeta($this->getDivision()->getDivisionType());
-        $remainingMoves = $meta->moves;
-        $origin = $this->getTerritory();
-        $connections = Territory::getTerritoryConnections($this->getGame());
-
-        if ($destination->getTerrainType() == TerrainType::Water) {
-            return false;
-        }
-
-        if (count($pathOfTerritories) > $remainingMoves - 1) {
-            return false;
-        }
-
-        if (empty($pathOfTerritories) && $origin->hasSeaAccess() && $destination->hasSeaAccess()) {
-            return $destination->getTerrainType() != TerrainType::Water && $destination->hasSeaAccess();
-        }
-
-        $currentTerritory = $origin;
-
-        foreach ($pathOfTerritories as $nextTerritory) {
-            $connectedToNext = $meta->canFly
-                ? $connections[$currentTerritory->getId()]
-                    ->contains(fn (TerritoryConnection $c) => $c->connectedTerritoryId == $nextTerritory->getId())
-                : $connections[$currentTerritory->getId()]
-                    ->filter(fn (TerritoryConnection $c) => $c->isConnectedByLand)
-                    ->contains(fn (TerritoryConnection $c) => $c->connectedTerritoryId == $nextTerritory->getId());
-
-            if (!$connectedToNext) {
-                return false;
-            }
-
-            $canGoThrough = ($meta->canFly && $nextTerritory->getTerrainType() == TerrainType::Water)
-                || $nationDetail->hasSafePassageThrough($nextTerritory);
-
-            if (!$canGoThrough) {
-                return false;
-            }
-
-            $currentTerritory = $nextTerritory;
-        }
-
-        $connectedToDestination = $connections[$currentTerritory->getId()]
-            ->contains(fn (TerritoryConnection $c) => $c->connectedTerritoryId == $destination->getId());
-        
-        return $connectedToDestination;
+        $turn = $this->getTurn();
+        return \App\Domain\MovementRules::canReach(
+            $this->getTerritory(), $destination, $pathOfTerritories, $meta,
+            Territory::getTerritoryConnections($this->getGame()),
+            fn (Territory $territory) => $nationDetail->hasSafePassageThrough($territory),
+            app(\App\Services\DiplomacyService::class)->state($this->getNation(), $destination->getDetail($turn)->getOwnerOrNull(), $turn) === \App\Domain\RelationState::Peace,
+        );
     }
     
     //     public function canReach(Territory $destination): bool {

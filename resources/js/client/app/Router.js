@@ -7,7 +7,7 @@ export class Router {
     }
     read() {
         if (!this.isActive()) return;
-        const page = location.hash.match(/^#\/(nation|economy|military|reports)$/);
+        const page = location.hash.match(/^#\/(nation|economy|military|reports|diplomacy)$/);
         if (page) {
             this.onChange(null, page[1]);
             return;

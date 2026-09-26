@@ -76,6 +76,13 @@
             gap: var(--space-3);
             min-height: var(--control-height);
         }
+        .hud-layers .layer-group-title {
+            margin: var(--space-3) 0 var(--space-1);
+            padding-top: var(--space-3);
+            border-top: 1px solid var(--border-default);
+            color: var(--accent-command);
+            font-weight: 700;
+        }
     }
     .hud-mark {
         font: 1.7rem var(--font-display);

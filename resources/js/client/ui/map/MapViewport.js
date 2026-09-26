@@ -22,6 +22,7 @@ export class MapViewport {
         images,
         onSelect,
         savedCamera,
+        onDraw,
         context = {},
     }) {
         this.camera = new Camera(definition.width, definition.height);
@@ -53,6 +54,7 @@ export class MapViewport {
                 scope,
                 onChange: () => {
                     zoom.textContent = `${Math.round(this.camera.zoom * 100)}%`;
+                    onDraw?.();
                 },
                 onSelect,
             });
@@ -78,10 +80,11 @@ export class MapViewport {
                 this.camera.fit();
                 this.invalidate();
             });
-            void this.renderer.loadImages(images).then((ok) => {
+            this.ready = this.renderer.loadImages(images).then((ok) => {
                 if (scope.closed) return;
                 notice.hidden = ok;
                 if (!ok) i18n.bind(scope, notice, 'map.failed');
+                return ok;
             });
         } catch {
             i18n.bind(scope, notice, 'map.failed');

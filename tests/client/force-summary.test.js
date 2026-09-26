@@ -20,6 +20,8 @@ const data = {
         unit(4, 10, { order_type: 'Disband' }),
         unit(5, 11, { order_type: 'Attack', rebase_territory_id: 10, target_territory_id: 20 }),
         unit(6, 10, { order_type: 'Raid', target_territory_id: 20 }, 'Fighter'),
+        unit(7, 10, { order_type: 'Guard' }),
+        unit(8, 10, { order_type: 'StandDown' }),
     ],
     deployments: [
         { territory_id: 10, division_type: 'Infantry' },
@@ -36,10 +38,10 @@ const snapshot = {
 };
 test('before-battle defense includes arrivals, rebases, queued deployments and post-battle disbanding units', () => {
     assert.deepEqual(territorialDefense(snapshot, 10), {
-        staying: 140,
+        staying: 200,
         incoming: 60,
         deployments: 30,
-        total: 230,
+        total: 290,
     });
     assert.equal(territorialDefense(snapshot, 20), null);
     assert.equal(territorialDefense({ ...snapshot, nation: null }, 10), null);

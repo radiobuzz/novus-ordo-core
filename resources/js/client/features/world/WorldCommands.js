@@ -11,11 +11,15 @@ import { unitVisual } from '../../ui/unitVisuals.js';
 import { confirmDialog } from '../../ui/ConfirmDialog.js';
 import { Minimap } from '../../ui/map/Minimap.js';
 import { militaryOverlay } from '../../ui/map/militaryOverlay.js';
+import { battleOverlay } from '../../ui/map/battleOverlay.js';
+import { heatmapOverlay } from '../../ui/map/defenseHeatmap.js';
+import { foreignTerritoryOverlay } from '../../ui/map/foreignTerritoryOverlay.js';
 import { draftMoveOrders, deploymentDraft, moveOrderPreview } from '../../services/militaryCommands.js';
 import { resourceIcon } from '../../ui/resourceVisuals.js';
 import { layoutUnits, hitUnits, unitsInBox } from '../../ui/map/unitLayout.js';
 import { UnitSprites } from '../../ui/map/UnitSprites.js';
 import { nationPalette } from '../../services/nationColors.js';
+import { filterDivisions, unitFilterTypes, updateUnitFilter } from '../../services/unitFilters.js';
 import { renderDeploymentBrush } from './DeploymentBrush.js';
 import { renderPendingOrders } from './PendingOrders.js';
 import './commands.scss';
@@ -33,6 +37,8 @@ export class WorldCommands {
         context,
         renderer,
         saved,
+        militaryLayers,
+        analysisLayer,
         onModeChange,
     }) {
         Object.assign(this, {
@@ -46,6 +52,8 @@ export class WorldCommands {
             context,
             renderer,
             saved,
+            militaryLayers,
+            analysisLayer,
             onModeChange,
         });
         this.t = (key, params) => services.i18n.t(`command.${key}`, params);
@@ -60,6 +68,16 @@ export class WorldCommands {
         this.type = previous.type ?? 'Infantry';
         this.quantity = previous.quantity ?? 1;
         this.destination = previous.destination ?? null;
+        this.forceFilters = new Map(
+            Array.isArray(previous.forceFilters)
+                ? previous.forceFilters.filter(
+                      ([key, mode]) =>
+                          /^(state:(idle|guard)|type:(Infantry|Armored|Artillery|Fighter|Bomber))$/.test(
+                              key,
+                          ) && ['include', 'exclude'].includes(mode),
+                  )
+                : [],
+        );
         this.deploymentState = services.gameplay.deploymentDraft(snapshot);
         this.palette = nationPalette(snapshot.nation_colors, snapshot.setup.nation_id);
         this.unitStyle = services.preferences?.read().unitStyle === 'flat' ? 'flat' : 'miniatures';
@@ -210,6 +228,7 @@ export class WorldCommands {
             type: this.type,
             quantity: this.quantity,
             destination: this.destination,
+            forceFilters: [...this.forceFilters],
         };
     }
     async load() {
@@ -296,7 +315,12 @@ export class WorldCommands {
         this.dock.querySelector('button')?.focus({ preventScroll: true });
     }
     canBoxSelect() {
-        return this.mode === 'military' && !['deploy', 'move'].includes(this.tool) && Boolean(this.data);
+        return (
+            this.mode === 'military' &&
+            this.militaryLayers.showUnits &&
+            !['deploy', 'move'].includes(this.tool) &&
+            Boolean(this.data)
+        );
     }
     layout() {
         return this.data
@@ -418,42 +442,60 @@ export class WorldCommands {
         this.updateOverlay();
     }
     updateOverlay() {
-        this.context.underlays = [];
-        if (!this.data || this.mode !== 'military') this.context.overlays = [];
-        else
-            this.context.overlays = [
-                (ctx, renderer) => {
-                    if (this.tool !== 'deploy') return;
-                    const color = getComputedStyle(this.root).getPropertyValue('--status-ready').trim();
-                    for (const own of this.snapshot.ownTerritories.filter((t) => t.can_deploy)) {
-                        if (renderer.highlight) renderer.highlight(ctx, own.territory_id, color, 0.25, true);
-                        else {
-                            const t = this.snapshot.territories.find(
-                                    (t) => t.territory_id === own.territory_id,
-                                ),
-                                d = this.context.definition;
-                            ctx.save();
-                            ctx.fillStyle = color;
-                            ctx.globalAlpha = 0.3;
-                            ctx.fillRect(t.x * d.tileWidth, t.y * d.tileHeight, d.tileWidth, d.tileHeight);
-                            ctx.restore();
-                        }
+        this.context.underlays = [
+            ...(this.militaryLayers.muteForeignColors &&
+            (this.mode === 'military' || this.analysisLayer.type !== 'none')
+                ? [foreignTerritoryOverlay()]
+                : []),
+            ...(this.analysisLayer.type !== 'none' && this.analysisLayer.entries.length
+                ? [heatmapOverlay(this.analysisLayer.entries)]
+                : []),
+        ];
+        this.context.overlays = [];
+        if (this.data && this.mode === 'military') {
+            this.context.underlays.push((ctx, renderer) => {
+                if (this.tool !== 'deploy') return;
+                const color = getComputedStyle(this.root).getPropertyValue('--status-ready').trim();
+                for (const own of this.snapshot.ownTerritories.filter((t) => t.can_deploy)) {
+                    if (renderer.highlight) renderer.highlight(ctx, own.territory_id, color, 0.25, true);
+                    else {
+                        const t = this.snapshot.territories.find((t) => t.territory_id === own.territory_id),
+                            d = this.context.definition;
+                        ctx.save();
+                        ctx.fillStyle = color;
+                        ctx.globalAlpha = 0.3;
+                        ctx.fillRect(t.x * d.tileWidth, t.y * d.tileHeight, d.tileWidth, d.tileHeight);
+                        ctx.restore();
                     }
-                },
-                militaryOverlay(
-                    this.data.divisions,
-                    this.data.deployments,
-                    this.selected,
-                    () => (this.tool === 'move' ? this.buildOrders() : []),
-                    {
-                        layout: () => this.layout(),
-                        sprites: this.sprites,
-                        palette: () => this.palette,
-                        style: () => this.unitStyle,
-                    },
-                ),
+                }
+            });
+            this.context.overlays = [
+                ...(this.militaryLayers.lastTurnBattles && this.militaryLayers.battles.length
+                    ? [battleOverlay(this.militaryLayers.battles)]
+                    : []),
+                ...(this.militaryLayers.showUnits
+                    ? [
+                          militaryOverlay(
+                              this.data.divisions,
+                              this.data.deployments,
+                              this.selected,
+                              () => (this.tool === 'move' ? this.buildOrders() : []),
+                              {
+                                  layout: () => this.layout(),
+                                  sprites: this.sprites,
+                                  palette: () => this.palette,
+                                  style: () => this.unitStyle,
+                                  details: () => this.militaryLayers.unitDetails,
+                                  defense: (territoryId) =>
+                                      this.militaryLayers.unitDetails
+                                          ? territorialDefense(this.snapshot, territoryId)?.total
+                                          : null,
+                              },
+                          ),
+                      ]
+                    : []),
             ];
-        if (this.context.overlays.length > 1) this.context.underlays = [this.context.overlays.shift()];
+        }
         this.renderer.invalidate();
     }
     buildOrders() {
@@ -591,7 +633,7 @@ export class WorldCommands {
                 label: this.services.i18n.t('common.helpFor', { name: this.t('forces') }),
             }).element,
         );
-        const getDivisions = () =>
+        const getBaseDivisions = () =>
             this.tool === 'forces'
                 ? this.data.divisions
                 : this.data.divisions.filter((d) =>
@@ -599,6 +641,13 @@ export class WorldCommands {
                           ? this.selected.has(d.division_id)
                           : d.territory_id === this.territoryId,
                   );
+        const getDivisions = () => filterDivisions(getBaseDivisions(), this.forceFilters);
+        const pruneSelection = () => {
+            if (!this.forceFilters.size) return;
+            const visible = new Set(getDivisions().map((division) => division.division_id));
+            this.selected = new Set([...this.selected].filter((id) => visible.has(id)));
+        };
+        pruneSelection();
         const list = el('div', { class: 'world-unit-groups' });
         const rows = new Map();
         const empty = el('p', { text: this.t('noForces') });
@@ -607,7 +656,58 @@ export class WorldCommands {
         const defense = el('p', { class: 'defense-summary' });
         const defenseDetail = el('small');
         const all = el('input', { type: 'checkbox', 'aria-label': this.t('selectAll') });
+        const filterBar = el('div', {
+            class: 'world-unit-filters',
+            role: 'toolbar',
+            'aria-label': this.t('filterUnits'),
+        });
+        const filterButtons = new Map();
+        const filterDefinitions = [
+            { key: 'state:idle', label: this.t('filterIdle'), short: '●', icon: null },
+            { key: 'state:guard', label: this.t('filterGuard'), short: '', icon: 'shield' },
+            ...unitFilterTypes.map((type) => ({
+                key: `type:${type}`,
+                label: this.unit(type),
+                short: { Infantry: 'INF', Armored: 'ARM', Artillery: 'ART', Fighter: 'FTR', Bomber: 'BMB' }[
+                    type
+                ],
+                image: unitVisual(type),
+                icon: null,
+            })),
+        ];
+        for (const definition of filterDefinitions) {
+            const control = new Button({
+                label: definition.short,
+                variant: 'quiet',
+                icon: definition.icon,
+                className: 'world-unit-filter',
+            }).element;
+            control.dataset.filterKey = definition.key;
+            if (definition.image) control.prepend(el('img', { src: definition.image, alt: '' }));
+            this.viewScope.listen(control, 'click', (event) => {
+                this.forceFilters = updateUnitFilter(this.forceFilters, definition.key, event.shiftKey);
+                pruneSelection();
+                change();
+            });
+            filterButtons.set(definition.key, { control, definition });
+            filterBar.append(control);
+        }
+        const clearFilters = new Button({
+            label: '×',
+            variant: 'quiet',
+            icon: null,
+            className: 'world-unit-filter-clear',
+        }).element;
+        clearFilters.setAttribute('aria-label', this.t('clearFilters'));
+        clearFilters.title = this.t('clearFilters');
+        this.viewScope.listen(clearFilters, 'click', () => {
+            this.forceFilters.clear();
+            change();
+        });
+        filterBar.append(clearFilters);
         body.append(
+            filterBar,
+            el('small', { class: 'world-unit-filter-hint', text: this.t('filterHint') }),
             this.field(this.t('selectAll'), all),
             list,
             empty,
@@ -653,9 +753,31 @@ export class WorldCommands {
                 icon: 'deploy',
                 iconOnly: true,
             }),
-        );
-        const advanced = el('details', {}, el('summary', { text: this.t('more') }));
-        advanced.append(
+            ...(this.snapshot.guard_enabled
+                ? [
+                      this.action(
+                          this.t('guard'),
+                          async () => {
+                              const ids = [...this.selected];
+                              const snapshot = this.snapshot;
+                              if (
+                                  await confirmDialog(this.scope, {
+                                      title: this.t('guard'),
+                                      message: this.t('guardConfirm', { count: ids.length }),
+                                      confirmLabel: this.t('confirm'),
+                                  })
+                              )
+                                  void this.command('sendGuardOrders', { division_ids: ids }, snapshot);
+                          },
+                          {
+                              command: true,
+                              disabled: !this.selected.size,
+                              icon: 'shield',
+                              iconOnly: true,
+                          },
+                      ),
+                  ]
+                : []),
             this.action(
                 this.t('disband'),
                 async () => {
@@ -679,10 +801,16 @@ export class WorldCommands {
                             snapshot,
                         );
                 },
-                { command: true, disabled: !this.selected.size, variant: 'danger' },
+                {
+                    command: true,
+                    disabled: !this.selected.size,
+                    variant: 'danger',
+                    icon: 'scrap',
+                    iconOnly: true,
+                },
             ),
         );
-        body.append(actions, advanced);
+        body.append(actions);
         if (this.territoryId)
             body.append(
                 this.action(this.t('territoryDetails'), () =>
@@ -691,6 +819,26 @@ export class WorldCommands {
             );
         const update = () => {
             const divisions = getDivisions();
+            for (const [key, { control, definition }] of filterButtons) {
+                const state = this.forceFilters.get(key) ?? 'off';
+                control.dataset.filterState = state;
+                control.setAttribute('aria-pressed', String(state !== 'off'));
+                control.setAttribute(
+                    'aria-label',
+                    this.t(
+                        state === 'exclude'
+                            ? 'filterExcluding'
+                            : state === 'include'
+                              ? 'filterIncluding'
+                              : 'filterAvailable',
+                        {
+                            name: definition.label,
+                        },
+                    ),
+                );
+                control.title = this.t('filterButtonHint', { name: definition.label });
+            }
+            clearFilters.hidden = !this.forceFilters.size;
             const groups = this.groupDivisions(divisions);
             const keys = new Set(groups.map((group) => group.key));
             for (const [key, row] of rows)
@@ -769,18 +917,34 @@ export class WorldCommands {
                 Boolean(divisions.length) && divisions.every((d) => this.selected.has(d.division_id));
             all.indeterminate = !all.checked && divisions.some((d) => this.selected.has(d.division_id));
             empty.hidden = Boolean(divisions.length);
-            count.textContent = this.t('selected', { count: this.selected.size });
+            empty.textContent = this.t(this.forceFilters.size ? 'noFilterMatches' : 'noForces');
+            count.textContent = this.forceFilters.size
+                ? this.t('selectedShown', { count: this.selected.size, shown: divisions.length })
+                : this.t('selected', { count: this.selected.size });
             strength.textContent = this.powerText();
             const projected = territorialDefense(this.snapshot, this.territoryId);
-            defense.textContent = projected
-                ? this.services.i18n.t('forces.projected', { value: this.number(projected.total) })
-                : '';
-            defenseDetail.textContent = projected
-                ? this.services.i18n.t(
-                      'forces.breakdown',
-                      Object.fromEntries(Object.entries(projected).map(([k, v]) => [k, this.number(v)])),
-                  )
-                : '';
+            const coverage =
+                this.analysisLayer.type === 'defense'
+                    ? this.analysisLayer.entries.find((entry) => entry.territoryId === this.territoryId)
+                    : null;
+            if (coverage) {
+                defense.textContent = this.t('defensePotential', { value: this.number(coverage.total) });
+                defenseDetail.textContent = this.t('defensePotentialBreakdown', {
+                    base: this.number(coverage.baseDefense),
+                    guard: this.number(coverage.guardDefense),
+                    count: coverage.guardDivisions,
+                });
+            } else {
+                defense.textContent = projected
+                    ? this.services.i18n.t('forces.projected', { value: this.number(projected.total) })
+                    : '';
+                defenseDetail.textContent = projected
+                    ? this.services.i18n.t(
+                          'forces.breakdown',
+                          Object.fromEntries(Object.entries(projected).map(([k, v]) => [k, this.number(v)])),
+                      )
+                    : '';
+            }
             actions.firstChild.disabled = !this.selected.size;
             for (const control of this.controls) control.setDisabled(!this.selected.size);
             this.updateBusy();
@@ -966,7 +1130,7 @@ export class WorldCommands {
     orderText(division) {
         if (!division.order) return this.t('noOrders');
         const id = division.order.destination_territory_id ?? division.order.target_territory_id;
-        return `${division.order.order_type}${id ? ' → ' + this.name(id) : ''}`;
+        return `${this.t(`action.${division.order.order_type}`)}${id ? ' → ' + this.name(id) : ''}`;
     }
     renderOrders(body) {
         renderPendingOrders(this, body);

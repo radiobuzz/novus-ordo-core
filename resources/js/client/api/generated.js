@@ -8,6 +8,10 @@ export const endpoints = {
         "method": "POST",
         "path": "/nation/deployments/cancel-deployment-requests"
     },
+    "cancelNationTreaty": {
+        "method": "POST",
+        "path": "/nation/diplomacy/cancel-treaty"
+    },
     "cancelOrders": {
         "method": "POST",
         "path": "/nation/divisions:cancel-orders"
@@ -54,6 +58,10 @@ export const endpoints = {
     "getClientGameplay": {
         "method": "GET",
         "path": "/client/gameplay"
+    },
+    "getDiplomacyInbox": {
+        "method": "GET",
+        "path": "/nation/diplomacy"
     },
     "getEntrySession": {
         "method": "GET",
@@ -107,6 +115,14 @@ export const endpoints = {
         "method": "GET",
         "path": "/nation/budget"
     },
+    "getNationConversation": {
+        "method": "GET",
+        "path": "/nation/diplomacy/conversations/{nationId}"
+    },
+    "getNationDefenseCoverage": {
+        "method": "GET",
+        "path": "/nation/defense-coverage"
+    },
     "getNationDivision": {
         "method": "GET",
         "path": "/nation/divisions/{divisionId}"
@@ -155,9 +171,21 @@ export const endpoints = {
         "method": "POST",
         "path": "/nation/production-bids"
     },
+    "proposeNationOffer": {
+        "method": "POST",
+        "path": "/nation/diplomacy/offers"
+    },
+    "readNationMessages": {
+        "method": "POST",
+        "path": "/nation/diplomacy/read"
+    },
     "readyForNextTurn": {
         "method": "POST",
         "path": "/ready-for-next-turn"
+    },
+    "respondNationOffer": {
+        "method": "POST",
+        "path": "/nation/diplomacy/offers/respond"
     },
     "selectHomeTerritories": {
         "method": "POST",
@@ -167,9 +195,17 @@ export const endpoints = {
         "method": "POST",
         "path": "/nation/divisions/disband-orders"
     },
+    "sendGuardOrders": {
+        "method": "POST",
+        "path": "/nation/divisions/guard-orders"
+    },
     "sendMoveOrders": {
         "method": "POST",
         "path": "/nation/divisions/move-orders"
+    },
+    "sendNationMessage": {
+        "method": "POST",
+        "path": "/nation/diplomacy/messages"
     },
     "storeNation": {
         "method": "POST",

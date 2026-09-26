@@ -238,7 +238,8 @@ class Battle extends Model
         return "$side lost {$losses->totalLosses} formations, among them $numberOfDestroyedDivisions divisions ($totalValue total value):\n" . Battle::listFormations($losses->destroyedFormations, fn (array $stats) => "[cumulated value: {$stats['cumulatedValue']}]");
     }
 
-    public static function resolveBattle(Territory $territory, Turn $currentTurn, Turn $nextTurn, Collection $attackingDivisions): Battle {
+    public static function resolveBattle(Territory $territory, Turn $currentTurn, Turn $nextTurn,
+        Collection $attackingDivisions, ?Collection $guardResponders = null): Battle {
         $teritoryDetail = $territory->getDetail($currentTurn);
         $log = "";
 
@@ -275,6 +276,11 @@ class Battle extends Model
 
         $log .= "{$attacker->getDetail()->getUsualName()} attacks {$defenderDescription} {$territory->getName()}.";
         $log .= "\n\n";
+        if ($guardResponders?->isNotEmpty()) {
+            $origins = $guardResponders->groupBy(fn ($response) => $response['origin']->getName())
+                ->map(fn ($responses, $name) => $responses->count() . " from $name")->values()->join(', ');
+            $log .= $guardResponders->count() . " Guard division(s) responded: $origins.\n\n";
+        }
 
         if ($attackingFormations->count() < 1) {
             return Battle::create($territory, $attacker, $defenderOrNull, $defenderOrNull, "No attacking formation is still operational. Attack aborted.");
@@ -302,9 +308,8 @@ class Battle extends Model
 
             $log .= "\n";
 
-            $defendingFormations = $territory->getDetail($nextTurn)
-                ->getOwnerDivisions()
-                ->map(fn (Division $d) => BattleFormation::fromDivision($d, $defenderDetail, $divisionInfoByType->get($d->getDivisionType()->value)->defensePower));
+            $defendingFormations = app(\App\Services\DiplomacyService::class)->defenders($territory, $attacker, $nextTurn)
+                ->map(fn (Division $d) => BattleFormation::fromDivision($d, $d->getNation()->getDetail($currentTurn), $divisionInfoByType->get($d->getDivisionType()->value)->defensePower));
         }
         
         for ($i = 0; $i < $numberOfMilitias; $i++) {
@@ -369,7 +374,15 @@ class Battle extends Model
             $log .= "Defender repelled the attack.";
         }
 
-        return Battle::create($territory, $attacker, $defenderOrNull, $winnerOrNull, $log);
+        return Battle::create(
+            $territory,
+            $attacker,
+            $defenderOrNull,
+            $winnerOrNull,
+            $log,
+            $attackerLosses,
+            $defenderLosses,
+        );
     }
 
     private static function finalizeAttackerVictory(Territory $territory, Nation $attacker, Collection $attackingFormations): void {
@@ -396,11 +409,23 @@ class Battle extends Model
             attacker_nation_id: $this->getAttacker()->getId(),
             defender_nation_id: $this->getDefenderOrNull()?->getId(),
             winner_nation_id: $this->getWinnerOrNull()?->getId(),
-            text: $this->getLog()
+            text: $this->getLog(),
+            attacker_formation_losses: $this->attacker_formation_losses,
+            attacker_division_losses: $this->attacker_division_losses,
+            defender_formation_losses: $this->defender_formation_losses,
+            defender_division_losses: $this->defender_division_losses,
         );
     }
 
-    private static function create(Territory $territory, Nation $attacker, ?Nation $defenderOrNull, ?Nation $winnerOrNull, string $log): Battle {
+    private static function create(
+        Territory $territory,
+        Nation $attacker,
+        ?Nation $defenderOrNull,
+        ?Nation $winnerOrNull,
+        string $log,
+        ?BattleLosses $attackerLosses = null,
+        ?BattleLosses $defenderLosses = null,
+    ): Battle {
         $game = $territory->getGame();
         $turn = Turn::getCurrentForGame($game);
 
@@ -412,6 +437,10 @@ class Battle extends Model
         $battle->defender_nation_id = $defenderOrNull?->getId();
         $battle->winner_nation_id = $winnerOrNull?->getId();
         $battle->log = $log;
+        $battle->attacker_formation_losses = $attackerLosses?->totalLosses;
+        $battle->attacker_division_losses = $attackerLosses?->destroyedDivisions->count();
+        $battle->defender_formation_losses = $defenderLosses?->totalLosses;
+        $battle->defender_division_losses = $defenderLosses?->destroyedDivisions->count();
         $battle->save();
 
         return $battle;

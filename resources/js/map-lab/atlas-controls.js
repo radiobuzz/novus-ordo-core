@@ -15,6 +15,7 @@ export const atlasControls = `
             <label><input type="checkbox" data-layer="islandNames" /> Island names</label>
             <label><input type="checkbox" data-layer="mountainNames" /> Mountain range names</label>
             <label><input type="checkbox" data-layer="lakeNames" /> Lake names</label>
+            <label><input type="checkbox" data-layer="bayNames" /> Bay names</label>
         </div>
         <p class="hint">One geographic-feature layer, independent of borders. Features can overlap: a range and a lake can belong to the same continent. Small labels appear as you zoom; every feature remains available below.</p>
         <form data-atlas-geography-settings>
@@ -48,6 +49,7 @@ export function renderAtlas(root, state) {
             ['Islands', cartography.landmasses.filter((f) => f.type === 'island')],
             ['Mountain ranges', cartography.mountains],
             ['Lakes', cartography.lakes],
+            ['Bay candidates', cartography.bays],
         ];
         select.replaceChildren(
             ...groups.map(([title, features]) => {

@@ -4,6 +4,10 @@ Date: 2026-09-19
 
 Status: Implemented as an opt-in entry, ready for visual review. Default game entry is unchanged.
 
+## Flag editor integration — 2026-09-25
+
+On the Identity screen, Design flag opens the full editor. Use this flag stages the rendered PNG and editable recipe; Cancel leaves the existing draft intact. Edit flag reopens the accepted design. Uploading another image or removing it clears the recipe. Continue/Back and server validation failures retain the draft; final creation saves the recipe with the nation image. The local study shelf remains separate. Apply the new `2026_09_25_010000_add_nation_flag_design.php` migration before using this submission path. The migration was verified on isolated data and has not been run on the game database by this task. Post-creation editing is outside this addition.
+
 ## Try it
 
 Open `/client/entry` on the game host (port 8788), or simply open `/` and follow the new default flow. Use an existing account. An unselected login reaches Games; selecting Join opens `/client/entry?game_id=ID`. Signed-in players without a nation enter the wizard, while completed players return to the selected game. Retired `/login` and `GET /create-nation` bookmarks redirect here.

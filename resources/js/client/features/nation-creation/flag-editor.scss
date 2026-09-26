@@ -1,0 +1,38 @@
+.nation-flag-editor.identity-lab-page {
+    width: min(1320px, calc(100vw - 24px));
+    max-width: none;
+    max-height: calc(100dvh - 24px);
+    margin: auto;
+    padding: 0;
+    border: 1px solid var(--border-default);
+    border-radius: 12px;
+    overflow: auto;
+    &::backdrop {
+        background: rgb(0 0 0 / 75%);
+    }
+    .nation-flag-editor-header {
+        position: sticky;
+        top: 0;
+        z-index: 2;
+        display: flex;
+        flex-wrap: wrap;
+        align-items: center;
+        justify-content: space-between;
+        gap: 12px;
+        padding: 16px 20px;
+        background: var(--surface-raised);
+        border-bottom: 1px solid var(--border-default);
+        h2 {
+            margin: 0;
+        }
+        .field-error:empty {
+            display: none;
+        }
+        .field-error {
+            flex-basis: 100%;
+        }
+    }
+    .nation-flag-editor-content {
+        padding: clamp(12px, 2vw, 24px);
+    }
+}

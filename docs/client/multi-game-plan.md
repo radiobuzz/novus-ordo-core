@@ -1,5 +1,10 @@
 # Multiple games and legacy retirement
 
+## 2026-09-25 lifecycle follow-up
+
+The selected admin Overview now supports explicit Activate, Deactivate and Delete. Activity changes preserve other games, current turn/readiness and the original deadline. Deletion removes only the selected game's data plus unshared generated identity uploads/status hint after commit. Stale confirmations and AI results are fenced by context revisions under the game mutation lock. This supersedes earlier statements that archives cannot be reactivated. No schema change is required; [ADR 0022](decisions/0022-admin-game-lifecycle.md) records behavior and isolated verification.
+
+
 Status: all five accepted stages implemented 2026-09-22.
 
 ## Accepted sequence

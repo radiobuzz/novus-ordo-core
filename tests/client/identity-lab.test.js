@@ -155,3 +155,19 @@ test('legacy proof recipes stay version 1 until explicitly copied into the exten
     assert.equal(upgraded.flag.layers.at(-1).role, 'emblem');
     assert.equal(legacy.schemaVersion, 1);
 });
+
+import { paletteFromBase } from '../../resources/js/identity-lab/palettes.js';
+test('base-colour harmonies preserve the exact primary and handle light, dark and neutral colours', () => {
+    for (const base of ['#ffffff', '#000000', '#808080', '#ff0000', '#00ffff', '#173f4f', '#f7d87a']) {
+        for (const harmony of HARMONIES) {
+            const p = paletteFromBase(base, harmony);
+            assert.equal(p.primary, base);
+            assert.ok(contrast(base, p.secondary) >= 3);
+            assert.ok(contrast(base, p.supporting) >= 3);
+            assert.deepEqual(p, paletteFromBase(base, harmony));
+            assert.notDeepEqual(p, paletteFromBase(base, harmony, 1));
+        }
+    }
+    assert.throws(() => paletteFromBase('invalid', 'complementary'));
+    assert.throws(() => paletteFromBase('#112233', 'unknown'));
+});

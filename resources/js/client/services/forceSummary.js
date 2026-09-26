@@ -27,6 +27,9 @@ export function defenseLocation(division) {
             return order.rebase_territory_id;
         case 'Raid':
             return division.territory_id;
+        case 'Guard':
+        case 'StandDown':
+            return division.territory_id;
         default:
             return undefined;
     }

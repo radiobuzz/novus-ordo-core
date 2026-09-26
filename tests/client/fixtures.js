@@ -41,6 +41,7 @@ export function fixtures(path, turn = 1) {
         return {
             game_id: 1,
             turn_number: turn,
+            guard_enabled: true,
             nation_colors: {
                 colors: [
                     'Crimson',
@@ -99,7 +100,12 @@ export function fixtures(path, turn = 1) {
                     ][index],
                 })),
                 assignments: [
-                    { nation_id: 7, primary_color_id: 1, secondary_color_id: 4, name: 'The Aurelian Union' },
+                    {
+                        nation_id: 7,
+                        primary_color_id: 1,
+                        secondary_color_id: 4,
+                        name: 'The Aurelian Union',
+                    },
                     {
                         nation_id: 8,
                         primary_color_id: 2,
@@ -114,7 +120,11 @@ export function fixtures(path, turn = 1) {
             game_id: 1,
             turn_number: turn,
             nation: { nation_id: 7 },
-            identity: { turn_number: turn, nation_id: 7, usual_name: 'The Aurelian Union' },
+            identity: {
+                turn_number: turn,
+                nation_id: 7,
+                usual_name: 'The Aurelian Union',
+            },
             turn_summary: {
                 previous_turn_number: turn > 1 ? turn - 1 : null,
                 population: 126000,
@@ -135,13 +145,56 @@ export function fixtures(path, turn = 1) {
                         allocation: 2000000,
                         production: 3000000,
                     },
+                    {
+                        territory_id: 156,
+                        resource_type: 'Oil',
+                        capacity: 42000000,
+                        productivity: 1,
+                        allocation: 42000000,
+                        production: 42000000,
+                    },
                 ],
                 turn_number: turn,
-                balances: { Capital: 10, RecruitmentPool: 10, Food: -2, Material: 5, Ore: 0, Oil: 0 },
-                stockpiles: { Capital: 20, RecruitmentPool: 0, Food: 42, Material: 15, Ore: 10, Oil: 10 },
-                production: { Capital: 12, RecruitmentPool: 12, Food: 3, Material: 5, Ore: 0, Oil: 0 },
-                upkeep: { Capital: 2, RecruitmentPool: 2, Food: 5, Material: 0, Ore: 0, Oil: 0 },
-                expenses: { Capital: 0, RecruitmentPool: 0, Food: 0, Material: 0, Ore: 0, Oil: 0 },
+                balances: {
+                    Capital: 10,
+                    RecruitmentPool: 10,
+                    Food: -2,
+                    Material: 5,
+                    Ore: 0,
+                    Oil: 0,
+                },
+                stockpiles: {
+                    Capital: 20,
+                    RecruitmentPool: 0,
+                    Food: 42,
+                    Material: 15,
+                    Ore: 10,
+                    Oil: 10,
+                },
+                production: {
+                    Capital: 12,
+                    RecruitmentPool: 12,
+                    Food: 3,
+                    Material: 5,
+                    Ore: 0,
+                    Oil: 0,
+                },
+                upkeep: {
+                    Capital: 2,
+                    RecruitmentPool: 2,
+                    Food: 5,
+                    Material: 0,
+                    Ore: 0,
+                    Oil: 0,
+                },
+                expenses: {
+                    Capital: 0,
+                    RecruitmentPool: 0,
+                    Food: 0,
+                    Material: 0,
+                    Ore: 0,
+                    Oil: 0,
+                },
                 available_production: {
                     Capital: 30,
                     RecruitmentPool: 10,
@@ -151,7 +204,13 @@ export function fixtures(path, turn = 1) {
                     Oil: 10,
                 },
             },
-            deployment_limits: { Infantry: 10, Armored: 2, Artillery: 7, Fighter: 3, Bomber: 2 },
+            deployment_limits: {
+                Infantry: 10,
+                Armored: 2,
+                Artillery: 7,
+                Fighter: 3,
+                Bomber: 2,
+            },
             production_planning: {
                 resources: Object.fromEntries(
                     ['Capital', 'RecruitmentPool', 'Food', 'Material', 'Ore', 'Oil'].map((name) => [
@@ -177,11 +236,27 @@ export function fixtures(path, turn = 1) {
                 capital_priority: 2147483645,
             },
             divisions: [
-                { division_id: 11, division_type: 'Infantry', territory_id: 156, order: null },
-                { division_id: 12, division_type: 'Armored', territory_id: 156, order: null },
+                {
+                    division_id: 11,
+                    division_type: 'Infantry',
+                    territory_id: 156,
+                    order: null,
+                },
+                {
+                    division_id: 12,
+                    division_type: 'Armored',
+                    territory_id: 156,
+                    order: null,
+                },
             ],
             deployments: [],
-            bids: [{ resource_type: 'Food', max_quantity: 3000000, max_labor_allocation_per_unit: 1000000 }],
+            bids: [
+                {
+                    resource_type: 'Food',
+                    max_quantity: 3000000,
+                    max_labor_allocation_per_unit: 1000000,
+                },
+            ],
             definitions: {
                 labor_per_unit: 1000000,
                 max_bid_labor: 2147483647,
@@ -238,7 +313,12 @@ export function fixtures(path, turn = 1) {
                       },
                   },
               ]
-            : [{ content: '##nation#7#usual_name## welcomes a new turn.', context: null }];
+            : [
+                  {
+                      content: '##nation#7#usual_name## welcomes a new turn.',
+                      context: null,
+                  },
+              ];
     if (path === '/game/rankings')
         return [
             {
@@ -266,8 +346,14 @@ export function fixtures(path, turn = 1) {
                     title: 'Population',
                     data_unit: 'WholeNumber',
                     series: [
-                        { nation_id: 7, points: [{ turn_number: turn, rank: 1, value: 126000 }] },
-                        { nation_id: 8, points: [{ turn_number: turn, rank: 2, value: 42000 }] },
+                        {
+                            nation_id: 7,
+                            points: [{ turn_number: turn, rank: 1, value: 126000 }],
+                        },
+                        {
+                            nation_id: 8,
+                            points: [{ turn_number: turn, rank: 2, value: 42000 }],
+                        },
                     ],
                 },
             ],
@@ -284,6 +370,10 @@ export function fixtures(path, turn = 1) {
                       defender_nation_id: 8,
                       winner_nation_id: 7,
                       text: 'Territory conquered by attacker.',
+                      attacker_formation_losses: 2,
+                      attacker_division_losses: 2,
+                      defender_formation_losses: 4,
+                      defender_division_losses: 3,
                   },
               ]
             : [];
@@ -316,7 +406,11 @@ export function fixtures(path, turn = 1) {
         };
     if (path === '/user') return { user_name: 'fixture-player' };
     if (path === '/user/nation-setup-status')
-        return { game_id: 1, nation_id: 7, nation_setup_status: 'FinishedSetup' };
+        return {
+            game_id: 1,
+            nation_id: 7,
+            nation_setup_status: 'FinishedSetup',
+        };
     if (path === '/territories/base-infos') return { data: baseTerritories };
     if (path === '/territories/turn-infos') return { data: current };
     if (path === '/nation/territories/turn-infos')
@@ -324,7 +418,13 @@ export function fixtures(path, turn = 1) {
             data: [155, 156, 157].map((id) => ({
                 territory_id: id,
                 can_deploy: true,
-                stats: [{ title: 'Population growth rate', value: 0.025, unit: 'DetailedPercent' }],
+                stats: [
+                    {
+                        title: 'Population growth rate',
+                        value: 0.025,
+                        unit: 'DetailedPercent',
+                    },
+                ],
             })),
         };
     if (/^\/territories\/\d+\/turn-info$/.test(path))

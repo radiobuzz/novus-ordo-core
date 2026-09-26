@@ -73,6 +73,7 @@ class NewNation extends Model
         ?ImageSource $leaderPictureSrcOrNull = null,
         ?int $primaryColorId = null,
         ?int $secondaryColorId = null,
+        ?array $flagDesign = null,
     ): Nation {
         if (!is_null($formalName)) {
             $formalName = Str::trim($formalName);
@@ -86,8 +87,8 @@ class NewNation extends Model
             throw new LogicException("Parameter homeTerritoryIds: expecting " . Game::NUMBER_OF_STARTING_TERRITORIES . " IDs, " . count($homeTerritoryIds) . " specified");
         }
 
-        $nation = Cache::lock(NewNation::CRITICAL_SECTION_HOME_TERRITORIES_SELECT_CACHE_NAME . ":{$this->game_id}", 60)->block(3, function () use ($flagSrc, $formalName, $homeTerritoryIds, $leaderName, $leaderTitleOrNull, $leaderPictureSrcOrNull, $primaryColorId, $secondaryColorId) {
-            return DB::transaction(function () use ($flagSrc, $formalName, $homeTerritoryIds, $leaderName, $leaderTitleOrNull, $leaderPictureSrcOrNull, $primaryColorId, $secondaryColorId) {
+        $nation = Cache::lock(NewNation::CRITICAL_SECTION_HOME_TERRITORIES_SELECT_CACHE_NAME . ":{$this->game_id}", 60)->block(3, function () use ($flagSrc, $formalName, $homeTerritoryIds, $leaderName, $leaderTitleOrNull, $leaderPictureSrcOrNull, $primaryColorId, $secondaryColorId, $flagDesign) {
+            return DB::transaction(function () use ($flagSrc, $formalName, $homeTerritoryIds, $leaderName, $leaderTitleOrNull, $leaderPictureSrcOrNull, $primaryColorId, $secondaryColorId, $flagDesign) {
                 $record = Nation::withoutGlobalScopes()->lockForUpdate()->findOrFail($this->getId());
                 if ((int) $record->nation_setup_status === NationSetupStatus::FinishedSetup->value) abort(409, __('entry.already_created'));
                 $validate = Territory::createValidationSuitableHomeTerritory($this->getGame());
@@ -114,6 +115,8 @@ class NewNation extends Model
             $formalName = $formalName ?? "Empire of {$nation->getInternalName()}";
 
             $nationDetail = NationDetail::create($nation, $formalName, $flagSrc);
+            $nationDetail->flag_design = $flagDesign;
+            $nationDetail->save();
 
             Leader::create($nationDetail, $leaderName, $leaderTitleOrNull, $leaderPictureSrcOrNull);
 

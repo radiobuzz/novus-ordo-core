@@ -3,6 +3,8 @@ import { el } from '../ui/dom.js';
 import { Button } from '../ui/Button.js';
 import './turn-transition.scss';
 
+const MESSAGE_COUNT = 60;
+
 /** Shell composition: the data service owns transition detection and recovery reads. */
 export class TurnTransition {
     constructor(scope, services) {
@@ -69,12 +71,12 @@ export class TurnTransition {
                 return;
             }
             if (!this.dialog.open) {
-                this.index = Math.floor(Math.random() * 4);
+                this.index = Math.floor(Math.random() * MESSAGE_COUNT);
                 this.slow = false;
                 this.failed = false;
                 this.lifetime = new Scope();
                 const rotate = () => {
-                    this.index = (this.index + 1) % 4;
+                    this.index = (this.index + 1) % MESSAGE_COUNT;
                     this.render();
                     this.lifetime.timeout(rotate, 3500);
                 };
@@ -103,10 +105,8 @@ export class TurnTransition {
         this.failed ||= Boolean(this.state?.error && this.state.error.category !== 'unavailable');
         const failed = this.failed;
         const recovery = failed || this.slow;
-        this.title.textContent = this.t(recovery ? 'waiting' : 'title');
-        this.message.textContent = this.t(
-            failed ? 'failed' : this.slow ? 'slow' : `message${this.index ?? 0}`,
-        );
+        this.title.textContent = this.t(failed ? 'waiting' : 'title');
+        this.message.textContent = this.t(failed ? 'failed' : `message${this.index ?? 0}`);
         this.retry.setLabel(this.t('retry'));
         this.retry.element.hidden = !recovery;
         this.retry.setPending(

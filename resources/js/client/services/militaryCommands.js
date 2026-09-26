@@ -1,3 +1,4 @@
+import { canPass, relationTo } from './diplomacy.js';
 import { movementPath } from './movement.js';
 
 /** Mirrors sendMoveOrders' additional-cost check. Existing Attack/Raid costs are already reserved. */
@@ -14,8 +15,9 @@ export function moveOrderPreview(snapshot, data, orders) {
         const meta = data?.definitions.divisions.find((d) => d.division_type === division?.division_type);
         if (!division || !destination || !meta || order.path_territory_ids === null) valid = false;
         if (!division || !destination || !meta) continue;
+        if (relationTo(snapshot, destination.owner_nation_id).state === 'Peace') valid = false;
         if (
-            destination.owner_nation_id === snapshot.setup.nation_id ||
+            canPass(snapshot, destination.owner_nation_id) ||
             ['Attack', 'Raid'].includes(division.order?.order_type)
         )
             continue;
@@ -42,22 +44,40 @@ export function moveOrderPreview(snapshot, data, orders) {
 
 /** Shared command drafting; server metadata and validation remain authoritative. */
 export function draftMoveOrders(snapshot, data, selected, destination) {
+    const divisions = new Map(data.divisions.map((division) => [division.division_id, division]));
+    const definitions = new Map(data.definitions.divisions.map((meta) => [meta.division_type, meta]));
+    const territories = new Map(snapshot.territories.map((territory) => [territory.territory_id, territory]));
+    const allies = snapshot.territories
+        .filter((territory) => canPass(snapshot, territory.owner_nation_id))
+        .map((territory) => territory.owner_nation_id);
+    const destinationId = Number(destination);
+    const peace = relationTo(snapshot, territories.get(destinationId)?.owner_nation_id).state === 'Peace';
+    const paths = new Map();
     return [...selected].map((id) => {
-        const division = data.divisions.find((d) => d.division_id === id);
-        const meta = data.definitions.divisions.find((m) => m.division_type === division?.division_type);
+        const division = divisions.get(id);
+        const meta = definitions.get(division?.division_type);
+        let path = null;
+        if (division && meta && destination && !peace) {
+            const key = `${division.territory_id}:${division.division_type}`;
+            if (!paths.has(key))
+                paths.set(
+                    key,
+                    movementPath(
+                        snapshot.territories,
+                        division.territory_id,
+                        destinationId,
+                        meta,
+                        snapshot.setup.nation_id,
+                        allies,
+                        territories,
+                    ),
+                );
+            path = paths.get(key);
+        }
         return {
             division_id: id,
-            destination_territory_id: Number(destination),
-            path_territory_ids:
-                division && meta && destination
-                    ? movementPath(
-                          snapshot.territories,
-                          division.territory_id,
-                          Number(destination),
-                          meta,
-                          snapshot.setup.nation_id,
-                      )
-                    : null,
+            destination_territory_id: destinationId,
+            path_territory_ids: path === null ? null : [...path],
         };
     });
 }

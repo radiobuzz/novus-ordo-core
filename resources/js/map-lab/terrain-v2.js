@@ -1,4 +1,5 @@
 import { TerrainField, terrainColor, clamp } from './terrain-v2-field.js';
+import { DevelopmentLandscape, developmentSurfaceKey } from './development-landscape.js';
 
 const PIXEL_BUDGET = 8 * 1024 * 1024;
 const MAX_CHUNKS = 96;
@@ -7,16 +8,22 @@ const MAX_CHUNKS = 96;
 export class TerrainV2 {
     model = null;
     cache = new Map();
+    grounds = new Map();
+    rasterizedChunks = 0;
     sprites = new Map();
     pending = 0;
     pixels = 0;
     active = false;
     work = null;
+    landscape = null;
+    clearedTrees = 0;
     constructor(invalidate) {
         this.invalidate = invalidate;
     }
     destroy() {
         this.cache.clear();
+        this.grounds.clear();
+        this.rasterizedChunks = 0;
         this.sprites.clear();
         this.work = null;
         this.model = null;
@@ -28,9 +35,13 @@ export class TerrainV2 {
             active: this.active,
             pending: this.pending,
             chunks: this.cache.size,
+            groundChunks: this.grounds.size,
+            rasterizedChunks: this.rasterizedChunks,
             pixels: this.pixels,
             pixelBudget: PIXEL_BUDGET,
             maxChunks: MAX_CHUNKS,
+            surfaceKey: this.landscape?.key ?? 'natural',
+            clearedTrees: this.clearedTrees,
         };
     }
     reset(model) {
@@ -146,6 +157,11 @@ export class TerrainV2 {
                 const tree = sample[2] < 950 && random < density;
                 const rock =
                     !tree && sample[2] > 380 && random < 0.04 + clamp((sample[2] - 380) / 1400) * 0.14;
+                const clearing = this.landscape?.clearing(p.x, p.y, radius * 0.7) ?? 0;
+                if ((tree || rock) && field.hash(col, row, 71) < clearing) {
+                    if (tree) this.clearedTrees++;
+                    continue;
+                }
                 if (tree || rock)
                     objects.push({
                         ...p,
@@ -177,6 +193,19 @@ export class TerrainV2 {
             return;
         }
         if (this.model !== state.model) this.reset(state.model);
+        const surfaceKey = developmentSurfaceKey(state.development, state.layers.development);
+        if (
+            !this.landscape ||
+            this.landscape.key !== surfaceKey ||
+            this.landscapeDevelopment !== state.development
+        ) {
+            this.landscape = new DevelopmentLandscape(state.development, state.layers.development);
+            this.landscapeDevelopment = state.development;
+            for (const canvas of this.cache.values()) this.pixels -= canvas.width * canvas.height;
+            this.cache.clear();
+            this.work = null;
+            this.clearedTrees = 0;
+        }
         const bounds = camera.worldBounds(),
             span = this.span;
         const settings = { relief: state.layers.relief, blend: state.layers.transitions };
@@ -185,7 +214,8 @@ export class TerrainV2 {
         const estimate =
             (Math.ceil((bounds.right - bounds.left) / span) + 2) *
             (Math.ceil((bounds.bottom - bounds.top) / span) + 2);
-        while (resolution > 128 && estimate * resolution * resolution > PIXEL_BUDGET) resolution /= 2;
+        // Budget both the reusable natural ground and its decorated composite.
+        while (resolution > 128 && estimate * resolution * resolution * 2 > PIXEL_BUDGET) resolution /= 2;
         const wanted = [],
             visible = new Set();
         for (
@@ -215,7 +245,13 @@ export class TerrainV2 {
             if (!this.work) {
                 const canvas = document.createElement('canvas');
                 canvas.width = canvas.height = resolution;
-                this.work = { ...chunk, canvas, data: new ImageData(resolution, resolution), line: 0 };
+                const ground = this.grounds.get(chunk.key);
+                this.work = {
+                    ...chunk,
+                    canvas,
+                    data: ground ?? new ImageData(resolution, resolution),
+                    line: ground ? resolution : 0,
+                };
             }
             const work = this.work,
                 sample = new Float64Array(9);
@@ -242,6 +278,21 @@ export class TerrainV2 {
             if (work.line < resolution) break;
             const target = work.canvas.getContext('2d');
             target.putImageData(work.data, 0, 0);
+            if (!this.grounds.has(work.key)) {
+                this.grounds.set(work.key, work.data);
+                this.pixels += resolution * resolution;
+                this.rasterizedChunks++;
+            }
+            target.save();
+            target.scale(work.resolution / span, work.resolution / span);
+            target.translate(-work.col * span, -work.row * span);
+            this.landscape.drawGround(target, this.field, {
+                left: work.col * span,
+                top: work.row * span,
+                right: (work.col + 1) * span,
+                bottom: (work.row + 1) * span,
+            });
+            target.restore();
             this.decorate(target, work, settings);
             this.cache.set(work.key, work.canvas);
             this.pixels += resolution * resolution;
@@ -254,13 +305,19 @@ export class TerrainV2 {
                 ctx.drawImage(image, chunk.col * span, chunk.row * span, span, span);
                 this.cache.delete(chunk.key);
                 this.cache.set(chunk.key, image);
+                const ground = this.grounds.get(chunk.key);
+                this.grounds.delete(chunk.key);
+                this.grounds.set(chunk.key, ground);
             }
         }
-        for (const [key, image] of this.cache) {
-            if (this.pixels <= PIXEL_BUDGET && this.cache.size <= MAX_CHUNKS) break;
+        for (const [key, ground] of this.grounds) {
+            if (this.pixels <= PIXEL_BUDGET && this.grounds.size <= MAX_CHUNKS) break;
             if (visible.has(key)) continue;
-            this.pixels -= image.width * image.height;
+            this.pixels -= ground.width * ground.height;
+            const image = this.cache.get(key);
+            if (image) this.pixels -= image.width * image.height;
             this.cache.delete(key);
+            this.grounds.delete(key);
         }
         if (this.pending) this.invalidate();
     }

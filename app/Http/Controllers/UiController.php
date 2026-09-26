@@ -47,7 +47,14 @@ class CreateNationUiRequest extends FormRequest
     public function rules(): array
     {
         return [
-            'nation_flag' => ['nullable', 'image', 'mimes:png,jpg,jpeg,webp', 'max:2048', 'dimensions:max_width=4096,max_height=4096'],
+            'nation_flag' => ['nullable', 'required_with:flag_design', 'image', $this->filled('flag_design') ? 'mimes:png' : 'mimes:png,jpg,jpeg,webp', 'max:2048', $this->filled('flag_design') ? 'dimensions:width=900,height=600' : 'dimensions:max_width=4096,max_height=4096'],
+            'flag_design' => ['bail', 'nullable', 'string', 'max:500000', function ($attribute, $value, $fail) {
+                try {
+                    \App\Services\FlagDesign::parse($value);
+                } catch (\InvalidArgumentException) {
+                    $fail(__('entry.flag_design_invalid'));
+                }
+            }],
             'primary_color_id' => ['nullable', 'required_with:secondary_color_id', 'integer', Rule::exists('nation_colors', 'id')->where('primary_allowed', true)],
             'secondary_color_id' => ['nullable', 'required_with:primary_color_id', 'integer', Rule::exists('nation_colors', 'id')],
             'leader_picture' => ['nullable', 'image', 'mimes:png,jpg,jpeg,webp', 'max:2048', 'dimensions:max_width=4096,max_height=4096'],

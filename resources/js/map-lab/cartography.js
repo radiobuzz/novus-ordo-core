@@ -1,5 +1,6 @@
 import { axialKey, neighborCoordinates } from './hex.js';
 import { createAreaFeatures, relateLakes, buildFeatureRegistry } from './geographic-features.js';
+import { createCoasts } from './coasts.js';
 
 export function featureHash(value) {
     let n = 2166136261;
@@ -275,9 +276,20 @@ export function createCartography(model, options = {}) {
     };
     const areas = createAreaFeatures(model, nameFor, continentMinimum);
     relateLakes(model, areas.lakes, atlas.rivers, atlas.riverByEdge);
+    const coasts = createCoasts(model);
+    for (const bay of coasts.bays) {
+        bay.name = nameFor('bay')(bay.id, 'Bay');
+        const parents =
+            bay.waterType === 'lake'
+                ? areas.lakes.filter((lake) => lake.cellIds.includes(bay.anchorId)).map((lake) => lake.id)
+                : [...new Set(bay.cellIds.map((id) => atlas.oceanByCell.get(id)).filter(Boolean))];
+        bay.relations = parents.map((featureId) => ({ type: 'within', featureId }));
+    }
+    areas.bays = coasts.bays;
     return {
         ...atlas,
         ...areas,
+        coasts,
         ...buildFeatureRegistry(model, atlas, areas),
         settings: { continentMinimum },
     };

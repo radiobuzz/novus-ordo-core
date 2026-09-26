@@ -8,6 +8,7 @@ const browser = await chromium.launch({
 const page = await browser.newPage({ viewport: { width: 1440, height: 1000 } });
 const errors = [];
 page.on('pageerror', (e) => errors.push(e.message));
+const designedFlag = process.env.NO7_TEST_DESIGNED_FLAG === '1';
 const origin = 'http://127.0.0.1:8792'; // Fixed isolated server, never the active host.
 try {
     await page.goto(origin + '/client/entry?game_id=1');
@@ -61,9 +62,46 @@ try {
     await page.getByLabel('Nation name', { exact: true }).fill('Integration Aurelia');
     await page.getByLabel('Formal name', { exact: true }).fill('The Integration Republic');
     const image = await page.screenshot({ clip: { x: 0, y: 0, width: 100, height: 100 } });
-    await page
-        .locator('input[type=file]')
-        .setInputFiles({ name: 'fixture-flag.png', mimeType: 'image/png', buffer: image });
+    if (designedFlag) {
+        await page.getByRole('button', { name: 'Design flag', exact: true }).click();
+        const dialog = page.locator('.nation-flag-editor');
+        await dialog.locator('[data-template="triband"]').click();
+        const recipe = JSON.parse(await dialog.locator('.identity-recipe').textContent());
+        await dialog.getByRole('button', { name: 'Use this flag', exact: true }).click();
+        await page.getByRole('button', { name: 'Edit flag', exact: true }).waitFor();
+        const fields = {
+            nation_name: 'Invalid Flag Fixture',
+            leader_name: 'Leader',
+            territory_ids_as_json: JSON.stringify(selected),
+            flag_design: JSON.stringify(recipe),
+        };
+        const headers = { Accept: 'application/json', 'X-CSRF-TOKEN': session.csrfToken };
+        const missingPng = await page.request.post(origin + '/create-nation', { headers, multipart: fields });
+        assert.equal(missingPng.status(), 422);
+        assert.ok((await missingPng.json()).errors.nation_flag);
+        const wrongSize = await page.request.post(origin + '/create-nation', {
+            headers,
+            multipart: {
+                ...fields,
+                nation_flag: { name: 'wrong-size.png', mimeType: 'image/png', buffer: image },
+            },
+        });
+        assert.equal(wrongSize.status(), 422);
+        assert.ok((await wrongSize.json()).errors.nation_flag);
+        const unsafeRecipe = await page.request.post(origin + '/create-nation', {
+            headers,
+            multipart: {
+                ...fields,
+                flag_design: JSON.stringify({ ...recipe, markup: '<script/>' }),
+            },
+        });
+        assert.equal(unsafeRecipe.status(), 422);
+        assert.ok((await unsafeRecipe.json()).errors.flag_design);
+    } else {
+        await page
+            .locator('input[type=file]')
+            .setInputFiles({ name: 'fixture-flag.png', mimeType: 'image/png', buffer: image });
+    }
     await page.getByRole('button', { name: 'Continue', exact: true }).click();
     await page.getByLabel('Leader name', { exact: true }).fill('Integration Leader');
     await page.getByLabel('Title', { exact: true }).fill('President');
@@ -96,7 +134,7 @@ try {
     await page.getByRole('heading', { name: 'Your nation awaits' }).waitFor();
     assert.deepEqual(errors, []);
     console.log(
-        'PASS: real isolated HTTP login, localized rejected credentials, CSRF, field validation, multipart flag/portrait creation, connected territories, duplicate rejection and completed-state recovery.',
+        `${designedFlag ? 'Designed flag + invalid recipe/missing PNG/dimension rejection; ' : ''}PASS: real isolated HTTP login, localized rejected credentials, CSRF, field validation, multipart flag/portrait creation, connected territories, duplicate rejection and completed-state recovery.`,
     );
 } finally {
     await browser.close();

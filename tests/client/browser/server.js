@@ -24,8 +24,17 @@ const server = http.createServer(async (req, res) => {
                     admin: null,
                 },
                 assets: {
-                    background: '/res/bundled/entry/hires.png',
-                    backgroundSlides: [1, 2, 3, 4, 5, 6].map((number) => `/res/bundled/entry/${number}.png`),
+                    background: '/res/bundled/entry/2026-09-26-static.png',
+                    backgroundSlides: [
+                        '2026-09-26-01-0a.png',
+                        '2026-09-26-02-0b.png',
+                        '2026-09-26-03-1.png',
+                        '2026-09-26-04-2.png',
+                        '2026-09-26-05-3.png',
+                        '2026-09-26-06-4.png',
+                        '2026-09-26-07-5.png',
+                        '2026-09-26-08-6.png',
+                    ].map((file) => `/res/bundled/entry/${file}`),
                     soundtrack: '/res/bundled/entry/intro.mp3',
                 },
                 mapImages: {
@@ -55,14 +64,31 @@ const server = http.createServer(async (req, res) => {
             );
             return;
         }
+        if (url.pathname === '/dev-panel/economy-lab') {
+            const manifest = JSON.parse(
+                await readFile(path.join(root, 'public/build/manifest.json'), 'utf8'),
+            );
+            const entry = manifest['resources/js/economy-lab/main.js'];
+            res.setHeader('Content-Type', 'text/html');
+            res.end(
+                `<!doctype html><html lang="en"><head><meta name="viewport" content="width=device-width,initial-scale=1">${entry.css.map((file) => `<link rel="stylesheet" href="/build/${file}">`).join('')}</head><body class="economy-lab-page"><main id="economy-lab-root"></main><script type="module" src="/build/${entry.file}"></script></body></html>`,
+            );
+            return;
+        }
         if (url.pathname === '/dev-panel/identity-lab') {
             const manifest = JSON.parse(
                 await readFile(path.join(root, 'public/build/manifest.json'), 'utf8'),
             );
             const entry = manifest['resources/js/identity-lab/main.js'];
+            const styles = new Set();
+            const collectStyles = (asset) => {
+                for (const file of asset.css ?? []) styles.add(file);
+                for (const key of asset.imports ?? []) collectStyles(manifest[key]);
+            };
+            collectStyles(entry);
             res.setHeader('Content-Type', 'text/html');
             res.end(
-                `<!doctype html><html lang="en"><head><meta name="viewport" content="width=device-width,initial-scale=1">${entry.css.map((file) => `<link rel="stylesheet" href="/build/${file}">`).join('')}</head><body class="identity-lab-page"><main id="identity-lab-root"></main><script type="module" src="/build/${entry.file}"></script></body></html>`,
+                `<!doctype html><html lang="en"><head><meta name="viewport" content="width=device-width,initial-scale=1">${[...styles].map((file) => `<link rel="stylesheet" href="/build/${file}">`).join('')}</head><body class="identity-lab-page"><main id="identity-lab-root"></main><script type="module" src="/build/${entry.file}"></script></body></html>`,
             );
             return;
         }

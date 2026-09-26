@@ -31,6 +31,7 @@ class ClientController extends Controller
                 ['id' => 'map', 'url' => route('dev.map-lab')],
                 ['id' => 'portrait', 'url' => route('dev.portrait-lab')],
                 ['id' => 'identity', 'url' => route('dev.identity-lab')],
+                ['id' => 'economy', 'url' => route('dev.economy-lab')],
                 ['id' => 'gallery', 'url' => route('dev.ui-foundations')],
             ] : [],
             'spectator' => $request->query('mode') === 'spectator',

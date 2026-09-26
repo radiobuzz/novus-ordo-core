@@ -133,16 +133,24 @@ class Division extends Model
     }
 
     public function onMovePhase(Turn $currentTurn, Turn $nextTurn): void {
-        if ($this->getDetail($currentTurn)->isRebasing()) {
+        if ($this->getDetail($currentTurn)->isRebasing()
+            && $this->getDetail($nextTurn)->isActive()
+            && app(\App\Services\DiplomacyService::class)->canPass($this->getNation(), $this->getDetail($currentTurn)->getOrder()->getDestinationTerritory(), $nextTurn)) {
             $this->getDetail($nextTurn)->moveTo($this->getDetail($currentTurn)->getOrder()->getDestinationTerritory());
             $this->getDetail($currentTurn)->getOrder()->onExecution();
         }
     }
 
-    public function afterBattlePhase(Turn $currentTurn, Turn $nextTurn): void {
-        if ($this->getDetail($currentTurn)->getOrderOrNull()?->getType() == OrderType::Disband) {
+    public function afterBattlePhase(Turn $currentTurn, Turn $nextTurn, bool $guardEnabled): void {
+        $order = $this->getDetail($currentTurn)->getOrderOrNull();
+        if ($order?->getType() == OrderType::Disband) {
             $this->getDetail($nextTurn)->disband();
-            $this->getDetail($currentTurn)->getOrder()->onExecution();
+            $order->onExecution();
+        } else if ($order?->getType() == OrderType::Guard && $this->getDetail($nextTurn)->isActive()) {
+            if ($guardEnabled) {
+                Order::createGuardOrder($this, $nextTurn);
+            }
+            $order->onExecution();
         }
     }
 

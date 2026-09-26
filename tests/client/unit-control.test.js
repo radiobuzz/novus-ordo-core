@@ -3,7 +3,12 @@ import {
     deploymentDraft,
     remainingDeploymentMaximum,
 } from '../../resources/js/client/services/militaryCommands.js';
-import { layoutUnits, hitUnits, unitsInBox } from '../../resources/js/client/ui/map/unitLayout.js';
+import {
+    layoutUnits,
+    hitUnits,
+    stackBadgeMetrics,
+    unitsInBox,
+} from '../../resources/js/client/ui/map/unitLayout.js';
 import { recolorUnitPixels, unitPalette } from '../../resources/js/client/ui/map/unitPalette.js';
 import { Camera } from '../../resources/js/client/ui/map/Camera.js';
 import { MapPicker } from '../../resources/js/client/ui/map/MapPicker.js';
@@ -40,6 +45,24 @@ camera.zoom = 1;
 let layout = layoutUnits(context, camera, data.divisions);
 assert.equal(layout[0].state, 'stack');
 assert.deepEqual(unitsInBox(layout, { a: { x: 0, y: 0 }, b: { x: 900, y: 600 } }), [11, 12]);
+const splitLayout = layoutUnits(context, camera, [
+    { ...data.divisions[0], order: { order_type: 'Guard' } },
+    data.divisions[1],
+]);
+const split = splitLayout[0],
+    metrics = stackBadgeMetrics(split.units),
+    left = split.x - metrics.totalWidth / 2;
+assert.deepEqual(
+    hitUnits(splitLayout, { x: left + metrics.guardWidth / 2, y: split.y }).units.map((u) => u.division_id),
+    [11],
+);
+assert.deepEqual(
+    hitUnits(splitLayout, {
+        x: left + metrics.guardWidth + metrics.gap + metrics.regularWidth / 2,
+        y: split.y,
+    }).units.map((u) => u.division_id),
+    [12],
+);
 camera.zoom = 8;
 camera.x = camera.y = 165;
 layout = layoutUnits(context, camera, data.divisions, [], [draft[0]]);

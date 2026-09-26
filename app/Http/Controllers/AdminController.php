@@ -51,6 +51,11 @@ class AdminController extends Controller
         return response()->json($service->changeTurn($game, (int) $data['turn_id'], $data['action']));
     }
 
+    public function lifecycle(Request $request, Game $game, AdminGameService $service): JsonResponse {
+        $data = $request->validate(['action' => 'required|in:activate,deactivate,delete', 'context_revision' => 'required|uuid']);
+        return response()->json($service->lifecycle($game, $data['action'], $data['context_revision']));
+    }
+
     public function start(Request $request): JsonResponse {
         $data = $request->validate(['map_draft_id' => 'nullable|integer|min:1', 'ai' => 'sometimes|array']);
         $ai = \ExperimentalAI\Setup::options($data['ai'] ?? []);

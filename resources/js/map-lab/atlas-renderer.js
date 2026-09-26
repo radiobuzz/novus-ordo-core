@@ -150,6 +150,7 @@ export class AtlasOverlay {
             island: '#dfd7b7',
             mountain: '#e1d6cb',
             lake: '#b8e4ef',
+            bay: '#9ee9df',
             ocean: '#cce5eb',
             river: '#c4e7dc',
         };
@@ -172,7 +173,7 @@ export class AtlasOverlay {
                 if (river.length * model.cellSize * Math.sqrt(model.cellCount) * camera.zoom < 110) continue;
                 label(river, river.anchor, 12, '#c4e7dc', 'river');
             }
-        for (const type of ['continent', 'mountain', 'island', 'lake']) {
+        for (const type of ['continent', 'mountain', 'island', 'lake', 'bay']) {
             if (!layers[FEATURE_LAYERS[type]]) continue;
             for (const feature of cartography.features
                 .filter((f) => f.type === type)

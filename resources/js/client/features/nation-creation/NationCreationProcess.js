@@ -7,6 +7,7 @@ const fields = {
     nation_name: 'identity',
     nation_formal_name: 'identity',
     nation_flag: 'identity',
+    flag_design: 'identity',
     primary_color_id: 'identity',
     secondary_color_id: 'identity',
     leader_name: 'leader',
@@ -27,7 +28,12 @@ export class NationCreationProcess {
         this.service = service;
         this.onSession = onSession;
         this.draft = {
-            identity: { nation_name: options.pending_name ?? '', nation_formal_name: '', nation_flag: null },
+            identity: {
+                nation_name: options.pending_name ?? '',
+                nation_formal_name: '',
+                nation_flag: null,
+                flag_design: null,
+            },
             leader: { leader_name: '', leader_title: '', leader_picture: null },
             homeland: [],
         };
@@ -240,6 +246,7 @@ export class NationCreationProcess {
     }
     dispose() {
         this.draft.identity.nation_flag = null;
+        this.draft.identity.flag_design = null;
         this.draft.leader.leader_picture = null;
         return this.scope.dispose();
     }

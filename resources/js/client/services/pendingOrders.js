@@ -21,18 +21,20 @@ export function pendingOrderGroups(data) {
                 action: d.order.order_type,
                 destination: d.order.destination_territory_id ?? d.order.target_territory_id ?? null,
                 origin: d.territory_id,
-                command: 'cancelOrders',
+                command: d.order.order_type === 'StandDown' ? null : 'cancelOrders',
                 idField: 'division_ids',
+                release: d.order.order_type === 'Guard',
             })),
     ];
     for (const item of items) {
-        const key = JSON.stringify([item.command, item.action, item.destination]);
+        const key = JSON.stringify([item.command, item.action, item.destination, item.release]);
         const group = groups.get(key) ?? {
             key,
             action: item.action,
             destination: item.destination,
             command: item.command,
             idField: item.idField,
+            release: item.release,
             items: [],
             counts: {},
         };

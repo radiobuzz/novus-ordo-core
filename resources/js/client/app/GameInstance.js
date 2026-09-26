@@ -1,3 +1,4 @@
+import { DiplomacyService } from '../services/DiplomacyService.js';
 import { endpoints } from '../api/generated.js';
 import { createEndpointClient } from '../api/createEndpointClient.js';
 import { createTransport } from '../api/createTransport.js';
@@ -39,6 +40,7 @@ export class GameInstance extends Instance {
             saved: new SavedState(storage, `user-${boot.userId}`),
             i18n: this.inputs.i18n ?? new LocalizationService(new SavedState(storage, 'device')),
         };
+        services.diplomacy = new DiplomacyService(api, world, services.gameplay);
         services.preferences = new SavedState(storage, 'device').child('display');
         services.sound = new SoundService(new SavedState(storage, 'device').child('sound'), world.scope);
         services.sound.bind(document.body);
@@ -84,6 +86,7 @@ export class GameInstance extends Instance {
         const s = this.gameServices;
         return Boolean(
             s?.gameplay.needsReview ||
+                s?.diplomacy.dirty ||
                 (s?.gameplay.outcome &&
                     !s.gameplay.outcome.reconciled &&
                     ['uncertain', 'accepted'].includes(s.gameplay.outcome.state)) ||

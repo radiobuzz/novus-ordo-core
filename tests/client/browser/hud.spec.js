@@ -20,7 +20,9 @@ test('compact header, budget detail, menu, layers and minimap preserve the map',
     await enter(page);
     await expect(page.locator('a[href="/dashboard"]')).toHaveCount(0);
     await expect(page.locator('.game-hud > .hud-mark + .game-menu + .hud-navigation')).toBeVisible();
-    await expect(page.locator('.hud-navigation-link')).toHaveCount(5);
+    await expect(page.locator('.hud-navigation-link')).toHaveCount(6);
+    await expect(page.locator('.hud-navigation-link:visible')).toHaveCount(5);
+    await expect(page.locator('.hud-navigation [data-page="diplomacy"]')).toBeHidden();
     await expect(page.locator('.game-hud > button', { hasText: 'Games' })).toHaveCount(0);
     await page.getByLabel('Game menu', { exact: true }).click();
     await expect(

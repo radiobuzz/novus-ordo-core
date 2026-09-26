@@ -7,6 +7,7 @@ export const FEATURE_LAYERS = {
     island: 'islandNames',
     mountain: 'mountainNames',
     lake: 'lakeNames',
+    bay: 'bayNames',
 };
 export const FEATURE_TITLES = {
     ocean: 'Ocean / sea',
@@ -15,6 +16,7 @@ export const FEATURE_TITLES = {
     island: 'Island',
     mountain: 'Mountain range',
     lake: 'Lake',
+    bay: 'Bay candidate',
 };
 
 function components(model, accepts) {
@@ -193,6 +195,7 @@ export function buildFeatureRegistry(model, atlas, areas) {
         ...areas.landmasses,
         ...areas.mountains,
         ...areas.lakes,
+        ...(areas.bays ?? []),
     ];
     const featureById = new Map(features.map((f) => [f.id, f])),
         featuresByCell = new Map();

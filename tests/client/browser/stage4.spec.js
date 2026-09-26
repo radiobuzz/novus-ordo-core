@@ -19,7 +19,7 @@ test('public owner portrait, compact productivity and defense update without rep
             nation_id: 7,
             name: 'Ada <Leader>',
             title: 'President',
-            picture_src: '/res/bundled/entry/hires.png',
+            picture_src: '/res/bundled/entry/2026-09-26-static.png',
         },
     ];
     await page.route('**/territories/turn-infos?*', (route) => route.fulfill({ json: territories }));

@@ -1,5 +1,38 @@
 # Shared game data — implementation plan
 
+## Military situation layers — 2026-09-26
+
+`GameplayService.militaryHistory()` coalesces current-turn public News and the current nation's private battle logs under the selected World's generation and scope. Spectators skip the private request. `WorldWorkspace` projects the result for the canvas and owns only saved display preferences; it does not publish report data into the authoritative World snapshot. Public battle context supplies every location, while nullable structured loss totals remain confined to `ParticipantBattleLog`. Turn changes clear projected markers and trigger a new read only when the layer is enabled. See [ADR 0026](decisions/0026-military-map-situation-layers.md).
+
+`GameplayService.defenseCoverage()` similarly owns the private, coalesced `/nation/defense-coverage` read. It validates the game, turn and complete unique set of currently owned territories, fences the result by World generation and clears it after confirmed commands or turn changes. The backend projects only reachable and affordable Guard response power using the engine's shared route rule; the World feature combines it with its existing confirmed-order base-defence projection. Each territory is an independent one-attack scenario. The layer creates no polling loop, does not mutate the authoritative snapshot and is unavailable to spectators.
+
+## Guard commands — 2026-09-26
+
+The current game snapshot exposes `guard_enabled`; it does not create another store or preference. World and Military derive availability from the confirmed snapshot and submit `sendGuardOrders` through the existing single-command gate, context payload and full reconciliation. Pending Guard/Stand Down state arrives through the existing owner division order projection. Release reuses `cancelOrders`, whose authoritative backend converts Guard to Stand Down. No client retry or optimistic unit relocation is introduced. See [ADR 0025](decisions/0025-guard-orders.md).
+
+## Military order overhead — 2026-09-25
+
+Move/attack, cancellation and disband now submit after the existing local single-command gate without a separate network preflight. These routes already enforce the submitted game/user/nation/turn/revision inside the server mutation lock. All outcome handling and full mutable-data reconciliation remain; other commands retain preflight. `GameDataService` reuses immutable base geography only within the same game/turn/revision, with generation/abort checks and access/disposal clearing. It still refreshes public/owned territory state and nation data between both context markers. Core command traffic falls from 17 to 12 requests. Route previews share work only within a call; the backend groups validation and unit/order exports. See [ADR 0024](decisions/0024-order-submission-performance.md) for measurements, regression evidence and the pending extended disband HTTP check. No new store, endpoint, schema or gameplay rule is introduced.
+
+## News ownership history — 2026-09-25
+
+`GameplayService.ownershipComparison()` coalesces a previous/current public ownership pair per world generation using the existing turn-info endpoint. The game service owns the read; closing a dialog cancels only its receipt. Game/turn/revision markers, generation checks and complete territory/turn validation reject incompatible results, and access loss clears cached ownership. Read-only frozen frames never publish into the world store. `app/OwnershipComparison.js` owns a separate modal Scope and stops playback/clears the view on incompatible context or turn processing. Failures support read retry; no mutation or new storage is involved. [ADR 0023](decisions/0023-news-ownership-comparison.md) records the simultaneous world ownership comparison and deferred full timeline. Node and fixture-browser checks cover cancellation, late results, scope changes and preserving the live map.
+
+## Administration lifecycle commands — 2026-09-25
+
+Admin summaries expose the existing game context revision for explicit Activate/Deactivate/Delete confirmations. Commands share the game mutation lock and rotate both human context and the optional AI generation on activity changes; completed readiness is retained. Changed public turn hints prompt existing player clients to recheck authoritative access. Nation-creation finalization also shares this lock and rejects a game deactivated since validation. AdminService remains the request owner with no automatic mutation retry. After a successful command the directory reloads; read failure is distinguished from command failure and requires Refresh status before more view actions. Deletion retires the selected scope and falls back to a remaining game or the creation state. See [ADR 0022](decisions/0022-admin-game-lifecycle.md).
+
+
+## Nation creation flag draft — 2026-09-25
+
+`NationCreationProcess` owns the selected flag File and nullable recipe as one local identity draft. The dialog has a private per-instance copy and applies only a compiled snapshot pair; parent disposal/cancellation and revision changes fence late completion. Local studies remain IndexedDB records, separate from the authoritative nation. No new shared read or store is needed. `NationSetupService` serializes the recipe into the existing multipart command, and validation failures preserve both draft values and return to Identity. Laravel validates the bounded recipe and PNG, persists it in the creation transaction, and cleans up that attempt's uploads on failure. The source migration adds `nation_details.flag_design`; the existing flag image remains the display contract. See [ADR 0021](decisions/0021-nation-flag-editor.md).
+
+
+## Primitive diplomacy ownership — 2026-09-25
+
+Delivered: a `DiplomacyService` per selected `GameInstance` owns private inbox/pages, its immutable store, polling and draft/request-key lifetime. World snapshots own confirmed relation permissions and grantable budgets, and the existing gameplay identity read supplies names. The existing human command gate reconciles both owners after communication commands. An incoming action-message marker asks the world owner to refresh budgets/orders/permissions for the other participant too; ordinary text does not trigger extra world reads. Late reads are rejected on conversation generation or durable turn-context mismatch; private state is cleared on access loss. Command payloads include the durable revision, preventing a rollback to the same turn number from accepting an old command. This closes that context gap for the current human command lane; it is not a universal transaction claim for every legacy endpoint. See [ADR 0020](decisions/0020-primitive-diplomacy.md) and the isolated/browser tests in the implementation handoff.
+
+
 ## Local AI script selection — 2026-09-22
 
 Script selection stays in the existing administration service and rotates the server's AI generation fence without resetting player readiness. Private author snapshots are explicit admin reads, not additions to the gameplay store. The sequential AI lane now also runs when the signed-in account's nation is automated; this allows giving one's own nation to a bot without losing the browser driver. Human Auto-ready still skips automated nations, and ordinary human mutation guards remain. Strategy notes and decisions stay server-side.

@@ -2,6 +2,7 @@ import { Component } from '../../../runtime/Component.js';
 import { el } from '../../../ui/dom.js';
 import { FormField } from '../../../ui/FormField.js';
 import { ImageField } from '../../../ui/ImageField.js';
+import { Button } from '../../../ui/Button.js';
 import { PaletteField } from '../../../ui/PaletteField.js';
 import { nationColorChoices } from '../../../services/nationColors.js';
 
@@ -56,15 +57,46 @@ export class IdentityStep extends Component {
             key: leader ? 'nation.portrait' : 'nation.flag',
             portrait: leader,
             file: process.draft[group][name],
-            onChange: (value) => process.updateDraft(group, { [name]: value }),
+            onChange: (value) =>
+                process.updateDraft(group, { [name]: value, ...(!leader ? { flag_design: null } : {}) }),
         });
         this.fields[name] = image;
         this.element.append(image.element);
-        if (!leader)
+        let design;
+        if (!leader) {
+            design = new Button({ label: i18n.t('nation.designFlag') });
+            image.element.querySelector('.image-field-actions').append(design.element);
+            this.scope.listen(design.element, 'click', async () => {
+                if (process.busy || design.pending) return;
+                design.setPending(true);
+                try {
+                    const { openFlagEditor } = await import('../FlagEditorDialog.js');
+                    if (this.scope.closed) return;
+                    openFlagEditor(this.scope, {
+                        i18n,
+                        opener: design.element,
+                        recipe: process.draft.identity.flag_design,
+                        onApply: ({ recipe, file }) =>
+                            process.updateDraft('identity', { nation_flag: file, flag_design: recipe }),
+                    });
+                } catch {
+                    if (!this.scope.closed) image.setError(i18n.t('nation.flagEditorFailed'));
+                } finally {
+                    if (!this.scope.closed) design.setPending(false);
+                }
+            });
             this.element.append(
                 i18n.bind(this.scope, el('p', { class: 'field-help' }), 'nation.defaultFlag'),
             );
+        }
         const update = () => {
+            image.setFile(process.draft[group][name]);
+            if (design) {
+                design.setLabel(
+                    i18n.t(process.draft.identity.flag_design ? 'nation.editFlag' : 'nation.designFlag'),
+                );
+                design.setDisabled(process.busy);
+            }
             if (!leader && process.options.nation_colors)
                 for (const [field, primary] of [
                     ['primary_color_id', true],
@@ -82,7 +114,8 @@ export class IdentityStep extends Component {
                         disabled: process.busy,
                     });
             for (const [name, field] of Object.entries(this.fields)) {
-                const issue = process.errors[name];
+                const issue =
+                    process.errors[name] ?? (name === 'nation_flag' ? process.errors.flag_design : null);
                 field.setError(
                     issue?.key
                         ? i18n.t(issue.key, issue.params)

@@ -21,6 +21,7 @@ final class PlayerTools
     }
     public function emptyPlan(string $explanation = 'No changes this turn.'): array {
         return ['bids' => [], 'deployments' => [], 'orders' => [], 'disband' => [],
-            'cancel_orders' => [], 'cancel_deployments' => [], 'memory' => [], 'explanation' => $explanation];
+            'cancel_orders' => [], 'cancel_deployments' => [], 'diplomacy' => [],
+            'memory' => [], 'explanation' => $explanation];
     }
 }

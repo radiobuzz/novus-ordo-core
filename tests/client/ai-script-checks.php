@@ -68,6 +68,22 @@ $check($game->nations()->find($id)->isReadyForNextTurn(), 'Switch changed readin
 echo "PASS preview and separate notebooks; switching preserves readiness\n";
 
 DB::table('nations')->where('id', $id)->update(['is_ready_for_next_turn' => false]);
+$switch('messenger');
+$messageCount = DB::table('nation_messages')->where('kind', 'Text')->count();
+$messageContext = $adapter->status($game) + ['nation_id' => $id];
+$messageResult = app(Runner::class)->step($game, $messageContext);
+$check($messageResult['status'] === 'played'
+    && DB::table('nation_messages')->where('kind', 'Text')->where('sender_nation_id', $id)->latest('id')->value('body') === 'Message from fixture bot.',
+    'Runner did not commit AI text through the ordinary plan');
+$messageReport = json_decode(DB::table('ai_player_turns')->where('nation_id', $id)->latest('id')->value('result'), true);
+$check(($messageReport['diplomacy'] ?? 0) === 1 && ($messageReport['commands']['diplomacy'][0]['action'] ?? null) === 'send_message',
+    'AI report omitted its message action');
+$check(app(Runner::class)->step($game, $messageContext)['status'] === 'already_processed'
+    && DB::table('nation_messages')->where('kind', 'Text')->count() === $messageCount + 1,
+    'Duplicate AI step repeated a text message');
+echo "PASS bot message commits atomically once and appears in the AI report\n";
+
+DB::table('nations')->where('id', $id)->update(['is_ready_for_next_turn' => false]);
 $switch('illegal');
 // Compare the default preview against the final default decision after a rejected partial application.
 $baseline = $scripts->decide('experimental-v1', ['view' => $adapter->observe($game, $id),
@@ -86,6 +102,11 @@ $turn2 = Turn::getCurrentForGame($game);
 $check($turn2->getNumber() === 2, 'Fixture did not advance');
 $developed = $input;
 $developed['view'] = $adapter->observe($game->fresh(), $id);
+$partner = collect($developed['view']['public_nations'])->first(fn ($row) => $row['nation_id'] !== $id)['nation_id'];
+$developed['view']['diplomacy']['messages'] = [[
+    'id' => 1, 'other_nation_id' => $partner, 'sender_nation_id' => $partner,
+    'body' => 'Would you agree to avoid conflict along our border?', 'turn_number' => 2,
+]];
 $switch('holding');
 app(Runner::class)->step($game, $adapter->status($game) + ['nation_id' => $id]);
 $game->rollbackLastTurn($turn2->getId());

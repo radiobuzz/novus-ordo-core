@@ -8,8 +8,13 @@ const commands = new Set([
     'cancelDeployments',
     'sendMoveOrders',
     'sendDisbandOrders',
+    'sendGuardOrders',
     'cancelOrders',
     'readyForNextTurn',
+    'sendNationMessage',
+    'proposeNationOffer',
+    'respondNationOffer',
+    'cancelNationTreaty',
 ]);
 
 /** No automatic mutation retries. Every command carries the identity it was drafted against. */
@@ -28,12 +33,28 @@ export class GameplayService {
                 this.deploymentState = null;
                 this.rankingHistoryState = null;
                 this.identityRead = null;
+                this.ownershipRead = null;
+                this.militaryHistoryRead = null;
+                this.defenseCoverageRead = null;
             } else if (
                 this.rankingHistoryState &&
                 this.rankingHistoryState.key !== `${state.snapshot.game_id}:${state.snapshot.turn_number}`
             ) {
                 this.rankingHistoryState = null;
             }
+            if (
+                this.militaryHistoryRead &&
+                (this.militaryHistoryRead.key !== `${state.snapshot.game_id}:${state.snapshot.turn_number}` ||
+                    this.militaryHistoryRead.generation !== world.generation)
+            )
+                this.militaryHistoryRead = null;
+            if (
+                this.defenseCoverageRead &&
+                (this.defenseCoverageRead.key !==
+                    `${state.snapshot.game_id}:${state.snapshot.turn_number}:${state.snapshot.setup.nation_id}` ||
+                    this.defenseCoverageRead.generation !== world.generation)
+            )
+                this.defenseCoverageRead = null;
             if (
                 state.status === 'ready' &&
                 !this.busy &&
@@ -112,6 +133,61 @@ export class GameplayService {
             throw new ApiError('conflict', 'The nation directory changed. Refresh to continue.');
         return result;
     }
+    async ownershipComparison(snapshot, signal) {
+        signal?.throwIfAborted();
+        const generation = this.world.generation;
+        if (snapshot.turn_number < 2 || !this.world.same(snapshot, this.world.snapshot))
+            throw new ApiError('conflict', 'No previous ownership snapshot is available.');
+        if (this.ownershipRead?.generation !== generation) {
+            const read = { generation };
+            read.promise = (async () => {
+                // Shared public history belongs to the game service, not an individual news dialog.
+                const ownerSignal = this.world.scope.signal;
+                await this.check(snapshot, ownerSignal);
+                const frames = await Promise.all(
+                    [snapshot.turn_number - 1, snapshot.turn_number].map(async (turn) => {
+                        const result = await this.api.getAllTerritoriesTurnInfo({
+                            query: { turn_number: turn },
+                            signal: ownerSignal,
+                        });
+                        const rows = Array.isArray(result) ? result : result.data;
+                        const owners = new Map();
+                        if (!Array.isArray(rows))
+                            throw new ApiError('malformed', 'Ownership history is unavailable.');
+                        for (const row of rows) {
+                            if (
+                                row.turn_number !== turn ||
+                                owners.has(row.territory_id) ||
+                                !(row.owner_nation_id === null || Number.isInteger(row.owner_nation_id))
+                            )
+                                throw new ApiError('malformed', 'Ownership history is incomplete.');
+                            owners.set(row.territory_id, row.owner_nation_id);
+                        }
+                        // Missing records are unknown, never silently painted as neutral.
+                        const territories = snapshot.territories.map(({ territory_id }) => {
+                            if (!owners.has(territory_id))
+                                throw new ApiError('malformed', 'Ownership history is incomplete.');
+                            return Object.freeze({ territory_id, owner_nation_id: owners.get(territory_id) });
+                        });
+                        return Object.freeze({ turn, territories: Object.freeze(territories) });
+                    }),
+                );
+                await this.check(snapshot, ownerSignal);
+                if (generation !== this.world.generation) throw new ApiError('conflict', 'The game changed.');
+                return Object.freeze({ before: frames[0], after: frames[1] });
+            })().catch((error) => {
+                if (this.ownershipRead === read) this.ownershipRead = null;
+                throw error;
+            });
+            this.ownershipRead = read;
+        }
+        const result = await this.ownershipRead.promise;
+        signal?.throwIfAborted();
+        this.world.scope.signal.throwIfAborted();
+        if (generation !== this.world.generation || !this.world.same(snapshot, this.world.snapshot))
+            throw new ApiError('conflict', 'The game changed.');
+        return result;
+    }
     async briefing(snapshot, signal) {
         await this.check(snapshot, signal);
         const generation = this.world.generation;
@@ -128,6 +204,102 @@ export class GameplayService {
         )
             throw new ApiError('conflict', 'The briefing changed. Refresh to continue.');
         return { news, battles, nations: identities.nations, leaders: identities.leaders };
+    }
+    async militaryHistory(snapshot, signal) {
+        const key = `${snapshot.game_id}:${snapshot.turn_number}`;
+        if (
+            this.militaryHistoryRead?.key === key &&
+            this.militaryHistoryRead.generation === this.world.generation
+        ) {
+            const value = await this.militaryHistoryRead.promise;
+            signal?.throwIfAborted();
+            return value;
+        }
+        const generation = this.world.generation;
+        const ownerSignal = this.world.scope.signal;
+        const read = { key, generation };
+        read.promise = (async () => {
+            await this.check(snapshot, ownerSignal);
+            const [news, battles] = await Promise.all([
+                this.api.getGameNews({ signal: ownerSignal }),
+                snapshot.setup.nation_id
+                    ? this.api.getNationBattleLogs({
+                          query: { turn_number: snapshot.turn_number },
+                          signal: ownerSignal,
+                      })
+                    : [],
+            ]);
+            await this.check(snapshot, ownerSignal);
+            if (generation !== this.world.generation)
+                throw new ApiError('conflict', 'The military history changed. Refresh to continue.');
+            return { news, battles };
+        })().catch((error) => {
+            if (this.militaryHistoryRead === read) this.militaryHistoryRead = null;
+            throw error;
+        });
+        this.militaryHistoryRead = read;
+        const value = await read.promise;
+        signal?.throwIfAborted();
+        return value;
+    }
+    async defenseCoverage(snapshot, signal) {
+        const nationId = snapshot?.setup.nation_id;
+        const key = `${snapshot?.game_id}:${snapshot?.turn_number}:${nationId}`;
+        if (!nationId || !snapshot.nation || !this.world.same(snapshot, this.world.snapshot))
+            throw new ApiError('conflict', 'No current nation defence is available.');
+        if (
+            this.defenseCoverageRead?.key === key &&
+            this.defenseCoverageRead.generation === this.world.generation
+        ) {
+            const value = await this.defenseCoverageRead.promise;
+            signal?.throwIfAborted();
+            return value;
+        }
+        const generation = this.world.generation;
+        const ownerSignal = this.world.scope.signal;
+        const read = { key, generation };
+        read.promise = (async () => {
+            await this.check(snapshot, ownerSignal);
+            const result = await this.api.getNationDefenseCoverage({ signal: ownerSignal });
+            await this.check(snapshot, ownerSignal);
+            if (
+                generation !== this.world.generation ||
+                result?.game_id !== snapshot.game_id ||
+                result?.turn_number !== snapshot.turn_number ||
+                !Array.isArray(result?.territories)
+            )
+                throw new ApiError('conflict', 'The defence coverage changed. Refresh to continue.');
+            const expected = new Set(
+                snapshot.territories
+                    .filter((territory) => territory.owner_nation_id === nationId)
+                    .map((territory) => territory.territory_id),
+            );
+            const seen = new Set();
+            const territories = result.territories.map((row) => {
+                if (
+                    !Number.isInteger(row?.territory_id) ||
+                    !expected.has(row.territory_id) ||
+                    seen.has(row.territory_id) ||
+                    !Number.isFinite(row.guard_defense) ||
+                    row.guard_defense < 0 ||
+                    !Number.isInteger(row.guard_divisions) ||
+                    row.guard_divisions < 0
+                )
+                    throw new ApiError('malformed', 'The defence coverage is incomplete.');
+                seen.add(row.territory_id);
+                return Object.freeze({ ...row });
+            });
+            if (seen.size !== expected.size)
+                throw new ApiError('malformed', 'The defence coverage is incomplete.');
+            return Object.freeze({ ...result, territories: Object.freeze(territories) });
+        })().catch((error) => {
+            if (this.defenseCoverageRead === read) this.defenseCoverageRead = null;
+            throw error;
+        });
+        this.defenseCoverageRead = read;
+        const value = await read.promise;
+        signal?.throwIfAborted();
+        return value;
     }
     async reports(snapshot, turn, signal) {
         await this.check(snapshot, signal);
@@ -190,6 +362,7 @@ export class GameplayService {
         this.commandContext = snapshot;
         this.changed.emit();
         let started = false;
+        let response;
         const bidDraft =
             name === 'placeProductionBid' ? JSON.stringify(this.drafts(snapshot)[body.resource_type]) : null;
         const planKey = `${snapshot.game_id}:${snapshot.turn_number}:${snapshot.setup.nation_id}`;
@@ -205,14 +378,20 @@ export class GameplayService {
         try {
             this.world.beginCommand(snapshot);
             started = true;
-            await this.check(snapshot);
-            await this.api[name]({
+            // These endpoints validate player/game/turn/revision under GameMutation.
+            // beginCommand already fences the local snapshot; a preliminary GET batch adds no write safety.
+            if (!['sendMoveOrders', 'sendDisbandOrders', 'sendGuardOrders', 'cancelOrders'].includes(name))
+                await this.check(snapshot);
+            response = await this.api[name]({
                 body: {
                     ...body,
                     ...(snapshot.nation?.automation ? { ai_context: snapshot.nation.automation } : {}),
                     client_context: {
                         game_id: snapshot.game_id,
                         turn_number: snapshot.turn_number,
+                        ...(snapshot.turn_context_revision
+                            ? { turn_context_revision: snapshot.turn_context_revision }
+                            : {}),
                         nation_id: snapshot.setup.nation_id,
                         user_id: this.boot.userId,
                     },
@@ -242,6 +421,8 @@ export class GameplayService {
                 deploy: 'Deployment rejected. Check the available resources, quantity and territory loyalty.',
                 sendMoveOrders:
                     'Orders rejected. Check movement range, ownership and resources for attack costs.',
+                sendGuardOrders:
+                    'Guard orders rejected. Select idle units in territory you control and check operation costs.',
                 placeProductionBid: 'Production bid rejected. Check quantity and productivity.',
                 applyProductionPlan: 'Production plan rejected. Check the targets and advanced settings.',
             };
@@ -259,7 +440,20 @@ export class GameplayService {
             throw error;
         } finally {
             // Reconcile even after a lost response or partial server failure, without resending.
-            const reconciled = started ? await this.world.reconcile() : await this.world.refresh();
+            let reconciled = started ? await this.world.reconcile() : await this.world.refresh();
+            if (
+                this.reconcileCommunication &&
+                [
+                    'sendNationMessage',
+                    'proposeNationOffer',
+                    'respondNationOffer',
+                    'cancelNationTreaty',
+                ].includes(name)
+            ) {
+                // Keep the human command gate held; communication refresh may run during reconciliation.
+                const communication = await this.reconcileCommunication();
+                reconciled = reconciled && communication;
+            }
             // Keep the submitted fields visible while reconciling; never repaint old saved bids.
             if (planDrafts && reconciled && this.outcome.state === 'accepted' && this.draftKey === planKey)
                 for (const [resource, submitted] of Object.entries(planDrafts))
@@ -273,6 +467,7 @@ export class GameplayService {
             this.busy = false;
             this.changed.emit();
         }
+        return response;
     }
     acknowledgeOutcome() {
         if (this.busy || !this.world.current) return;

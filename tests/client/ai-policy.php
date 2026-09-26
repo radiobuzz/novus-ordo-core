@@ -93,3 +93,19 @@ $reallocation = function ($planning) {
 };
 $check(!(new V1Experimental)->decide($shortOre, [], $settings, $reallocation)['deployments'], 'Deployment used Ore unavailable before its expenses trigger reallocation');
 echo "PASS pure policy: neutral growth, landmass doctrine, conflict escalation, retaliation defense and economy\n";
+
+$peaceView = [...$view, 'territories' => $warWorld, 'diplomacy' => ['relations' => [], 'offers' => [['id' => 7, 'sender_nation_id' => 9, 'other_nation_id' => 9]]]];
+$accept = $policy->decide($peaceView, [], [...$settings, 'protect_humans' => false], $forecast);
+$check($accept['diplomacy'] === [['action' => 'accept_peace', 'offer_id' => 7]], 'Moderate AI did not accept peace');
+$check(count(array_filter($accept['orders'], fn ($o) => $o['destination_territory_id'] === 3)) === 0, 'AI attacked nation it just accepted peace with');
+$rejectPeace = $policy->decide($peaceView, [], [...$settings, 'aggression' => 90], $forecast);
+$check($rejectPeace['diplomacy'] === [['action' => 'decline_peace', 'offer_id' => 7]], 'Stronger aggressive AI did not decline peace');
+$treatyView = [...$view, 'territories' => $warWorld, 'diplomacy' => ['relations' => [['nation_a_id' => 1, 'nation_b_id' => 9, 'state' => 'Peace']], 'offers' => []]];
+$treaty = $policy->decide($treatyView, [], [...$settings, 'protect_humans' => false, 'aggression' => 90], $forecast);
+$check(!$treaty['orders'], 'AI attacked through an existing peace treaty');
+$warView = $treatyView; $warView['diplomacy']['relations'][0]['state'] = 'War';
+$proposal = $policy->decide($warView, [], [...$settings, 'aggression' => 20], $forecast);
+$check($proposal['diplomacy'] === [['action' => 'propose_peace', 'nation_id' => 9]], 'Cautious AI did not propose peace');
+$cooldown = $policy->decide($warView, $proposal['memory'], [...$settings, 'aggression' => 20], $forecast);
+$check(!$cooldown['diplomacy'], 'AI repeated a peace proposal inside cooldown');
+echo "PASS pure diplomacy policy: accept/decline, protected targeting, own proposal and cooldown.\n";

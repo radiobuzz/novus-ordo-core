@@ -10,5 +10,6 @@ class GameParticipants
     public function canAdvance(Game $game, Turn $turn): bool { return true; }
     public function canCommand(Nation $nation): bool { return true; }
     public function canEngage(Nation $attacker, Territory $target, ?Turn $turn = null): bool { return true; }
+    public function invalidateContext(Game $game): void {}
     public function reset(Game $game, Turn $turn): void {}
 }

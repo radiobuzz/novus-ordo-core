@@ -33,6 +33,8 @@ class NationDetail extends Model
     use ReplicatesForTurns;
     use GuardsForAssertions;
 
+    protected $casts = ['flag_design' => 'array'];
+
     private const float MIN_POPULATION_GROWTH_MULTIPLIER = 1.00;
     private const float MAX_POPULATION_GROWTH_MULTIPLIER = 5.00;
     private const float MAX_FOOD_SURPLUS_RATIO = 5.00;
@@ -119,6 +121,12 @@ class NationDetail extends Model
     }
 
     public function getAllBattlesWhereParticipant(): Collection {
+        if ($this->getGame()->diplomacy_enabled) {
+            return Battle::where('game_id', $this->game_id)->where('turn_id', $this->turn_id)
+                ->where(fn ($q) => $q->where('attacker_nation_id', $this->nation_id)->orWhere('defender_nation_id', $this->nation_id)
+                    ->orWhereIn('id', \Illuminate\Support\Facades\DB::table('battle_participants')->where('nation_id', $this->nation_id)->select('battle_id')))
+                ->get();
+        }
         return $this
             ->battlesWhereAttacker()
             ->get()
@@ -286,6 +294,11 @@ class NationDetail extends Model
         return floor($this->getAvailableProductionRaw($resourceType) / LaborPoolConstants::LABOR_PER_UNIT_OF_PRODUCTION * 10_000) / 10_000;
     }
 
+    /** Current command budget for one resource without exporting every budget section. */
+    public function getAvailableProductionQuantity(ResourceType $resourceType): float {
+        return $this->getAvailableProduction($resourceType);
+    }
+
     private function getAvailableProductionRaw(ResourceType $resourceType): int {
         return max(0, $this->getStockpiledQuantityRaw($resourceType) + $this->getBalanceRaw($resourceType));
     }
@@ -300,7 +313,8 @@ class NationDetail extends Model
 
     public function canAffordCosts(array $costs): bool {
         foreach(ResourceType::cases() as $resourceType) {
-            if ($costs[$resourceType->value] > $this->getAvailableProduction($resourceType)) {
+            // Available production is clamped to zero; a zero cost never needs a budget query.
+            if ($costs[$resourceType->value] > 0 && $costs[$resourceType->value] > $this->getAvailableProduction($resourceType)) {
                 return false;
             }
         }
@@ -360,9 +374,7 @@ class NationDetail extends Model
     }
 
     public function isHostileTerritory(Territory $territory): bool {
-        return !$this->territories()
-            ->where('id', $territory->getId())
-            ->exists();
+        return !$this->hasSafePassageThrough($territory);
     }
 
     private function exportBalances(): array {
@@ -632,9 +644,7 @@ class NationDetail extends Model
     }
 
     public function hasSafePassageThrough(Territory $territory) {
-        return $this->territories()
-            ->where('id', $territory->getId())
-            ->exists();
+        return app(\App\Services\DiplomacyService::class)->canPass($this->getNation(), $territory, $this->getTurn());
     }
 
     public static function whereUsualNameIgnoreCase(string $usualName): Closure {

@@ -29,6 +29,9 @@ $check(str_contains($generator->generateModule(), '/contract/{first}/{second}'),
 $route = Illuminate\Support\Facades\Route::getRoutes()->getByName('client');
 $check($route !== null && in_array('auth', $route->gatherMiddleware()), 'Client must be authenticated');
 $devGuard = App\Http\Middleware\EnsureWhenRunningInDevelopmentOnly::class;
+$economyLab = Illuminate\Support\Facades\Route::getRoutes()->getByName('dev.economy-lab');
+$check($economyLab !== null && in_array($devGuard, $economyLab->gatherMiddleware()), 'Economy lab must be development-only');
+$check(!in_array('auth', $economyLab->gatherMiddleware()), 'Synthetic economy lab should allow development guests');
 foreach (Illuminate\Support\Facades\Route::getRoutes() as $adminRoute) {
     if (!str_starts_with($adminRoute->getName() ?? '', 'admin.')) continue;
     $check(in_array('auth', $adminRoute->gatherMiddleware()), 'Admin retains login requirement');
@@ -50,7 +53,7 @@ $check($gallery !== null && !in_array('auth', $gallery->gatherMiddleware()), 'Sy
 $check(in_array($devGuard, $gallery->gatherMiddleware()), 'UI gallery must remain development-only');
 $remainingDevRoutes = collect(Illuminate\Support\Facades\Route::getRoutes())->filter(
     fn ($route) => str_starts_with($route->uri(), 'dev-panel')
-        && !in_array($route, [$mapLab, $gallery, $portraitLab, $identityLab], true),
+        && !in_array($route, [$mapLab, $gallery, $portraitLab, $identityLab, $economyLab], true),
 )->values();
 $check($remainingDevRoutes->count() === 1 && $remainingDevRoutes[0]->uri() === 'dev-panel', 'Only the retired panel redirect may remain under dev-panel');
 $check(in_array('auth', $remainingDevRoutes[0]->gatherMiddleware()), 'Panel redirect must require authentication');

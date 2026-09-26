@@ -51,6 +51,57 @@ export async function overview(app, scope, id) {
         });
         if (changed) await app.openFromHash();
     };
+    const manage = async (action) => {
+        const verb = { activate: 'Activate', deactivate: 'Deactivate', delete: 'Delete' }[action];
+        const message =
+            action === 'delete'
+                ? `Permanently delete game ${id}, including its ${game.nation_count} nations, all turns, messages, AI records and uploaded flags/portraits? This cannot be undone. Accounts and saved maps will remain.`
+                : action === 'deactivate'
+                  ? `Deactivate game ${id}? Playing, joining, AI actions and turn advancement will stop. All game data will remain for reactivation.`
+                  : `Activate game ${id}? Players and AI can resume the existing turn. Its deadline is unchanged; an expired turn may advance on the next scheduled check. Other games remain active.`;
+        if (
+            !(await confirmDialog(scope, {
+                title: `${verb} game ${id}?`,
+                message,
+                confirmLabel: `${verb} game ${id}`,
+                danger: action !== 'activate',
+            })) ||
+            scope.closed
+        )
+            return;
+        let refreshed = false;
+        await app.run(async () => {
+            const result = await app.service.write(`/games/${id}/lifecycle`, {
+                action,
+                context_revision: game.context_revision,
+            });
+            const outcome =
+                action === 'delete'
+                    ? `Game ${id} deleted.`
+                    : `Game ${id} ${action === 'activate' ? 'activated' : 'deactivated'}.`;
+            try {
+                await app.loadGames();
+                refreshed = true;
+                app.notify(
+                    outcome +
+                        (result.cleanup_complete === false
+                            ? ' Some uploaded files could not be removed; check the server log.'
+                            : ''),
+                );
+            } catch {
+                // The write succeeded. Retry only the directory read, never the destructive command.
+                app.notify(
+                    `${outcome} The game list could not refresh. Use Refresh status to reload it.`,
+                    true,
+                );
+                app.content.replaceChildren(
+                    el('p', { text: 'Game state changed. Refresh status before another operation.' }),
+                );
+                void scope.dispose();
+            }
+        });
+        if (refreshed && !app.scope.closed) await app.openFromHash();
+    };
     const next = app.button(scope, 'Force next turn', () => act('advance'), {
         variant: 'primary',
         disabled: !game.active || game.victory_status === 'HasBeenWon',
@@ -90,7 +141,7 @@ export async function overview(app, scope, id) {
                 el('h1', { text: `Game ${id} command centre` }),
             ),
             new StatusBadge({
-                label: game.active ? 'Active game' : 'Archived · read-only',
+                label: game.active ? 'Active game' : 'Inactive',
                 tone: game.active ? 'accent' : 'neutral',
             }).element,
         ),
@@ -132,8 +183,22 @@ export async function overview(app, scope, id) {
                         class: 'admin-muted',
                         text: game.active
                             ? 'Next turn and force-next-turn use the same existing engine operation. Rollback is unavailable on turn 1.'
-                            : 'Archived games can be inspected but are not reactivated or changed here.',
+                            : 'Activate this game to resume turn controls.',
                     }),
+                ),
+                panel(
+                    { title: 'Game management' },
+                    el('p', {
+                        text: `Manage game ${id}. Deactivation keeps its data; deletion is permanent.`,
+                    }),
+                    el(
+                        'div',
+                        { class: 'admin-actions' },
+                        app.button(scope, game.active ? 'Deactivate game' : 'Activate game', () =>
+                            manage(game.active ? 'deactivate' : 'activate'),
+                        ),
+                        app.button(scope, 'Delete game', () => manage('delete'), { variant: 'danger' }),
+                    ),
                 ),
                 panel(
                     { title: 'Create another world' },

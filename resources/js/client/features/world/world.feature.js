@@ -12,6 +12,9 @@ import { localizedDom } from '../../ui/localizedDom.js';
 import { WorldCommands } from './WorldCommands.js';
 import { Disclosure } from '../../ui/Disclosure.js';
 import { compactLabel } from '../../ui/compactLabel.js';
+import { projectBattleMarkers } from '../../ui/map/battleOverlay.js';
+import { defenseGradientCss, projectDefenseHeatmap } from '../../ui/map/defenseHeatmap.js';
+import { analysisTypes, projectLocalAnalysis } from '../../ui/map/mapAnalysis.js';
 
 class WorldWorkspace extends Component {
     async render() {
@@ -26,6 +29,39 @@ class WorldWorkspace extends Component {
             ? new HexMapPicker(snapshot.territories, mapDefinition)
             : new MapPicker(snapshot.territories, mapDefinition);
         const layers = createLayers();
+        const availableAnalysisTypes = snapshot.setup.nation_id
+            ? analysisTypes
+            : analysisTypes.filter((type) => ['none', 'population'].includes(type));
+        const savedAnalysisType =
+            saved.analysis?.type ?? (saved.military?.defenseHeatmap === true ? 'defense' : 'none');
+        const initialAnalysisType = availableAnalysisTypes.includes(savedAnalysisType)
+            ? savedAnalysisType
+            : 'none';
+        const resources = Object.entries(snapshot.nation?.production_planning?.resources ?? {})
+            .filter(([, resource]) => resource.produced_by_labor)
+            .map(([resource]) => resource);
+        const initialResource = resources.includes(saved.analysis?.resource)
+            ? saved.analysis.resource
+            : (resources[0] ?? 'Capital');
+        const militaryLayers = {
+            showUnits: saved.military?.showUnits !== false,
+            lastTurnBattles: saved.military?.lastTurnBattles === true,
+            unitDetails: saved.military?.unitDetails === true,
+            muteForeignColors:
+                Boolean(snapshot.setup.nation_id) &&
+                (typeof saved.military?.muteForeignColors === 'boolean'
+                    ? saved.military.muteForeignColors
+                    : initialAnalysisType !== 'none'),
+            battles: [],
+        };
+        const analysisLayer = {
+            type: initialAnalysisType,
+            resource: initialResource,
+            entries: [],
+            scale: null,
+        };
+        let loadMilitaryHistory = () => {};
+        let refreshAnalysis = () => {};
         for (const layer of layers)
             if (!layer.fixed && typeof saved.layers?.[layer.id] === 'boolean')
                 layer.visible = saved.layers[layer.id];
@@ -66,6 +102,20 @@ class WorldWorkspace extends Component {
             el('div', { class: 'map-orientation' }, rotateLeft, north, rotateRight),
         );
         const notice = el('p', { class: 'map-notice', role: 'status', textKey: 'map.loading' });
+        const analysisLegendTitle = el('strong');
+        const analysisLegendHint = el('small');
+        const analysisLegendLow = el('span');
+        const analysisLegendHigh = el('span');
+        const analysisLegendSelected = el('small', { class: 'defense-heatmap-selected', hidden: true });
+        const analysisLegend = el(
+            'aside',
+            { class: 'defense-heatmap-legend', hidden: true },
+            analysisLegendTitle,
+            analysisLegendHint,
+            el('i', { class: 'defense-heatmap-gradient', style: `--defense-gradient:${defenseGradientCss}` }),
+            el('div', { class: 'defense-heatmap-range' }, analysisLegendLow, analysisLegendHigh),
+            analysisLegendSelected,
+        );
         const map = el(
             'section',
             { class: 'map-viewport', 'aria-label': 'World map' },
@@ -78,6 +128,7 @@ class WorldWorkspace extends Component {
             ),
             controls,
             notice,
+            analysisLegend,
             el(
                 'div',
                 { class: 'map-legend' },
@@ -115,6 +166,54 @@ class WorldWorkspace extends Component {
             group: 'game-hud',
         });
         let mode = 'geopolitical';
+        const resourceLabel = () => i18n.t(`command.resource.${analysisLayer.resource}`);
+        const updateAnalysisLegend = () => {
+            const type = analysisLayer.type;
+            analysisLegend.hidden = type === 'none';
+            if (type === 'none') return;
+            const config = {
+                defense: ['layer.defenseTitle', 'layer.defenseHintShort', 'layer.defenseLow'],
+                population: ['layer.populationTitle', 'layer.populationHintShort', 'layer.populationLow'],
+                production: ['layer.productionTitle', 'layer.productionHintShort', 'layer.productionLow'],
+                loyalty: ['layer.loyaltyTitle', 'layer.loyaltyHintShort', 'layer.loyaltyLow'],
+            }[type];
+            analysisLegendTitle.textContent = i18n.t(config[0], { resource: resourceLabel() });
+            analysisLegendHint.textContent = i18n.t(config[1]);
+            analysisLegendLow.textContent = i18n.t(config[2]);
+            const maximum = analysisLayer.scale?.maximum;
+            analysisLegendHigh.textContent =
+                type === 'defense' && maximum == null
+                    ? i18n.t('layer.defenseLoading')
+                    : i18n.t(`layer.${type}High`, {
+                          value: i18n.number(maximum ?? 0, {
+                              maximumFractionDigits: type === 'population' ? 2 : 0,
+                          }),
+                      });
+            const explanation = i18n.t(`layer.${type}Hint`, { resource: resourceLabel() });
+            analysisLegend.setAttribute('aria-label', explanation);
+            analysisLegend.title = explanation;
+            const selected = analysisLayer.entries.find(
+                (entry) => entry.territoryId === this.services.selection.id,
+            );
+            analysisLegendSelected.hidden = !selected;
+            if (selected) {
+                const name = snapshot.territories.find(
+                    (territory) => territory.territory_id === selected.territoryId,
+                )?.name;
+                const value =
+                    type === 'loyalty'
+                        ? i18n.number(selected.value * 100, { maximumFractionDigits: 0 }) + '%'
+                        : i18n.number(type === 'defense' ? selected.total : selected.value, {
+                              maximumFractionDigits: type === 'population' ? 2 : 2,
+                          });
+                analysisLegendSelected.textContent = i18n.t(`layer.${type}Selected`, {
+                    name,
+                    value,
+                    resource: resourceLabel(),
+                });
+            }
+        };
+        i18n.changed.subscribe(this.scope, updateAnalysisLegend);
         setButtonIcon(layerControl.trigger, 'layers');
         const labelLayers = () =>
             compactLabel(layerControl.trigger, i18n.t('hud.layers', { mode: i18n.t(`command.${mode}`) }));
@@ -128,6 +227,89 @@ class WorldWorkspace extends Component {
             });
             layerControl.content.append(el('label', {}, input, el('span', { textKey: `layer.${layer.id}` })));
         }
+        layerControl.content.append(el('p', { class: 'layer-group-title', textKey: 'layer.military' }));
+        const militaryToggles = [
+            ['showUnits', 'layer.showUnits'],
+            ['lastTurnBattles', 'layer.lastTurnBattles'],
+            ['unitDetails', 'layer.unitDetails'],
+        ];
+        if (snapshot.setup.nation_id) militaryToggles.push(['muteForeignColors', 'layer.muteForeignColors']);
+        const militaryInputs = new Map();
+        for (const [key, textKey] of militaryToggles) {
+            const input = el('input', { type: 'checkbox', checked: militaryLayers[key] });
+            militaryInputs.set(key, input);
+            this.scope.listen(input, 'change', () => {
+                militaryLayers[key] = input.checked;
+                this.commands?.updateOverlay();
+                if (key === 'lastTurnBattles' && input.checked) void loadMilitaryHistory();
+                this.saveView?.();
+            });
+            layerControl.content.append(el('label', {}, input, el('span', { textKey })));
+        }
+        layerControl.content.append(el('p', { class: 'layer-group-title', textKey: 'layer.analysis' }));
+        const analysisSelect = el('select', { 'aria-label': i18n.t('layer.analysis') });
+        const resourceSelect = el('select', { 'aria-label': i18n.t('layer.productionResource') });
+        const resourceRow = el(
+            'label',
+            { class: 'layer-select-row', hidden: analysisLayer.type !== 'production' },
+            el('span', { textKey: 'layer.productionResource' }),
+            resourceSelect,
+        );
+        const renderAnalysisOptions = () => {
+            analysisSelect.replaceChildren(
+                ...availableAnalysisTypes.map((type) =>
+                    el('option', {
+                        value: type,
+                        text: i18n.t(`layer.analysis.${type}`),
+                        selected: type === analysisLayer.type,
+                    }),
+                ),
+            );
+            resourceSelect.replaceChildren(
+                ...resources.map((resource) =>
+                    el('option', {
+                        value: resource,
+                        text: i18n.t(`command.resource.${resource}`),
+                        selected: resource === analysisLayer.resource,
+                    }),
+                ),
+            );
+            analysisSelect.setAttribute('aria-label', i18n.t('layer.analysis'));
+            resourceSelect.setAttribute('aria-label', i18n.t('layer.productionResource'));
+        };
+        renderAnalysisOptions();
+        i18n.changed.subscribe(this.scope, renderAnalysisOptions);
+        this.scope.listen(analysisSelect, 'change', () => {
+            analysisLayer.type = analysisSelect.value;
+            analysisLayer.entries = [];
+            analysisLayer.scale = null;
+            resourceRow.hidden = analysisLayer.type !== 'production';
+            if (analysisLayer.type !== 'none' && militaryInputs.has('muteForeignColors')) {
+                militaryLayers.muteForeignColors = true;
+                militaryInputs.get('muteForeignColors').checked = true;
+            }
+            refreshAnalysis();
+            updateAnalysisLegend();
+            this.commands?.updateOverlay();
+            this.commands?.renderDock();
+            this.saveView?.();
+        });
+        this.scope.listen(resourceSelect, 'change', () => {
+            analysisLayer.resource = resourceSelect.value;
+            refreshAnalysis();
+            updateAnalysisLegend();
+            this.commands?.updateOverlay();
+            this.saveView?.();
+        });
+        layerControl.content.append(
+            el(
+                'label',
+                { class: 'layer-select-row' },
+                el('span', { textKey: 'layer.analysisOverlay' }),
+                analysisSelect,
+            ),
+            resourceRow,
+        );
         this.services.attachHeaderControls(this.scope, layerControl.element);
         for (const [node, key] of [
             [zoom, 'map.zoom'],
@@ -149,6 +331,7 @@ class WorldWorkspace extends Component {
             ownNationId: snapshot.setup.nation_id,
             nationColors: snapshot.nation_colors,
             selectedId: this.services.selection.id,
+            hoveredId: null,
         };
         const renderer = MapViewport.connect({
             canvas,
@@ -171,6 +354,12 @@ class WorldWorkspace extends Component {
                 boxEnabled: () => this.commands?.canBoxSelect(),
                 previewBox: (box) => this.commands?.previewBox(box),
                 selectBox: (box, event) => this.commands?.selectBox(box, event),
+                hover: (territory) => {
+                    const id = territory?.territory_id ?? null;
+                    if (context.hoveredId === id) return;
+                    context.hoveredId = id;
+                    renderer.invalidate();
+                },
             },
         });
         camera.restore(saved.camera);
@@ -187,6 +376,16 @@ class WorldWorkspace extends Component {
                             layers: Object.fromEntries(
                                 layers.filter((l) => !l.fixed).map((l) => [l.id, l.visible]),
                             ),
+                            military: {
+                                showUnits: militaryLayers.showUnits,
+                                lastTurnBattles: militaryLayers.lastTurnBattles,
+                                unitDetails: militaryLayers.unitDetails,
+                                muteForeignColors: militaryLayers.muteForeignColors,
+                            },
+                            analysis: {
+                                type: analysisLayer.type,
+                                resource: analysisLayer.resource,
+                            },
                         }),
                 },
                 cleanup: () =>
@@ -196,6 +395,16 @@ class WorldWorkspace extends Component {
                         layers: Object.fromEntries(
                             layers.filter((l) => !l.fixed).map((l) => [l.id, l.visible]),
                         ),
+                        military: {
+                            showUnits: militaryLayers.showUnits,
+                            lastTurnBattles: militaryLayers.lastTurnBattles,
+                            unitDetails: militaryLayers.unitDetails,
+                            muteForeignColors: militaryLayers.muteForeignColors,
+                        },
+                        analysis: {
+                            type: analysisLayer.type,
+                            resource: analysisLayer.resource,
+                        },
                     }),
             }),
         });
@@ -288,6 +497,7 @@ class WorldWorkspace extends Component {
             context.selectedId = id;
             this.commands?.select(id);
             renderer.invalidate();
+            updateAnalysisLegend();
             for (const row of list.querySelectorAll('[data-territory-id]'))
                 row.setAttribute('aria-pressed', String(Number(row.dataset.territoryId) === id));
         });
@@ -303,11 +513,66 @@ class WorldWorkspace extends Component {
             context,
             renderer,
             saved: this.stateStore,
+            militaryLayers,
+            analysisLayer,
             onModeChange: (next) => {
                 mode = next;
                 labelLayers();
+                updateAnalysisLegend();
             },
         });
+        loadMilitaryHistory = async () => {
+            if (!militaryLayers.lastTurnBattles) return;
+            const requested = snapshot;
+            try {
+                const { news, battles } = await this.services.gameplay.militaryHistory(
+                    requested,
+                    this.scope.signal,
+                );
+                if (this.scope.closed || !this.services.world.same(requested, snapshot)) return;
+                militaryLayers.battles = projectBattleMarkers(news, battles);
+                this.commands.updateOverlay();
+            } catch (error) {
+                if (error.name !== 'AbortError') console.warn('Military history unavailable', error);
+            }
+        };
+        const loadDefenseCoverage = async () => {
+            if (analysisLayer.type !== 'defense' || !snapshot.setup.nation_id) return;
+            const requested = snapshot;
+            try {
+                const coverage = await this.services.gameplay.defenseCoverage(requested, this.scope.signal);
+                if (
+                    this.scope.closed ||
+                    analysisLayer.type !== 'defense' ||
+                    !this.services.world.same(requested, snapshot)
+                )
+                    return;
+                const projection = projectDefenseHeatmap(snapshot, coverage);
+                analysisLayer.entries = projection.entries;
+                analysisLayer.scale = projection.scale;
+                updateAnalysisLegend();
+                this.commands.updateOverlay();
+                this.commands.renderDock();
+            } catch (error) {
+                if (error.name !== 'AbortError') console.warn('Defence coverage unavailable', error);
+            }
+        };
+        refreshAnalysis = () => {
+            analysisLayer.entries = [];
+            analysisLayer.scale = null;
+            if (analysisLayer.type === 'defense') {
+                void loadDefenseCoverage();
+            } else {
+                const projection = projectLocalAnalysis(snapshot, analysisLayer.type, analysisLayer.resource);
+                analysisLayer.entries = projection.entries;
+                analysisLayer.scale = projection.scale;
+            }
+            updateAnalysisLegend();
+            this.commands.updateOverlay();
+            this.commands.renderDock();
+        };
+        if (militaryLayers.lastTurnBattles) void loadMilitaryHistory();
+        refreshAnalysis();
         this.services.world.store.subscribe(this.scope, (state) => {
             const next = state.snapshot;
             if (
@@ -317,6 +582,7 @@ class WorldWorkspace extends Component {
             )
                 return;
             if (state.status === 'ready' && next !== snapshot) {
+                const changedTurn = snapshot.turn_number !== next.turn_number;
                 const changed =
                     snapshot.territories !== next.territories ||
                     snapshot.nation_colors !== next.nation_colors;
@@ -331,6 +597,11 @@ class WorldWorkspace extends Component {
                     renderList();
                 }
                 this.commands.updateData(next);
+                refreshAnalysis();
+                if (changedTurn) {
+                    militaryLayers.battles = [];
+                    if (militaryLayers.lastTurnBattles) void loadMilitaryHistory();
+                }
                 renderer.invalidate();
             }
             this.commands.updateBusy();

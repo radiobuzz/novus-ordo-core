@@ -1,5 +1,6 @@
 <?php
 return [
+    'flag_design_invalid' => 'This flag design is invalid or unsupported. Please reopen the flag editor and try again.',
     'no_game' => 'No active world is available yet.',
     'upkeep' => 'The world is advancing. Please try again shortly.',
     'credentials' => 'The username or password was not recognized.',

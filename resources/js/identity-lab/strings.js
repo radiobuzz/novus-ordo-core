@@ -1,4 +1,21 @@
 const pairs = {
+    buildPalette: ['Build palette…', 'Créer une palette…'],
+    baseColour: ['Base colour', 'Couleur de base'],
+    baseHex: ['Hex colour', 'Couleur hexadécimale'],
+    harmonyMethod: ['Colour harmony', 'Harmonie des couleurs'],
+    monochromatic: ['Monochromatic', 'Monochromatique'],
+    analogous: ['Analogous', 'Analogue'],
+    complementary: ['Complementary', 'Complémentaire'],
+    'split-complementary': ['Split-complementary', 'Complémentaire divisée'],
+    palettePreview: ['Palette preview on your flag', 'Aperçu de la palette sur votre drapeau'],
+    paletteVariation: ['Try another variation', 'Essayer une autre variante'],
+    paletteCancel: ['Cancel', 'Annuler'],
+    paletteApply: ['Apply palette', 'Appliquer la palette'],
+    invalidBaseHex: ['Enter a colour such as #173f4f.', 'Saisissez une couleur comme #173f4f.'],
+    basePaletteHelp: [
+        'Your base colour stays unchanged. Preview matching colours before applying them.',
+        'Votre couleur de base reste inchangée. Prévisualisez les couleurs assorties avant de les appliquer.',
+    ],
     currentEmblem: ['Current emblem composition', 'Composition d’emblème actuelle'],
     emblemColor: ['Emblem colour', 'Couleur de l’emblème'],
     width: ['Width', 'Largeur'],
@@ -146,8 +163,8 @@ const pairs = {
         'Importer une recette et informations sur les fichiers',
     ],
     archiveHelp: [
-        'Keep both downloads: PNG preserves the finished image; JSON lets you edit it later. Designs stay in this Lab.',
-        'Conservez les deux fichiers : le PNG préserve l’image finale ; le JSON permet de la modifier. Les drapeaux restent dans ce laboratoire.',
+        'Keep both downloads: PNG preserves the finished image; JSON lets you edit it later.',
+        'Conservez les deux fichiers : le PNG préserve l’image finale ; le JSON permet de la modifier.',
     ],
     importSvg: ['Import SVG symbol', 'Importer un symbole SVG'],
     svgHelp: [

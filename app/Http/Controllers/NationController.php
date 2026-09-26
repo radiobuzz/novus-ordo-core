@@ -10,9 +10,11 @@ use App\Models\Nation;
 use App\Models\NewNation;
 use App\Models\Turn;
 use App\ReadModels\BudgetInfo;
+use App\ReadModels\DefenseCoverageInfo;
 use App\ReadModels\NationTurnOwnerInfo;
 use App\ReadModels\NationTurnPublicInfo;
 use App\ReadModels\ParticipantBattleLog;
+use App\Services\DefenseCoverageService;
 use App\Services\LoggedInGameContext;
 use App\Services\NationContext;
 use App\Services\NationSetupContext;
@@ -75,6 +77,15 @@ class NationController extends Controller
         $nation = $context->getNation();
 
         return response()->json($nation->getDetail()->exportBudget());
+    }
+
+    #[Summary('Returns single-attack Guard coverage for each territory owned by the current nation.')]
+    #[Response(DefenseCoverageInfo::class)]
+    public function defenseCoverage(NationContext $context): JsonResponse
+    {
+        $nation = $context->getNation();
+
+        return response()->json(app(DefenseCoverageService::class)->export($nation, $context->getCurrentTurn()));
     }
 
     #[Summary('Returns all of last turn\'s battle logs where the current nation was a participant.')]

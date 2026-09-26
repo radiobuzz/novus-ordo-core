@@ -205,17 +205,16 @@ test('world force and order panels retain their controls during background data 
     await page.locator('[data-mode="military"]').click();
     await page.locator('[data-tool="forces"]').click();
     await page.getByLabel('Select division 11', { exact: true }).check();
-    await page.getByText('More actions', { exact: true }).click();
     await page.getByLabel('Select division 11', { exact: true }).focus();
     await remember(page, [
         '.world-command-dock .ui-panel',
         'input[aria-label="Select division 11"]',
-        '.world-command-dock details',
+        '.world-command-actions',
     ]);
     data.divisions[0].order = { order_type: 'Raid', target_territory_id: 157 };
     await refresh(page);
     await expect(page.locator('.world-unit-row').first()).toContainText('Raid');
-    await expect(page.locator('.world-command-dock details')).toHaveAttribute('open', '');
+    await expect(page.getByRole('button', { name: 'Guard selected units', exact: true })).toBeVisible();
     await expect(page.getByLabel('Select division 11', { exact: true })).toBeFocused();
     await stable(page);
     await page.locator('[data-tool="orders"]').click();

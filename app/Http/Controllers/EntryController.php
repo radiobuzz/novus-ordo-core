@@ -29,10 +29,19 @@ class EntryController extends Controller
                 'tools' => config('app.env') === 'development' ? route('client.tools') : null,
             ],
             'assets' => [
-                'background' => asset('res/bundled/entry/hires.png'),
+                'background' => asset('res/bundled/entry/2026-09-26-static.png'),
                 'backgroundSlides' => array_map(
-                    fn (int $number) => asset("res/bundled/entry/{$number}.png"),
-                    range(1, 6),
+                    fn (string $file) => asset("res/bundled/entry/{$file}"),
+                    [
+                        '2026-09-26-01-0a.png',
+                        '2026-09-26-02-0b.png',
+                        '2026-09-26-03-1.png',
+                        '2026-09-26-04-2.png',
+                        '2026-09-26-05-3.png',
+                        '2026-09-26-06-4.png',
+                        '2026-09-26-07-5.png',
+                        '2026-09-26-08-6.png',
+                    ],
                 ),
                 'soundtrack' => asset('res/bundled/entry/intro.mp3'),
             ],

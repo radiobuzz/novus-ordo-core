@@ -52,8 +52,12 @@ test('turn overlay blocks input, survives failed reads, retries and hands over t
             .locator('.turn-transition-orbit')
             .evaluate((el) => getComputedStyle(el, '::before').animationName),
     ).toBe('none');
-    await expect(overlay).toContainText('taking longer than usual', { timeout: 17000 });
+    await expect(overlay.getByRole('button', { name: 'Retry loading' })).toBeVisible({ timeout: 17000 });
     await expect(overlay.getByRole('button', { name: 'Retry loading' })).toBeEnabled();
+    await expect(overlay).toContainText('A new turn is taking shape');
+    await expect(overlay).not.toContainText('taking longer');
+    const message = await overlay.locator('#turn-loading-message').textContent();
+    await expect(overlay.locator('#turn-loading-message')).not.toHaveText(message, { timeout: 4500 });
     fail = true;
     release();
     await expect(overlay).toContainText('couldn’t load the new turn');

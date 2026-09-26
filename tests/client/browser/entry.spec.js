@@ -66,7 +66,7 @@ test('numbered slideshow holds each image, holds the last longer, fades to black
                 .locator('.atmosphere-image')
                 .evaluateAll(
                     (images) =>
-                        images.length === 6 &&
+                        images.length === 8 &&
                         images.every((image) => image.complete && image.naturalWidth > 0),
                 ),
         )
@@ -76,13 +76,13 @@ test('numbered slideshow holds each image, holds the last longer, fades to black
     await expect(background).toHaveAttribute('data-slide', '1');
     await expect(background).toHaveAttribute('data-phase', 'fading-in');
     await page.clock.runFor(2200);
-    for (let slide = 1; slide <= 6; slide++) {
+    for (let slide = 1; slide <= 8; slide++) {
         await expect(background).toHaveAttribute('data-slide', String(slide));
         await expect(background).toHaveAttribute('data-phase', 'holding');
-        await page.clock.runFor((slide === 6 ? 10000 : 5000) - 1);
+        await page.clock.runFor((slide === 8 ? 10000 : 5000) - 1);
         await expect(background).toHaveAttribute('data-phase', 'holding');
         await page.clock.runFor(1);
-        await expect(background).toHaveAttribute('data-phase', slide === 6 ? 'fading-out' : 'fading-in');
+        await expect(background).toHaveAttribute('data-phase', slide === 8 ? 'fading-out' : 'fading-in');
         await page.clock.runFor(2200);
     }
     await expect(background).toHaveAttribute('data-phase', 'black');
@@ -93,7 +93,7 @@ test('numbered slideshow holds each image, holds the last longer, fades to black
     await expect(page.getByLabel('Username', { exact: true })).toHaveValue('unchanged');
     await login(page);
     await expect(page.locator('.atmosphere-image')).toHaveCount(1);
-    await expect(page.locator('.atmosphere-image')).toHaveAttribute('src', /hires\.png$/);
+    await expect(page.locator('.atmosphere-image')).toHaveAttribute('src', /2026-09-26-static\.png$/);
     await page.clock.runFor(60000);
     await expect(background).toHaveAttribute('data-phase', 'holding');
 });
@@ -106,10 +106,13 @@ test('reduced motion keeps a still image and broken slideshow images fall back s
     await page.clock.install();
     await page.clock.runFor(60000);
     await expect(page.locator('.atmosphere')).toHaveAttribute('data-slide', '1');
-    await page.route(/\/res\/bundled\/entry\/[1-6]\.png$/, (route) => route.abort());
+    await page.route(/\/res\/bundled\/entry\/2026-09-26-\d{2}-.*\.png$/, (route) => route.abort());
     await page.reload();
     await expect(page.locator('.atmosphere')).toHaveAttribute('data-phase', 'fallback');
-    await expect(page.locator('.atmosphere-image.is-visible')).toHaveAttribute('src', /hires\.png$/);
+    await expect(page.locator('.atmosphere-image.is-visible')).toHaveAttribute(
+        'src',
+        /2026-09-26-static\.png$/,
+    );
     await expect(page.getByRole('heading', { name: 'Welcome back' })).toBeVisible();
 });
 
@@ -235,4 +238,114 @@ test('expired session reauthenticates in place and restores the same-user draft'
         'Aster Reach',
     ]);
     await expect(page.locator('.music-controls')).toBeHidden();
+});
+
+test('nation flag editor stages changes, preserves matched PNG/recipe on validation failure and clears recipe for uploads', async ({
+    page,
+}) => {
+    const errors = [];
+    page.on('pageerror', (e) => errors.push(e.message));
+    await setup(page);
+    await login(page);
+    await page.getByLabel('Nation name', { exact: true }).fill('Flag Republic');
+    await page.getByRole('button', { name: 'Design flag', exact: true }).click();
+    const dialog = page.locator('.nation-flag-editor');
+    await expect(dialog).toBeVisible();
+    await dialog.locator('[data-template="triband"]').click();
+    const recipe = JSON.parse(await dialog.locator('.identity-recipe').textContent());
+    const pixels = await dialog.locator('.identity-master').evaluate((c) => c.toDataURL());
+    await dialog.getByRole('button', { name: 'Use this flag', exact: true }).click();
+    await expect(dialog).toHaveCount(0);
+    await expect(page.getByRole('button', { name: 'Edit flag', exact: true })).toBeFocused();
+    expect(
+        await page.locator('.image-preview img').evaluate(async (img) => {
+            const blob = await (await fetch(img.src)).blob();
+            return new Promise((resolve) => {
+                const reader = new FileReader();
+                reader.onload = () => resolve(reader.result);
+                reader.readAsDataURL(blob);
+            });
+        }),
+    ).toBe(pixels);
+    await page.getByRole('button', { name: 'Edit flag', exact: true }).click();
+    expect(JSON.parse(await dialog.locator('.identity-recipe').textContent())).toEqual(recipe);
+    await dialog.locator('[data-template="nordic"]').click();
+    await page.keyboard.press('Escape');
+    await expect(dialog).toHaveCount(0);
+    await page.getByRole('button', { name: 'Continue', exact: true }).click();
+    await page.getByLabel('Leader name', { exact: true }).fill('Aster');
+    await page.getByRole('button', { name: 'Back', exact: true }).click();
+    await page.getByRole('button', { name: 'Edit flag', exact: true }).click();
+    expect(JSON.parse(await dialog.locator('.identity-recipe').textContent())).toEqual(recipe);
+    await dialog.getByRole('button', { name: 'Build palette…', exact: true }).click();
+    await expect(page.locator('.identity-palette-dialog')).toBeVisible();
+    await page.keyboard.press('Escape');
+    await expect(dialog).toBeVisible();
+    await dialog.getByRole('button', { name: 'Cancel', exact: true }).click();
+    await page.getByRole('button', { name: 'Continue', exact: true }).click();
+    await page.getByRole('button', { name: 'Continue', exact: true }).click();
+    for (const id of [156, 157, 158]) await page.locator(`[data-id="${id}"]`).click();
+    await page.getByRole('button', { name: 'Continue', exact: true }).click();
+    let submissions = 0;
+    await page.route('**/create-nation', (route) => {
+        const body = route.request().postData();
+        submissions++;
+        expect(body).toContain('filename="nation-flag.png"');
+        expect(body).toContain(JSON.stringify(recipe));
+        return route.fulfill({ status: 422, json: { errors: { flag_design: ['Flag rejected fixture'] } } });
+    });
+    await page.getByRole('button', { name: 'Found your nation', exact: true }).click();
+    await expect(page.getByText('Flag rejected fixture')).toBeVisible();
+    await page.getByRole('button', { name: 'Edit flag', exact: true }).click();
+    expect(JSON.parse(await dialog.locator('.identity-recipe').textContent())).toEqual(recipe);
+    await dialog.getByRole('button', { name: 'Cancel', exact: true }).click();
+    await page.locator('input[type=file]').setInputFiles({
+        name: 'upload.png',
+        mimeType: 'image/png',
+        buffer: Buffer.from(pixels.split(',')[1], 'base64'),
+    });
+    await expect(page.getByRole('button', { name: 'Design flag', exact: true })).toBeVisible();
+    await page.getByRole('button', { name: 'Remove', exact: true }).click();
+    await expect(page.locator('.image-preview img')).toHaveCount(0);
+    expect(submissions).toBe(1);
+    expect(errors).toEqual([]);
+});
+
+test('French mobile flag editor fits, opens modally and ignores a render completed after Cancel', async ({
+    page,
+}) => {
+    await page.setViewportSize({ width: 390, height: 844 });
+    await setup(page);
+    await login(page);
+    await page.getByRole('combobox').selectOption('fr');
+    await page.getByRole('button', { name: 'Créer le drapeau', exact: true }).click();
+    const dialog = page.locator('.nation-flag-editor');
+    await expect(dialog).toBeVisible();
+    expect(await dialog.evaluate((node) => node.scrollWidth <= node.clientWidth + 1)).toBe(true);
+    expect(await dialog.evaluate((node) => node.matches(':modal'))).toBe(true);
+    await page.keyboard.press('Tab');
+    expect(await dialog.evaluate((node) => node.contains(document.activeElement))).toBe(true);
+    await page.screenshot({ path: 'test-results/client/entry-flag-mobile-fr.png' });
+    await page.evaluate(() => {
+        const original = HTMLCanvasElement.prototype.toBlob;
+        HTMLCanvasElement.prototype.toBlob = function (callback, ...args) {
+            original.call(
+                this,
+                (blob) => {
+                    window.finishFlagRender = () => callback(blob);
+                },
+                ...args,
+            );
+        };
+    });
+    await dialog.getByRole('button', { name: 'Utiliser ce drapeau', exact: true }).click();
+    await expect.poll(() => page.evaluate(() => Boolean(window.finishFlagRender))).toBe(true);
+    await dialog
+        .locator('.nation-flag-editor-header')
+        .getByRole('button', { name: 'Annuler', exact: true })
+        .click();
+    await expect(dialog).toHaveCount(0);
+    await page.evaluate(() => window.finishFlagRender());
+    await expect(page.locator('.image-preview img')).toHaveCount(0);
+    await expect(page.getByRole('button', { name: 'Créer le drapeau', exact: true })).toBeFocused();
 });

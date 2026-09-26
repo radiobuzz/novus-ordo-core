@@ -19,6 +19,10 @@ export class MapInteractions {
             const r = canvas.getBoundingClientRect();
             return { x: event.clientX - r.left, y: event.clientY - r.top };
         };
+        const hover = (territory) => {
+            canvas.title = territory?.name ?? '';
+            tool.hover?.(territory ?? null);
+        };
         const pair = () => {
             const [a, b] = [...pointers.values()];
             return {
@@ -52,7 +56,7 @@ export class MapInteractions {
                 previous = pointers.get(event.pointerId);
             if (!previous) {
                 const t = picker.atScreen(camera, p.x, p.y);
-                canvas.title = t?.name ?? '';
+                hover(t);
                 return;
             }
             pointers.set(event.pointerId, p);
@@ -87,6 +91,9 @@ export class MapInteractions {
         };
         for (const event of ['pointerup', 'pointercancel', 'lostpointercapture'])
             scope.listen(canvas, event, end);
+        scope.listen(canvas, 'pointerleave', () => {
+            if (!pointers.size) hover(null);
+        });
         scope.listen(
             canvas,
             'wheel',

@@ -11,14 +11,20 @@ use App\ReadModels\AttackOrderInfo;
 use App\ReadModels\DisbandOrderInfo;
 use App\ReadModels\MoveOrderInfo;
 use App\ReadModels\RaidOrderInfo;
+use App\ReadModels\GuardOrderInfo;
+use App\ReadModels\StandDownOrderInfo;
 use App\Utils\GuardsForAssertions;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Relations\BelongsTo;
 use Illuminate\Database\Eloquent\SoftDeletes;
 use Illuminate\Support\Facades\DB;
+use App\Domain\ResourceType;
 
 class Order extends Model
 {
+    public const float GUARD_READINESS_COST_FACTOR = 0.25;
+    public const float GUARD_RESPONSE_COST_FACTOR = 0.75;
+
     use SoftDeletes;
     use GuardsForAssertions;
 
@@ -51,16 +57,21 @@ class Order extends Model
     }
 
     public static function getTotalCostsByResourceType(Nation $nation, Turn $turn): array {
-        $attackingTypes = DB::table('orders')
+        $rows = DB::table('orders')
             ->where('orders.nation_id', $nation->getId())
             ->where('orders.turn_id', $turn->getId())
-            ->whereIn('orders.type', OrderType::getEngagingTypes())
+            ->whereIn('orders.type', [...OrderType::getEngagingTypes(), OrderType::Guard->value])
             ->whereNull('orders.deleted_at')
             ->join('divisions', 'orders.division_id', '=', 'divisions.id')
-            ->pluck('divisions.division_type')
-            ->map(fn (int $type) => DivisionType::from($type));
-
-        return DivisionType::calculateTotalAttackCostsByResourceType(...$attackingTypes);
+            ->get(['orders.type', 'divisions.division_type']);
+        $costs = array_fill_keys(array_map(fn ($type) => $type->value, ResourceType::cases()), 0.0);
+        foreach ($rows as $row) {
+            $factor = (int) $row->type === OrderType::Guard->value ? self::GUARD_READINESS_COST_FACTOR : 1.0;
+            foreach (DivisionType::getMeta(DivisionType::from($row->division_type))->attackCosts as $resource => $cost) {
+                $costs[$resource] += $cost * $factor;
+            }
+        }
+        return $costs;
     }
 
     public function exportForOwner(): object {
@@ -89,15 +100,25 @@ class Order extends Model
                 order_type: OrderType::Disband->name,
                 is_operating: false,
             ),
+            OrderType::Guard => new GuardOrderInfo(
+                $this->division_id,
+                order_type: OrderType::Guard->name,
+                is_operating: true,
+            ),
+            OrderType::StandDown => new StandDownOrderInfo(
+                $this->division_id,
+                order_type: OrderType::StandDown->name,
+                is_operating: false,
+            ),
         };
     }
 
-    private static function prepareBaseOrder(Division $division, OrderType $type): Order {
+    private static function prepareBaseOrder(Division $division, OrderType $type, ?Turn $turn = null): Order {
         $order = new Order();
         $order->game_id = $division->getGame()->getId();
         $order->nation_id = $division->getNation()->getId();
         $order->division_id = $division->getId();
-        $order->turn_id = $division->getGame()->getCurrentTurn()->getId();
+        $order->turn_id = ($turn ?? $division->getGame()->getCurrentTurn())->getId();
         $order->type = $type->value;
 
         return $order;
@@ -107,6 +128,18 @@ class Order extends Model
         $order = Order::prepareBaseOrder($division, OrderType::Disband);
         $order->save();
 
+        return $order;
+    }
+
+    public static function createGuardOrder(Division $division, ?Turn $turn = null): Order {
+        $order = Order::prepareBaseOrder($division, OrderType::Guard, $turn);
+        $order->save();
+        return $order;
+    }
+
+    public static function createStandDownOrder(Division $division): Order {
+        $order = Order::prepareBaseOrder($division, OrderType::StandDown);
+        $order->save();
         return $order;
     }
 
@@ -122,6 +155,10 @@ class Order extends Model
         $order = Order::prepareBaseOrder($division, OrderType::Attack);
         $order->destination_territory_id = $rebaseTerritory->getId();
         $order->target_territory_id = $targetTerritory->getId();
+        if ($division->getGame()->diplomacy_enabled) {
+            $order->intent_captured = true;
+            $order->intended_owner_nation_id = $targetTerritory->getDetail()->getOwnerOrNull()?->getId();
+        }
         $order->save();
 
         return $order;
@@ -131,6 +168,10 @@ class Order extends Model
         $order = Order::prepareBaseOrder($division, OrderType::Raid);
         $order->destination_territory_id = null;
         $order->target_territory_id = $targetTerritory->getId();
+        if ($division->getGame()->diplomacy_enabled) {
+            $order->intent_captured = true;
+            $order->intended_owner_nation_id = $targetTerritory->getDetail()->getOwnerOrNull()?->getId();
+        }
         $order->save();
 
         return $order;

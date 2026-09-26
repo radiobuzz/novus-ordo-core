@@ -1,6 +1,7 @@
 import { nations } from './model.js';
 import { createCartography } from './cartography.js';
 import { createNaturalResources } from './natural-resources.js';
+import { createDevelopment } from './development.js';
 import {
     createEconomy,
     recomputeEconomy,
@@ -24,6 +25,9 @@ const number = (value) => Number(value).toLocaleString('en', { maximumFractionDi
 export function initializeExperiments(state) {
     state.cartography = createCartography(state.model, state.atlasSettings);
     state.substrate = createNaturalResources(state.model, state.resourceSettings);
+    state.development = createDevelopment(state.model, state.cartography, state.substrate);
+    state.selectedDevelopmentId =
+        state.development.sites.find((s) => s.living)?.id ?? state.development.sites[0]?.id ?? null;
     state.economy = createEconomy(state.model, state.substrate);
     state.naval = createNaval(state.model);
     state.navalReplay = 0;

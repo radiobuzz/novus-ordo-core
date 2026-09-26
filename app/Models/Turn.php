@@ -92,6 +92,7 @@ class Turn extends Model
     public function activate(): void {
         $this->activated_at = CarbonImmutable::now('UTC');
         $this->save();
+        $this->rotateContext();
     }
 
     public function end(): void {
@@ -105,6 +106,15 @@ class Turn extends Model
         $timeLimitMinutes = intval(config('novusordo.turn_time_limit_minutes'));
         $this->expires_at = $timeLimitMinutes > 0 ? Turn::calculateUltimatum($timeLimitMinutes) : null;
         $this->save();
+        $this->rotateContext();
+    }
+
+    private function rotateContext(): void {
+        $game = $this->getGame()->fresh();
+        if (array_key_exists('turn_context_revision', $game->getAttributes())) {
+            $game->turn_context_revision = (string) \Illuminate\Support\Str::uuid();
+            $game->save();
+        }
     }
 
     public function getExpirationOrNull(): ?CarbonImmutable {

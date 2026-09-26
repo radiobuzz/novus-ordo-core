@@ -31,7 +31,8 @@ export class NationSetupService {
     async submit(draft, signal) {
         const body = new FormData();
         for (const [name, value] of Object.entries({ ...draft.identity, ...draft.leader })) {
-            if (value !== null && value !== undefined) body.append(name, value);
+            if (value !== null && value !== undefined)
+                body.append(name, name === 'flag_design' ? JSON.stringify(value) : value);
         }
         body.append('territory_ids_as_json', JSON.stringify(draft.homeland));
         return this.api.storeNation({ body, signal });

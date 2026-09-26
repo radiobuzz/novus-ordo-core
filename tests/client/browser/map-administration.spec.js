@@ -184,7 +184,7 @@ test('Terrain V2 supports stamps, pan, zoom, independent borders and clean retur
     await page.getByRole('button', { name: 'Try military demo', exact: true }).click();
     const before = await diagnostics(page);
     await page.getByRole('button', { name: 'Try provinces & zones', exact: true }).click();
-    await page.getByRole('checkbox', { name: 'Terrain v2 · layered landscape', exact: true }).check();
+    expect((await diagnostics(page)).layers.terrainV2).toBe(true);
     await page.getByRole('button', { name: 'Find overlapping zones', exact: true }).click();
     await ready(page);
     await expect.poll(async () => (await diagnostics(page)).terrainV2.active).toBe(true);

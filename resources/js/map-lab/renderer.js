@@ -7,6 +7,10 @@ import { AtlasOverlay } from './atlas-renderer.js';
 import { TerrainV2 } from './terrain-v2.js';
 import { administrationActive } from './administration.js';
 import { AdministrationOverlay } from './administration-renderer.js';
+import { coastActive } from './coasts.js';
+import { CoastOverlay } from './coast-renderer.js';
+import { developmentActive } from './development.js';
+import { DevelopmentOverlay } from './development-renderer.js';
 export { terrainLabel } from '../map/renderer.js';
 
 /** Optional sandbox simulation layered on the shared geographic renderer. */
@@ -15,6 +19,8 @@ export class MapLabRenderer extends MapRenderer {
     experimentOverlay = new ExperimentOverlay();
     atlasOverlay = new AtlasOverlay();
     administrationOverlay = new AdministrationOverlay();
+    coastOverlay = new CoastOverlay();
+    developmentOverlay = new DevelopmentOverlay(() => this.invalidate());
     terrainV2 = new TerrainV2(() => this.invalidate());
 
     constructor(canvas, camera, getState, onDraw) {
@@ -30,7 +36,6 @@ export class MapLabRenderer extends MapRenderer {
                     (Math.ceil((bounds.right - bounds.left) / span) + 2) *
                     (Math.ceil((bounds.bottom - bounds.top) / span) + 2);
                 const activeTerrainV2 =
-                    state.layers.terrainV2 &&
                     state.view === 'terrain' &&
                     state.layers.terrain &&
                     state.layers.tiles &&
@@ -42,7 +47,7 @@ export class MapLabRenderer extends MapRenderer {
                     activeTerrainV2,
                     layers: {
                         ...state.layers,
-                        ...(adminActive
+                        ...(adminActive || coastActive(state) || developmentActive(state)
                             ? {
                                   political: false,
                                   control: false,
@@ -54,7 +59,7 @@ export class MapLabRenderer extends MapRenderer {
                                   resources: false,
                               }
                             : {}),
-                        tiles: activeTerrainV2 ? false : state.layers.tiles,
+                        tiles: false,
                         names: state.layers.borders,
                     },
                 };
@@ -125,13 +130,16 @@ export class MapLabRenderer extends MapRenderer {
         ctx.restore();
     }
     destroy() {
+        this.developmentOverlay.destroy();
         this.terrainV2.destroy();
         super.destroy();
     }
     drawWorldOverlays(ctx, state) {
+        this.developmentOverlay.draw(ctx, state, this.camera);
         this.atlasOverlay.drawHighlights(ctx, state);
         this.administrationOverlay.drawBorders(ctx, state, this.camera);
-        if (administrationActive(state)) return;
+        this.coastOverlay.draw(ctx, state, this.camera);
+        if (administrationActive(state) || coastActive(state) || developmentActive(state)) return;
         if (state.armySelected && !state.layers.formations) this.drawReachable(ctx, state);
         if (!state.layers.formations) this.drawArmy(ctx, state);
     }
@@ -140,10 +148,24 @@ export class MapLabRenderer extends MapRenderer {
         this.militaryOverlay.draw(ctx, state, camera);
         this.experimentOverlay.drawScreen(ctx, state, camera);
         this.administrationOverlay.drawLabels(ctx, state, camera);
+        this.developmentOverlay.drawLabels(ctx, state, camera);
     }
 
     drawFeatures(ctx, state, cells) {
-        if (!administrationActive(state)) super.drawFeatures(ctx, state, cells);
+        if (!administrationActive(state) && !coastActive(state) && !state.layers.development)
+            super.drawFeatures(ctx, state, cells);
+    }
+
+    drawSelection(ctx, state) {
+        // Keep the landscape study unobscured; the grid switch restores exact-cell emphasis.
+        if (
+            developmentActive(state) &&
+            (!state.layers.microGrid ||
+                (state.layers.developmentCells &&
+                    state.development?.siteById.get(state.selectedDevelopmentId)?.useCellData))
+        )
+            return;
+        super.drawSelection(ctx, state);
     }
 
     drawReachable(ctx, { model }) {

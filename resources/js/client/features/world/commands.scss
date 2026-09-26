@@ -285,7 +285,8 @@
     .world-command-toolbar {
         flex-wrap: nowrap;
         align-items: center;
-        padding: var(--space-1);
+        gap: 0;
+        padding: 0;
         border: 1px solid var(--border-default);
         border-radius: var(--radius);
         background: var(--surface-raised);
@@ -338,6 +339,56 @@
             display: block;
             color: var(--text-muted);
         }
+    }
+    .world-unit-filters {
+        display: flex;
+        flex-wrap: wrap;
+        align-items: center;
+        gap: var(--space-1);
+        padding-bottom: var(--space-1);
+        border-bottom: 1px solid var(--border-default);
+    }
+    .world-unit-filter.ui-button,
+    .world-unit-filter-clear.ui-button {
+        position: relative;
+        min-width: 35px;
+        min-height: 32px;
+        padding: 3px 6px;
+        gap: 3px;
+        font-size: var(--font-tiny);
+        font-weight: 700;
+        img {
+            width: 25px;
+            height: 25px;
+            object-fit: cover;
+            border-radius: 3px;
+        }
+    }
+    .world-unit-filter[data-filter-state='include'] {
+        border-color: var(--accent-command);
+        background: var(--accent-soft);
+        color: var(--text-primary);
+    }
+    .world-unit-filter[data-filter-state='exclude'] {
+        border-color: var(--action-danger);
+        background: color-mix(in srgb, var(--action-danger) 13%, var(--surface-control));
+        color: var(--text-primary);
+        &::after {
+            content: '';
+            position: absolute;
+            inset: 4px 3px auto;
+            height: 2px;
+            background: var(--action-danger);
+            transform: translateY(10px) rotate(-27deg);
+            transform-origin: center;
+            pointer-events: none;
+        }
+    }
+    .world-unit-filter-hint {
+        display: block;
+        margin: var(--space-1) 0 var(--space-2);
+        color: var(--text-muted);
+        font-size: var(--font-tiny);
     }
     .world-unit-card-stack {
         position: relative;
@@ -417,6 +468,57 @@
         left: var(--space-3);
         max-width: calc(100% - var(--space-3) * 2);
         flex-wrap: wrap;
+    }
+    .defense-heatmap-legend {
+        position: absolute;
+        z-index: 3;
+        top: var(--space-3);
+        left: 76px;
+        display: grid;
+        gap: var(--space-2);
+        width: min(230px, calc(100% - 420px));
+        min-width: 200px;
+        padding: var(--space-3);
+        border: 1px solid var(--border-default);
+        border-radius: var(--radius);
+        background: color-mix(in srgb, var(--surface-panel) 92%, transparent);
+        color: var(--text-primary);
+        pointer-events: none;
+        box-shadow: var(--shadow-soft);
+        &[hidden] {
+            display: none;
+        }
+        > strong {
+            font-size: 0.78rem;
+        }
+        > small {
+            color: var(--text-muted);
+            line-height: 1.35;
+        }
+    }
+    .defense-heatmap-gradient {
+        display: block;
+        height: 10px;
+        border: 1px solid rgb(255 255 255 / 30%);
+        border-radius: 999px;
+        background: var(--defense-gradient);
+    }
+    .defense-heatmap-range {
+        display: flex;
+        justify-content: space-between;
+        gap: var(--space-2);
+        color: var(--text-muted);
+        font-size: var(--font-tiny);
+        font-variant-numeric: tabular-nums;
+        span:last-child {
+            text-align: right;
+        }
+    }
+    .defense-heatmap-selected {
+        padding-top: var(--space-2);
+        border-top: 1px solid var(--border-default);
+        color: var(--text-primary) !important;
+        font-variant-numeric: tabular-nums;
     }
     .map-orientation {
         display: flex;
@@ -526,6 +628,16 @@
             right: var(--space-2);
             bottom: var(--space-2);
             font-size: var(--font-tiny);
+        }
+        .defense-heatmap-legend {
+            top: var(--space-2);
+            left: 62px;
+            width: min(210px, calc(100% - 190px));
+            min-width: 0;
+            padding: var(--space-2);
+            > small {
+                display: none;
+            }
         }
     }
 }

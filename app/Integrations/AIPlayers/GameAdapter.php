@@ -32,7 +32,11 @@ class GameAdapter extends GameParticipants
         return !$protected || !$owner || $this->isAI($owner->getId());
     }
     public function locked(Game $game, callable $work): mixed {
-        return Cache::lock($game->getCacheLockKeyForChangeTurn(), 300)->block(3, $work);
+        return app(\App\Services\GameMutation::class)->run($game, $work);
+    }
+    public function invalidateContext(Game $game): void {
+        if (!$this->installed()) return;
+        DB::table('ai_player_games')->where('game_id', $game->id)->update(['generation' => (string) Str::uuid()]);
     }
     public function reset(Game $game, Turn $turn): void {
         if (!$this->installed() || !DB::table('ai_player_games')->where('game_id', $game->getId())->exists()) return;
@@ -124,6 +128,7 @@ class GameAdapter extends GameParticipants
             ->orderBy('id')->get()->map(fn ($battle) => $battle->exportForParticipant())->all();
         return json_decode(json_encode(['api_version' => 1, 'game_id' => $game->getId(),
             'workspace' => $workspace,
+            'diplomacy' => app(\App\Services\DiplomacyService::class)->aiView($nation, $turn),
             'public_nations' => $game->nations()->get()->map(fn ($n) => $n->getDetail($turn)->export())->all(),
             'public_territories' => \App\Models\TerritoryDetail::exportAllTurnPublicInfo($turn),
             'own_territories' => \App\Models\TerritoryDetail::exportAllTurnOwnerInfo($nation, $turn),
@@ -164,6 +169,7 @@ class GameAdapter extends GameParticipants
         if ($plan['deployments']) app(NationCommands::class)->deploy($nation, array_map(fn ($d) => new DeploymentCommand($d['territory_id'], DivisionType::fromName($d['division_type'])), $plan['deployments']));
         if ($plan['orders']) app(NationCommands::class)->move($nation, $plan['orders']);
         $commands->disband($nation, $plan['disband']);
+        app(\App\Services\DiplomacyService::class)->applyAi($nation, $plan['diplomacy']);
         $nation->readyForNextTurn(Turn::getCurrentForGame($game));
     }
     public function report(Game $game): array {
@@ -205,6 +211,9 @@ class GameAdapter extends GameParticipants
                     if (!$this->available()) abort(409, 'Experimental AI is unavailable.');
                     if ($aggression === null || $aggression < 0 || $aggression > 100) abort(422, 'AI aggression must be between 0 and 100.');
                     if (!$game->nations()->whereKey($nationId)->lockForUpdate()->first()) abort(404, 'Nation does not belong to this game.');
+                    if ($game->diplomacy_enabled && collect(app(\App\Services\DiplomacyService::class)->export($game, Turn::getCurrentForGame($game)))
+                        ->contains(fn ($relation) => $relation['state'] === 'Allied' && in_array($nationId, [$relation['nation_a_id'], $relation['nation_b_id']], true)))
+                        abort(409, 'End this nation’s alliances before assigning the initial AI policy.');
                     if (DB::table('ai_players')->where('nation_id', $nationId)->exists()) abort(409, 'Nation is already AI-controlled.');
                     if (DB::table('ai_players')->where('game_id', $game->getId())->count() >= 10) abort(422, 'A game supports at most 10 AI players.');
                     $settings = DB::table('ai_player_games')->where('game_id', $game->getId())->lockForUpdate()->first();

@@ -1,0 +1,56 @@
+.no-client {
+    .ownership-comparison {
+        width: min(980px, calc(100vw - 24px));
+        max-height: 94dvh;
+        overflow: auto;
+        padding: var(--space-4);
+        color: var(--text-primary);
+        background: var(--surface-panel);
+        border: 1px solid var(--accent-command);
+        border-radius: var(--radius);
+        box-shadow: var(--shadow-panel);
+        &::backdrop {
+            background: var(--glass);
+        }
+        h2 {
+            margin: 0;
+            font-family: var(--font-display);
+        }
+        .ownership-map {
+            height: clamp(220px, 52dvh, 520px);
+        }
+        .ownership-map-after,
+        .ownership-map-highlight {
+            position: absolute;
+            inset: 0;
+            pointer-events: none;
+            opacity: 0;
+        }
+        .ownership-map-after {
+            transition: opacity 800ms ease-in-out;
+        }
+        .ownership-controls,
+        .ownership-phase,
+        footer {
+            display: flex;
+            flex-wrap: wrap;
+            gap: var(--space-3);
+            align-items: center;
+        }
+        .ownership-controls[hidden] {
+            display: none;
+        }
+        .ownership-controls [aria-pressed='true'] {
+            border-color: var(--accent-command);
+        }
+        footer {
+            justify-content: flex-end;
+            margin-top: var(--space-3);
+        }
+        @media (prefers-reduced-motion: reduce) {
+            .ownership-map-after {
+                transition: none;
+            }
+        }
+    }
+}

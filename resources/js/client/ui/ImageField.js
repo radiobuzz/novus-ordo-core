@@ -42,6 +42,12 @@ export class ImageField {
             name.textContent = this.file?.name ?? '';
             remove.hidden = !this.file;
         };
+        this.setFile = (file) => {
+            if (file === this.file) return;
+            this.file = file;
+            input.value = '';
+            update();
+        };
         scope.own(() => {
             if (objectUrl) URL.revokeObjectURL(objectUrl);
         });

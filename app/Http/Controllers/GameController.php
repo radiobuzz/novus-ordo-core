@@ -55,6 +55,7 @@ class GameController extends Controller
         return response()->json(new GameInfo(
             $game->getId(), $game->getCurrentTurn()->getNumber(),
             \App\Models\NationColorAssignment::exportForGame($game),
+            $game->turn_context_revision, (bool) $game->diplomacy_enabled, (bool) ($game->guard_enabled ?? false),
         ))->header('Cache-Control', 'no-store');
     }
 

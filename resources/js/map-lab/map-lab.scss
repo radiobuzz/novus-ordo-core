@@ -1,4 +1,17 @@
 @use '../client/styles/tokens';
+@use '../client/styles/foundations';
+
+.development-controls .ui-range-field {
+    margin: 14px 0;
+}
+.development-presets {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 5px;
+}
+.development-presets button {
+    flex: 1 1 42%;
+}
 
 * {
     box-sizing: border-box;

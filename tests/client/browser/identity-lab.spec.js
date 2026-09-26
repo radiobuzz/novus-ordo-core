@@ -437,3 +437,62 @@ test('seeded alternatives, bundled symbols, repeated arrangements and the eight-
     await expect(page.getByRole('status')).toHaveText('Saved in this browser.');
     await expect(page.locator('.identity-study')).toHaveCount(8);
 });
+
+test('palette dialog stages a chosen base and harmony, applies once, and keeps random independent', async ({
+    page,
+}) => {
+    await open(page);
+    const before = await recipe(page);
+    await page.getByRole('button', { name: 'Build palette…', exact: true }).click();
+    const dialog = page.getByRole('dialog');
+    await expect(dialog).toBeVisible();
+    await expect(dialog.getByLabel('Hex colour', { exact: true })).toHaveValue(before.palette.primary);
+    await dialog.getByLabel('Hex colour', { exact: true }).fill('#f7d87a');
+    await dialog.getByLabel('Colour harmony', { exact: true }).selectOption('split-complementary');
+    const preview = await dialog.locator('canvas').evaluate((c) => c.toDataURL());
+    const colours = await dialog.locator('code').allTextContents();
+    expect(colours[0]).toBe('#f7d87a');
+    expect(await recipe(page)).toEqual(before);
+    await dialog.getByRole('button', { name: 'Try another variation', exact: true }).click();
+    expect(await dialog.locator('canvas').evaluate((c) => c.toDataURL())).not.toBe(preview);
+    const next = await dialog.locator('code').allTextContents();
+    expect(next[0]).toBe('#f7d87a');
+    await dialog.getByRole('button', { name: 'Apply palette', exact: true }).click();
+    await expect(dialog).toHaveCount(0);
+    const applied = await recipe(page);
+    expect(Object.values(applied.palette)).toEqual(next);
+    expect(applied.flag).toEqual(before.flag);
+    await expect(page.getByRole('button', { name: 'Build palette…', exact: true })).toBeFocused();
+    await page.getByRole('button', { name: 'Undo', exact: true }).click();
+    expect(await recipe(page)).toEqual(before);
+    await page.getByRole('button', { name: 'Redo', exact: true }).click();
+    expect(await recipe(page)).toEqual(applied);
+    await page.getByRole('button', { name: 'Randomize colours', exact: true }).click();
+    expect((await recipe(page)).palette.primary).not.toBe('#f7d87a');
+});
+
+test('palette dialog validates hex, cancels safely and fits French mobile layout', async ({ page }) => {
+    await page.setViewportSize({ width: 390, height: 844 });
+    await open(page, '?lang=fr');
+    const before = await recipe(page);
+    await page.getByRole('button', { name: 'Créer une palette…', exact: true }).click();
+    const dialog = page.getByRole('dialog');
+    await dialog.getByLabel('Couleur hexadécimale', { exact: true }).fill('#zz');
+    await expect(dialog.getByRole('button', { name: 'Appliquer la palette', exact: true })).toBeDisabled();
+    await expect(dialog.getByLabel('Couleur hexadécimale', { exact: true })).toHaveAttribute(
+        'aria-invalid',
+        'true',
+    );
+    await setColor(page, 'Couleur de base', '#ff0000');
+    await expect(dialog.getByLabel('Couleur hexadécimale', { exact: true })).toHaveValue('#ff0000');
+    await expect(dialog.getByRole('button', { name: 'Appliquer la palette', exact: true })).toBeEnabled();
+    expect(await dialog.evaluate((d) => d.scrollWidth > d.clientWidth)).toBe(false);
+    await page.screenshot({ path: 'test-results/client/identity-palette-mobile-fr.png' });
+    await page.keyboard.press('Escape');
+    await expect(dialog).toHaveCount(0);
+    expect(await recipe(page)).toEqual(before);
+    await expect(page.getByRole('button', { name: 'Créer une palette…', exact: true })).toBeFocused();
+    await page.getByRole('button', { name: 'Créer une palette…', exact: true }).click();
+    await dialog.getByRole('button', { name: 'Annuler', exact: true }).click();
+    expect(await recipe(page)).toEqual(before);
+});

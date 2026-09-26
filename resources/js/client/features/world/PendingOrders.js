@@ -24,7 +24,7 @@ export function renderPendingOrders(owner, body) {
     owner.viewScope.listen(list, 'click', (event) => {
         const button = event.target.closest('button');
         const row = rows.get(button?.dataset.orderKey) ?? groups.get(button?.dataset.cancelGroup);
-        if (row) void owner.command(row.command, row.body);
+        if (row?.command) void owner.command(row.command, row.body);
     });
     const control = (label) => {
         const button = new Button({ label, variant: 'quiet', icon: null });
@@ -66,8 +66,13 @@ export function renderPendingOrders(owner, body) {
             group.heading.textContent = title;
             group.control.element.setAttribute(
                 'aria-label',
-                t('cancelGroupLabel', { name: title, count: item.items.length }),
+                t(item.release ? 'releaseGroupLabel' : 'cancelGroupLabel', {
+                    name: title,
+                    count: item.items.length,
+                }),
             );
+            group.control.element.hidden = !item.command;
+            group.control.setLabel(t(item.release ? 'releaseGroup' : 'cancelGroup'));
             group.command = item.command;
             group.body = { [item.idField]: item.items.map((i) => i.id) };
             const signature = JSON.stringify(item.counts);
@@ -95,12 +100,20 @@ export function renderPendingOrders(owner, body) {
                     rows.set(entry.key, row);
                 }
                 row.text.textContent = `${owner.unit(entry.type)} #${entry.id} · ${owner.name(entry.origin)}`;
-                row.control.setLabel(t('cancel'));
+                row.control.setLabel(t(entry.release ? 'release' : 'cancel'));
+                row.control.element.hidden = !entry.command;
                 row.control.element.setAttribute(
                     'aria-label',
-                    t(entry.command === 'cancelDeployments' ? 'cancelDeployment' : 'cancelOrder', {
-                        id: entry.id,
-                    }),
+                    t(
+                        entry.release
+                            ? 'releaseGuard'
+                            : entry.command === 'cancelDeployments'
+                              ? 'cancelDeployment'
+                              : 'cancelOrder',
+                        {
+                            id: entry.id,
+                        },
+                    ),
                 );
                 row.command = entry.command;
                 row.body = { [entry.idField]: [entry.id] };

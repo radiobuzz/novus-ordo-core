@@ -60,7 +60,7 @@ class GameTurnStatus
         $this->publish($gameId, $turnNumber, 'processing', $revision);
         try {
             $turn = $operation();
-            $this->publish($gameId, $turn->getNumber(), 'ready', $revision);
+            \Illuminate\Support\Facades\DB::afterCommit(fn () => $this->publish($gameId, $turn->getNumber(), 'ready', $revision));
             return $turn;
         }
         catch (Throwable $error) {

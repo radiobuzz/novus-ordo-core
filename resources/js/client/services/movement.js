@@ -1,6 +1,13 @@
 /** Mirrors DivisionDetail::canMoveTo, using stored topology rather than map coordinates. */
-export function movementPath(territories, originId, destinationId, meta, nationId) {
-    const byId = new Map(territories.map((t) => [t.territory_id, t]));
+export function movementPath(
+    territories,
+    originId,
+    destinationId,
+    meta,
+    nationId,
+    allies = [],
+    byId = new Map(territories.map((t) => [t.territory_id, t])),
+) {
     const origin = byId.get(originId),
         destination = byId.get(destinationId);
     if (
@@ -27,7 +34,11 @@ export function movementPath(territories, originId, destinationId, meta, nationI
             if (
                 !next ||
                 seen.has(id) ||
-                !(next.owner_nation_id === nationId || (meta.can_fly && next.terrain_type === 'Water'))
+                !(
+                    next.owner_nation_id === nationId ||
+                    allies.includes(next.owner_nation_id) ||
+                    (meta.can_fly && next.terrain_type === 'Water')
+                )
             )
                 continue;
             seen.add(id);

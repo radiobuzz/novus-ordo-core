@@ -79,7 +79,7 @@ export class AdminApp {
                     { class: 'admin-scope-bar' },
                     new FieldShell({ control: this.select, label: 'Working game' }).element,
                     this.scopeBadge.element,
-                    el('p', { text: 'Selection is inspection—not activation.' }),
+                    el('p', { text: 'Select a game to inspect or manage it.' }),
                     refresh,
                 ),
                 this.nav,
@@ -190,7 +190,7 @@ export class AdminApp {
             ...this.games.map((game) =>
                 el('option', {
                     value: game.game_id,
-                    text: `Game ${game.game_id} · Turn ${game.turn_number} · ${game.active ? 'ACTIVE' : 'Archived'}`,
+                    text: `Game ${game.game_id} · Turn ${game.turn_number} · ${game.active ? 'ACTIVE' : 'Inactive'}`,
                 }),
             ),
         );
@@ -225,7 +225,7 @@ export class AdminApp {
                       ? 'Global map library'
                       : 'Tools · explicit targets'
                 : game
-                  ? `Game ${gameId} · ${game.active ? 'Active' : 'Archived / read-only'}`
+                  ? `Game ${gameId} · ${game.active ? 'Active' : 'Inactive'}`
                   : 'No active game',
             tone: game?.active ? 'accent' : 'neutral',
         });

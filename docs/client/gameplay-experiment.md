@@ -10,6 +10,8 @@ Update 2026-09-20: the [shared-data implementation](live-data-plan.md) and subse
 
 Update 2026-09-20: [Game UI pass 1](game-ui-pass-1.md) adds Military mode directly to World, with a minimap, selectable own-force stacks, unit-card deployment and contextual orders. The dedicated screens described below remain available. This supersedes the original roster-only selection limitation for the World screen, not the existing gameplay rules.
 
+Update 2026-09-26: [primitive Guard orders](decisions/0025-guard-orders.md) add an optional per-game reserve command to World and Military. Existing games expose it only after direct database opt-in; releasing Guard requires a Stand Down turn. Queued multi-turn orders remain deferred.
+
 Open `/client` after signing in (or `/client/entry` to sign in/create a nation). The navigation now includes World, Nation, Economy, Military and Reports. Existing games retain their original map; beta games use their saved generated geography. There is no default-route cutover and no replacement of the active game.
 
 - **Nation:** flag, formal name, leader, public/owner statistics, owned territories and command summary.

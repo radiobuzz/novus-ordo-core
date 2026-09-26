@@ -61,8 +61,9 @@ final class Runner
                             $memory = Memory::save($stored, $script, $plan['memory']);
                             $result = ['explanation' => $plan['explanation'], 'memory' => $plan['memory'],
                                 'memory_store' => $memory, 'selected_script' => $selected, 'script' => $script, 'fallback' => $fallback,
-                                'commands' => array_intersect_key($plan, array_flip(['bids', 'deployments', 'orders', 'disband', 'cancel_orders', 'cancel_deployments'])),
+                                'commands' => array_intersect_key($plan, array_flip(['bids', 'deployments', 'orders', 'disband', 'cancel_orders', 'cancel_deployments', 'diplomacy'])),
                                 'deployments' => count($plan['deployments']), 'orders' => count($plan['orders']), 'disband' => count($plan['disband']),
+                                'diplomacy' => count($plan['diplomacy']),
                                 'seconds' => round(microtime(true) - $started, 3)];
                             DB::table('ai_player_turns')->updateOrInsert($key, ['game_id' => $game->getId(), 'status' => 'complete', 'result' => json_encode($result, JSON_THROW_ON_ERROR)]);
                             DB::table('ai_players')->where('nation_id', $id)->update(['memory' => json_encode($memory, JSON_THROW_ON_ERROR)]);
