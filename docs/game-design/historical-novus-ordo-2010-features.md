@@ -6,6 +6,8 @@ Source: user-provided `no_old_backup_from_20100226.zip` (backup name dated 2010-
 
 Scope: game features and economic fundamentals, not interface design or technology assessment. This is historical evidence, not a decision to reintroduce every feature into the current game.
 
+Follow-up, 2026-09-27: [the policy extraction](no2-policy-extraction.md) adds a [complete catalogue](no2-policy-catalogue.md) of all 46 topics and 161 active choices, with original effects, dependencies, reform packages and targeted findings about source inconsistencies.
+
 ## Executive finding
 
 This version combined territorial warfare with a substantial nation-policy simulation. Its economy was primarily driven by population, social conditions, legislation, taxation, public-service funding, and industrial capacity. It was not primarily a commodity-extraction and crafting-chain economy.

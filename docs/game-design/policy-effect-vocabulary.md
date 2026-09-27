@@ -6,7 +6,11 @@ Status: proposed effect families, not accepted mechanics, a database schema, or 
 
 Basis: [economic discussion](economy-and-policies-discussion.md) and [simulation foundations](economy-simulation-foundations.md).
 
+2026-09-27: the user chose to examine the old NO2 policy catalogue before settling the new policy-system design. See the [historical extraction and findings](no2-policy-extraction.md) and [full catalogue](no2-policy-catalogue.md). The candidate families below remain proposals to compare against that evidence.
+
 ## Purpose
+
+The [working effect catalogue and vocabulary](policy-effect-catalogue.md) now inventories current NO7 connection points, legacy effects and missing mechanisms, and distinguishes authority, scope, target and simulation scale. It is the next discussion draft; the families below remain supporting conceptual background.
 
 Define what a policy can change before choosing how to store it. Policies compose effects that the simulation understands. Some affect institutional rules immediately when effective; others establish commitments whose realized consequences take time, funding, inputs, and capacity.
 

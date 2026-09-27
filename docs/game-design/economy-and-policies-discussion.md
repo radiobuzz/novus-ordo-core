@@ -203,6 +203,10 @@ Public-service policy and the service sector are different concepts. Health and 
 
 ## Open decisions and next discussion
 
+The immediate policy-design priority is now the [effect catalogue](policy-effect-catalogue.md): inventory current levers, distinguish them from NO2/lab mechanisms and future requirements, and agree vocabulary for authority, geographic scope, targets and simulation scale. The user accepted this as the next design task; the catalogue's detailed proposals remain open.
+
+Policy-system discussion, 2026-09-27: before choosing storage, an authoring interface or implementation details, extract the old NO2 policies as the concrete starting point. The [policy extraction and findings](no2-policy-extraction.md) and [complete catalogue](no2-policy-catalogue.md) now document 46 topics, 161 choices, dependencies, effects and reform packages. Historical coefficients and implementation quirks are evidence to review, not newly accepted mechanics. Database authoring, JSON assets and versioning remain design decisions.
+
 The [copper/investment experiment](economy-lab.md) is complete for this theme and accepted as a useful starting point. It demonstrates aggregate investment, construction delay, supply response and possible overbuilding; its coefficients and binary idling remain provisional. Subsequent discussion turns to geography and demographic/land-use representation, with implementation to be discussed separately in the dedicated task.
 
 The principal unresolved decisions are the persistent local conditions, the meaning of dynamism and other indicators, sector and resource boundaries, public/private investment behavior, monetary accounting, trade settlement, resource depletion and renewal, and the timing of actions within a seasonal turn.
@@ -216,3 +220,4 @@ The [two-country copper example](two-country-copper-example.md) explores a norma
 ## Related background
 
 - [Historical Novus Ordo — gameplay feature inventory](historical-novus-ordo-2010-features.md): evidence about the legacy game, separate from the proposed future direction in this document.
+- [NO2 policy extraction](no2-policy-extraction.md): detailed source-backed policy foundation for the next system discussion.
