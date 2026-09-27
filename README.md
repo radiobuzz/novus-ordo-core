@@ -1,6 +1,10 @@
-## About Novus Ordo Core
+## About Novus Ordo
 
-Novus Ordo Core is a rationalization effort of earlier reboot attempts of the Novus Ordo online strategy game.
+Novus Ordo is an online strategy game. This repository contains its continuous development history.
+
+The playable Version 7 checkpoint is preserved by the `v7.0.0` Git tag. Current development continues from that checkpoint toward Version 7.1, introducing the political system, microcell world model, revised economy and commerce incrementally.
+
+Restoring an older release requires both its Git tag and a compatible database backup; source history does not replace database backups.
 
 ### Set up a development environment
 
