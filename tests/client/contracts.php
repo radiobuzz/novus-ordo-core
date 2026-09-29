@@ -16,7 +16,7 @@ $check(str_contains($code, 'getPublicNationInfo'), 'Nation read route missing');
 $check(str_contains($code, 'getClientGameplay') && str_contains($code, 'getGameIdentities'), 'Gameplay read routes missing');
 $gameplayRoute = Illuminate\Support\Facades\Route::getRoutes()->getByName('ajax.get-client-gameplay');
 $check(in_array('auth', $gameplayRoute->gatherMiddleware()), 'Owner gameplay must require authentication');
-foreach (['place-production-bid', 'apply-production-plan', 'send-move-orders', 'send-disband-orders', 'cancel-orders', 'deploy', 'cancel-deployments', 'ready-for-next-turn'] as $command) {
+foreach (['apply-production-plan', 'preview-production-plan', 'send-move-orders', 'send-disband-orders', 'cancel-orders', 'deploy', 'cancel-deployments', 'ready-for-next-turn'] as $command) {
     $commandRoute = Illuminate\Support\Facades\Route::getRoutes()->getByName('ajax.' . $command);
     $check(in_array(App\Http\Middleware\EnsureClientCommandContext::class, $commandRoute->gatherMiddleware()), 'Client identity fence missing: ' . $command);
 }
@@ -55,20 +55,23 @@ $remainingDevRoutes = collect(Illuminate\Support\Facades\Route::getRoutes())->fi
     fn ($route) => str_starts_with($route->uri(), 'dev-panel')
         && !in_array($route, [$mapLab, $gallery, $portraitLab, $identityLab, $economyLab], true),
 )->values();
-$check($remainingDevRoutes->count() === 1 && $remainingDevRoutes[0]->uri() === 'dev-panel', 'Only the retired panel redirect may remain under dev-panel');
-$check(in_array('auth', $remainingDevRoutes[0]->gatherMiddleware()), 'Panel redirect must require authentication');
-$check(in_array($devGuard, $remainingDevRoutes[0]->gatherMiddleware()), 'Panel redirect must stay development-only');
-$check(in_array(App\Http\Middleware\NoStoreResponse::class, $remainingDevRoutes[0]->gatherMiddleware()), 'Panel redirect must not be cached');
+$check($remainingDevRoutes->isEmpty(), 'Retired development-panel routes remain');
 foreach (['dev.start-game', 'dev.next-turn', 'dev.rollback-turn', 'dev.add-user', 'dev.login-user',
     'dev.ajax.set-user-password', 'dev.ajax.generate-password', 'dev.ajax.division',
     'dev.ajax.deployment', 'dev.generate-js-client-services', 'dev.spa', 'dev.ajax.force-next-turn'] as $retired) {
     $check(Illuminate\Support\Facades\Route::getRoutes()->getByName($retired) === null, "Retired route remains: $retired");
 }
 $routes = Illuminate\Support\Facades\Route::getRoutes();
-foreach (['/' => false, 'login' => false, 'dashboard' => true, 'create-nation' => true, 'dev-panel' => true] as $uri => $authenticated) {
+foreach (['/' => false, 'login' => false] as $uri => $authenticated) {
     $legacyEntry = $routes->match(Illuminate\Http\Request::create('/' . ltrim($uri, '/'), 'GET'));
     $check($legacyEntry->getActionName() === 'Closure', "Retired screen is not a redirect: $uri");
     $check(in_array('auth', $legacyEntry->gatherMiddleware()) === $authenticated, "Unexpected redirect access boundary: $uri");
+}
+foreach (['dashboard', 'create-nation', 'dev-panel'] as $uri) {
+    try {
+        $routes->match(Illuminate\Http\Request::create('/' . $uri, 'GET'));
+        throw new RuntimeException("Retired screen route remains: $uri");
+    } catch (Symfony\Component\HttpKernel\Exception\NotFoundHttpException) {}
 }
 foreach (['resources/views/login.blade.php', 'resources/views/dashboard.blade.php',
     'resources/views/new_nation.blade.php', 'resources/views/dev/panel.blade.php',
@@ -112,4 +115,4 @@ $response = app(App\Http\Controllers\ClientController::class)->index($request);
 $check(!str_contains($response->getContent(), $user->name), 'Bootstrap must escape script delimiters');
 $check(str_contains($response->getContent(), 'client-boot'), 'Bootstrap missing');
 $check(str_contains($response->headers->get('Cache-Control'), 'no-store'), 'Session HTML must not be cached');
-echo "PASS: generated coverage, reproducibility, secret exclusion, multi-placeholder routes, stage-5 redirects/removals, authenticated entry, guest development-only labs, protected administration, safe Blade bootstrap (no database).\n";
+echo "PASS: generated coverage, reproducibility, secret exclusion, multi-placeholder routes, retired-screen removal, authenticated entry, guest development-only labs, protected administration, safe Blade bootstrap (no database).\n";

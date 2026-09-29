@@ -18,7 +18,10 @@ function fixture() {
         turn_number: 4,
         turn_context_revision: 'revision-4',
         setup: { nation_id: 1 },
-        nation: { diplomacy: { enabled: true, relations: [] } },
+        nation: {
+            diplomacy: { enabled: true, relations: [] },
+            definitions: { resources: [{ resource_key: 'money', grantable: true }] },
+        },
     };
     const { store, publish } = createStore({ status: 'ready', snapshot });
     const world = {

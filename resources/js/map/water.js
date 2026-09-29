@@ -93,6 +93,7 @@ export function addWater(model) {
             b.links.push({ vertex: a, edge });
         });
     }
+    model.edges = edges;
     const { order, breaches } = conditionBasins(vertices, model.cellCount);
     model.drainage = {
         vertices,
@@ -177,8 +178,6 @@ export function addWater(model) {
     });
 
     const threshold = model.scale === 'world' ? 0.65 : 0.18;
-    const outgoing = new Map(),
-        incoming = new Map();
     for (const point of order) {
         if (!point.downstream || point.flow < threshold) continue;
         const { vertex: next, edge } = point.downstream;
@@ -191,30 +190,8 @@ export function addWater(model) {
             toElevation: next.drainageElevation,
         });
         model.riverEdges.set(edge.id, edge);
-        outgoing.set(point.id, { point, next, edge });
-        incoming.set(next.id, (incoming.get(next.id) ?? 0) + 1);
     }
-    const visited = new Set();
-    const startCourse = (start) => {
-        const river = {
-            id: 'river-' + (model.rivers.length + 1),
-            name: 'River ' + (model.rivers.length + 1),
-            edgeIds: [],
-            points: [],
-        };
-        let link = start;
-        river.points.push({ id: link.point.id, x: link.point.x, y: link.point.y });
-        while (link && !visited.has(link.edge.id)) {
-            visited.add(link.edge.id);
-            river.edgeIds.push(link.edge.id);
-            river.points.push({ id: link.next.id, x: link.next.x, y: link.next.y });
-            if (incoming.get(link.next.id) !== 1) break;
-            link = outgoing.get(link.next.id);
-        }
-        model.rivers.push(river);
-    };
-    for (const link of outgoing.values()) if (incoming.get(link.point.id) !== 1) startCourse(link);
-    for (const link of outgoing.values()) if (!visited.has(link.edge.id)) startCourse(link);
+    model.rivers = riverCourses(model.riverEdges, vertices);
     for (const edge of model.riverEdges.values())
         for (const id of edge.cellIds) model.cellById.get(id).riverEdgeIds.push(edge.id);
     for (const edge of edges.values()) {
@@ -240,4 +217,39 @@ export function addWater(model) {
             });
         } else classifyTerrain(cell, neighbors(cell).filter(Boolean), model.cellCount);
     }
+}
+
+/** Reconstruct presentation courses from the saved directed river graph, without generating geography. */
+export function riverCourses(riverEdges, vertices) {
+    const rivers = [],
+        outgoing = new Map(),
+        incoming = new Map();
+    for (const edge of riverEdges.values()) {
+        const point = vertices.get(edge.fromId),
+            next = vertices.get(edge.toId);
+        outgoing.set(point.id, { point, next, edge });
+        incoming.set(next.id, (incoming.get(next.id) ?? 0) + 1);
+    }
+    const visited = new Set();
+    const startCourse = (start) => {
+        const river = {
+            id: 'river-' + (rivers.length + 1),
+            name: 'River ' + (rivers.length + 1),
+            edgeIds: [],
+            points: [],
+        };
+        let link = start;
+        river.points.push({ id: link.point.id, x: link.point.x, y: link.point.y });
+        while (link && !visited.has(link.edge.id)) {
+            visited.add(link.edge.id);
+            river.edgeIds.push(link.edge.id);
+            river.points.push({ id: link.next.id, x: link.next.x, y: link.next.y });
+            if (incoming.get(link.next.id) !== 1) break;
+            link = outgoing.get(link.next.id);
+        }
+        rivers.push(river);
+    };
+    for (const link of outgoing.values()) if (incoming.get(link.point.id) !== 1) startCourse(link);
+    for (const link of outgoing.values()) if (!visited.has(link.edge.id)) startCourse(link);
+    return rivers;
 }

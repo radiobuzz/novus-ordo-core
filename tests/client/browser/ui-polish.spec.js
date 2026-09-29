@@ -45,7 +45,7 @@ test("mobile drawer opens by tap and swipe, closes with Escape, and compact head
         page.getByRole("button", { name: "Ready", exact: true }),
     ).toBeVisible();
     await expect(
-        page.getByLabel("Layers · Military", { exact: true }),
+        page.getByRole('tab', { name:'Military',exact:true }),
     ).toBeVisible();
     expect(
         await page.evaluate(

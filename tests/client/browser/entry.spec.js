@@ -29,6 +29,7 @@ async function setup(page) {
                         { id: 25, name: 'Black', name_fr: 'Noir', hex: '#17191c', primary_allowed: false },
                     ],
                 },
+                resource_definitions: fixtures('/client/gameplay').definitions.resources,
                 required_territories: 3,
                 suitable_ids: [156, 157, 158],
                 territories: [],
@@ -165,11 +166,19 @@ test('cinematic entry, locale persistence, wizard draft/uploads, full submission
     await page.getByRole('button', { name: 'Continue', exact: true }).click();
     await expect(page.getByLabel('Leader name', { exact: true })).toHaveValue('Aster');
     await page.getByRole('button', { name: 'Continue', exact: true }).click();
+    await page.getByRole('tab', { name: 'Resources', exact: true }).click();
+    await page.getByLabel('Agricultural potential', { exact: true }).check();
+    await expect(page.locator('.ml-legend')).toContainText('Suitability');
+    await expect(page.getByRole('tab', { name: 'Population & economy', exact: true })).toHaveCount(0);
+    await page.getByLabel('Geographic production potential', { exact: true }).check();
+    await page.getByLabel('Resource', { exact: true }).selectOption('food');
+    await expect(page.locator('.ml-legend')).toContainText('Food production potential');
+    await page.getByRole('button', { name: 'Close layers', exact: true }).click();
     for (const id of [156, 157, 158]) await page.locator(`[data-id="${id}"]`).click();
     await page.screenshot({ path: 'test-results/client/entry-homeland.png' });
     await page.getByRole('button', { name: 'Continue', exact: true }).click();
     let submissions = 0;
-    await page.route('**/create-nation', (route) => {
+    await page.route('**/client/setup/nation', (route) => {
         submissions++;
         expect(route.request().headers()['x-csrf-token']).toBe('new-token');
         expect(route.request().postData()).toContain('Aurelia');
@@ -223,9 +232,17 @@ test('expired session reauthenticates in place and restores the same-user draft'
     await page.getByRole('button', { name: 'Continue', exact: true }).click();
     await page.getByLabel('Leader name', { exact: true }).fill('Preserved Leader');
     await page.getByRole('button', { name: 'Continue', exact: true }).click();
+    await page.getByRole('tab', { name: 'Resources', exact: true }).click();
+    await page.getByLabel('Agricultural potential', { exact: true }).check();
+    await expect(page.locator('.ml-legend')).toContainText('Suitability');
+    await expect(page.getByRole('tab', { name: 'Population & economy', exact: true })).toHaveCount(0);
+    await page.getByLabel('Geographic production potential', { exact: true }).check();
+    await page.getByLabel('Resource', { exact: true }).selectOption('food');
+    await expect(page.locator('.ml-legend')).toContainText('Food production potential');
+    await page.getByRole('button', { name: 'Close layers', exact: true }).click();
     for (const id of [156, 157, 158]) await page.locator(`[data-id="${id}"]`).click();
     await page.getByRole('button', { name: 'Continue', exact: true }).click();
-    await page.route('**/create-nation', (route) => route.fulfill({ status: 419, json: {} }));
+    await page.route('**/client/setup/nation', (route) => route.fulfill({ status: 419, json: {} }));
     await page.getByRole('button', { name: 'Found your nation', exact: true }).click();
     await expect(page.getByRole('heading', { name: 'Welcome back' })).toBeVisible();
     await page.getByLabel('Username', { exact: true }).fill('fixture-player');
@@ -284,10 +301,18 @@ test('nation flag editor stages changes, preserves matched PNG/recipe on validat
     await dialog.getByRole('button', { name: 'Cancel', exact: true }).click();
     await page.getByRole('button', { name: 'Continue', exact: true }).click();
     await page.getByRole('button', { name: 'Continue', exact: true }).click();
+    await page.getByRole('tab', { name: 'Resources', exact: true }).click();
+    await page.getByLabel('Agricultural potential', { exact: true }).check();
+    await expect(page.locator('.ml-legend')).toContainText('Suitability');
+    await expect(page.getByRole('tab', { name: 'Population & economy', exact: true })).toHaveCount(0);
+    await page.getByLabel('Geographic production potential', { exact: true }).check();
+    await page.getByLabel('Resource', { exact: true }).selectOption('food');
+    await expect(page.locator('.ml-legend')).toContainText('Food production potential');
+    await page.getByRole('button', { name: 'Close layers', exact: true }).click();
     for (const id of [156, 157, 158]) await page.locator(`[data-id="${id}"]`).click();
     await page.getByRole('button', { name: 'Continue', exact: true }).click();
     let submissions = 0;
-    await page.route('**/create-nation', (route) => {
+    await page.route('**/client/setup/nation', (route) => {
         const body = route.request().postData();
         submissions++;
         expect(body).toContain('filename="nation-flag.png"');

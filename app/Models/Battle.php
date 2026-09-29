@@ -3,7 +3,6 @@
 namespace App\Models;
 
 use App\Domain\DivisionType;
-use App\Domain\ResourceType;
 use App\ReadModels\ParticipantBattleLog;
 use Closure;
 use Illuminate\Database\Eloquent\Model;
@@ -26,7 +25,7 @@ class BattleFormation {
     public function __construct(
         public readonly string $description,
         public readonly int $power,
-        public readonly int $value,
+        public readonly float $value,
         public readonly bool $canTakeTerritory,
         public readonly bool $canFly,
         public readonly ?Division $linkedDivision = null,
@@ -38,7 +37,7 @@ class BattleFormation {
     public static function fromDivision(Division $division, NationDetail $ownerDetail, int $power): BattleFormation {
         $meta = DivisionType::getMeta($division->getDivisionType());
 
-        return new BattleFormation($meta->description . " ({$ownerDetail->getUsualName()})", $power, $meta->deploymentCosts[ResourceType::Capital->value],
+        return new BattleFormation($meta->description . " ({$ownerDetail->getUsualName()})", $power, (float) $ownerDetail->resources()->costs('deployment', $division->getDivisionType())[$ownerDetail->resources()->role('treasury')],
             canTakeTerritory: $meta->canTakeTerritory,
             canFly: $meta->canFly,
             linkedDivision: $division
@@ -143,7 +142,7 @@ class Battle extends Model
         return $formations->sum(fn (BattleFormation $f) => $f->power);
     }
 
-    private static function calculateTotalValue(Collection $formations): int {
+    private static function calculateTotalValue(Collection $formations): float {
         return $formations->sum(fn (BattleFormation $f) => $f->value);
     }
 

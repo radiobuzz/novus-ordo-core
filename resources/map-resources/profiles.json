@@ -1,0 +1,10 @@
+[
+  {"key":"food","labels":{"en":"Food","fr":"Nourriture"},"method":"agriculture","unit":"units","default":true,"habitats":["land"],"affinities":{"plains":1,"hills":0.65,"mountain":0.15},"baseQuantity":100,"baseCapacity":4,"excludes":[]},
+  {"key":"material","labels":{"en":"Raw materials","fr":"Matières premières"},"method":"surface","unit":"units","default":true,"habitats":["land"],"affinities":{"plains":0.5,"hills":0.8,"mountain":0.8},"baseQuantity":100,"baseCapacity":1,"excludes":[]},
+  {"key":"ore","labels":{"en":"Generic ore","fr":"Minerai générique"},"method":"deposit","unit":"units","default":true,"habitats":["land"],"affinities":{"plains":0.4,"hills":0.8,"mountain":1},"baseQuantity":1200,"baseCapacity":1,"excludes":["iron","copper"]},
+  {"key":"oil","labels":{"en":"Oil","fr":"Pétrole"},"method":"deposit","unit":"units","default":true,"habitats":["land","ocean"],"maxDepth":350,"affinities":{"plains":1,"hills":0.6,"mountain":0.2,"water":0.8},"baseQuantity":1200,"baseCapacity":1,"excludes":[]},
+  {"key":"iron","labels":{"en":"Iron","fr":"Fer"},"method":"deposit","unit":"units","default":false,"habitats":["land"],"affinities":{"plains":0.3,"hills":0.8,"mountain":1},"baseQuantity":1200,"baseCapacity":1,"excludes":["ore"]},
+  {"key":"copper","labels":{"en":"Copper","fr":"Cuivre"},"method":"deposit","unit":"units","default":false,"habitats":["land"],"affinities":{"plains":0.4,"hills":0.8,"mountain":1},"baseQuantity":1200,"baseCapacity":1,"excludes":["ore"]},
+  {"key":"coal","labels":{"en":"Coal","fr":"Charbon"},"method":"deposit","unit":"units","default":false,"habitats":["land"],"affinities":{"plains":0.6,"hills":1,"mountain":0.8},"baseQuantity":1200,"baseCapacity":1,"excludes":[]},
+  {"key":"timber","labels":{"en":"Timber","fr":"Bois"},"method":"forest","unit":"units","default":false,"habitats":["land"],"affinities":{"plains":1,"hills":0.7,"mountain":0.3},"baseQuantity":800,"baseCapacity":1,"excludes":[]}
+]

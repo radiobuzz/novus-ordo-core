@@ -8,6 +8,7 @@ async function start(page, data) {
         route.fulfill({ json: data }),
     );
     await page.goto("/client?game_id=1");
+    await expect(page.locator(".map-notice")).toBeHidden();
     await page.locator('[data-mode="military"]').click();
 }
 async function refresh(page) {
@@ -63,7 +64,7 @@ test("compact artwork badges show remaining shared budget and draft counts; deta
         })
         .focus();
     await expect(page.getByRole("tooltip")).toContainText(
-        "Deployment cost: 3 Capital",
+        "Deployment cost: 3 Treasury",
     );
     await page.keyboard.press("Escape");
     await expect(page.getByRole("tooltip")).toHaveCount(0);
@@ -125,7 +126,7 @@ test("compact artwork badges show remaining shared budget and draft counts; deta
         .getByRole("button", { name: "Bomber: costs and details", exact: true })
         .click();
     await expect(page.getByRole("tooltip")).toContainText(
-        "Capital: need 15; available after preview 6.",
+        "Treasury: need 15; available after preview 6.",
     );
     await page.keyboard.press("Escape");
     await page.setViewportSize({ width: 390, height: 844 });

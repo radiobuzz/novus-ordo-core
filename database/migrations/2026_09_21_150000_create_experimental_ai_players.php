@@ -9,17 +9,11 @@ return new class extends Migration {
         Schema::create('ai_player_games', function (Blueprint $table) {
             $table->foreignId('game_id')->primary()->constrained('games')->cascadeOnDelete();
             $table->string('generation', 36);
-            $table->string('seed', 64);
-            $table->boolean('protect_humans')->default(false);
             $table->boolean('paused')->default(false);
         });
         Schema::create('ai_players', function (Blueprint $table) {
             $table->foreignId('nation_id')->primary()->constrained('nations')->cascadeOnDelete();
             $table->foreignId('game_id')->constrained('games')->cascadeOnDelete();
-            $table->boolean('enabled')->default(true);
-            $table->unsignedTinyInteger('aggression');
-            $table->string('seed', 64);
-            $table->json('memory')->nullable();
         });
         Schema::create('ai_player_turns', function (Blueprint $table) {
             $table->id();

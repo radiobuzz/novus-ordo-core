@@ -22,6 +22,4 @@ export default defineConfig({
         }),
         tailwindcss(),
     ],
-    // Keep older hashed chunks usable by already-open legacy/client tabs.
-    build: { emptyOutDir: false },
 });

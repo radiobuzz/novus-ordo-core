@@ -1,3 +1,4 @@
+import { resourceName } from '../../ui/resourceVisuals.js';
 import { selectedPower, territorialDefense } from '../../services/forceSummary.js';
 import { Scope } from '../../runtime/Scope.js';
 import { Tooltip } from '../../ui/Tooltip.js';
@@ -12,7 +13,6 @@ import { confirmDialog } from '../../ui/ConfirmDialog.js';
 import { Minimap } from '../../ui/map/Minimap.js';
 import { militaryOverlay } from '../../ui/map/militaryOverlay.js';
 import { battleOverlay } from '../../ui/map/battleOverlay.js';
-import { heatmapOverlay } from '../../ui/map/defenseHeatmap.js';
 import { foreignTerritoryOverlay } from '../../ui/map/foreignTerritoryOverlay.js';
 import { draftMoveOrders, deploymentDraft, moveOrderPreview } from '../../services/militaryCommands.js';
 import { resourceIcon } from '../../ui/resourceVisuals.js';
@@ -152,7 +152,6 @@ export class WorldCommands {
             scope,
             context,
             camera,
-            images: services.boot.mapImages,
             label: this.t('minimapHelp'),
             onNavigate: (point) => {
                 camera.x = point.x;
@@ -442,56 +441,56 @@ export class WorldCommands {
         this.updateOverlay();
     }
     updateOverlay() {
-        this.context.underlays = [
-            ...(this.militaryLayers.muteForeignColors &&
+        this.context.foreignUnderlay =
+            this.militaryLayers.muteForeignColors &&
             (this.mode === 'military' || this.analysisLayer.type !== 'none')
-                ? [foreignTerritoryOverlay()]
-                : []),
-            ...(this.analysisLayer.type !== 'none' && this.analysisLayer.entries.length
-                ? [heatmapOverlay(this.analysisLayer.entries)]
-                : []),
-        ];
+                ? foreignTerritoryOverlay()
+                : null;
+        this.context.underlays = [];
         this.context.overlays = [];
         if (this.data && this.mode === 'military') {
             this.context.underlays.push((ctx, renderer) => {
                 if (this.tool !== 'deploy') return;
                 const color = getComputedStyle(this.root).getPropertyValue('--status-ready').trim();
                 for (const own of this.snapshot.ownTerritories.filter((t) => t.can_deploy)) {
-                    if (renderer.highlight) renderer.highlight(ctx, own.territory_id, color, 0.25, true);
-                    else {
-                        const t = this.snapshot.territories.find((t) => t.territory_id === own.territory_id),
-                            d = this.context.definition;
-                        ctx.save();
-                        ctx.fillStyle = color;
-                        ctx.globalAlpha = 0.3;
-                        ctx.fillRect(t.x * d.tileWidth, t.y * d.tileHeight, d.tileWidth, d.tileHeight);
-                        ctx.restore();
-                    }
+                    renderer.highlight(ctx, own.territory_id, color, 0.25, true);
                 }
             });
             this.context.overlays = [
                 ...(this.militaryLayers.lastTurnBattles && this.militaryLayers.battles.length
-                    ? [battleOverlay(this.militaryLayers.battles)]
+                    ? [
+                          (ctx, renderer) => {
+                              ctx.save();
+                              ctx.globalAlpha = this.context.mapLayers?.appearance.battlesOpacity ?? 1;
+                              battleOverlay(this.militaryLayers.battles)(ctx, renderer);
+                              ctx.restore();
+                          },
+                      ]
                     : []),
                 ...(this.militaryLayers.showUnits
                     ? [
-                          militaryOverlay(
-                              this.data.divisions,
-                              this.data.deployments,
-                              this.selected,
-                              () => (this.tool === 'move' ? this.buildOrders() : []),
-                              {
-                                  layout: () => this.layout(),
-                                  sprites: this.sprites,
-                                  palette: () => this.palette,
-                                  style: () => this.unitStyle,
-                                  details: () => this.militaryLayers.unitDetails,
-                                  defense: (territoryId) =>
-                                      this.militaryLayers.unitDetails
-                                          ? territorialDefense(this.snapshot, territoryId)?.total
-                                          : null,
-                              },
-                          ),
+                          (ctx, renderer) => {
+                              ctx.save();
+                              ctx.globalAlpha = this.context.mapLayers?.appearance.unitsOpacity ?? 1;
+                              militaryOverlay(
+                                  this.data.divisions,
+                                  this.data.deployments,
+                                  this.selected,
+                                  () => (this.tool === 'move' ? this.buildOrders() : []),
+                                  {
+                                      layout: () => this.layout(),
+                                      sprites: this.sprites,
+                                      palette: () => this.palette,
+                                      style: () => this.unitStyle,
+                                      details: () => this.militaryLayers.unitDetails,
+                                      defense: (territoryId) =>
+                                          this.militaryLayers.unitDetails
+                                              ? territorialDefense(this.snapshot, territoryId)?.total
+                                              : null,
+                                  },
+                              )(ctx, renderer);
+                              ctx.restore();
+                          },
                       ]
                     : []),
             ];
@@ -512,7 +511,7 @@ export class WorldCommands {
             Object.entries(values)
                 .map(
                     ([resource, value]) =>
-                        `${this.number(value * quantity)} ${this.t(`resource.${resource}`)}`,
+                        `${this.number(value * quantity)} ${resourceName(this.data, resource, this.services.i18n)}`,
                 )
                 .join(' · ') || this.t('none')
         );
@@ -1042,9 +1041,9 @@ export class WorldCommands {
             budgetPreview.replaceChildren();
             if (this.destination && orders.length) {
                 budgetPreview.append(el('strong', { text: this.t('orderCosts') }));
-                for (const resource of new Set(['Oil', 'Capital', ...Object.keys(estimate.costs)])) {
+                for (const resource of new Set(Object.keys(estimate.costs))) {
                     const cost = estimate.costs[resource] ?? 0;
-                    const available = this.data.budget.available_production[resource];
+                    const available = Number(this.data.budget.available_production[resource]);
                     const short = estimate.shortages[resource];
                     const number = (n) =>
                         Number.isFinite(n) ? this.services.i18n.number(n, { maximumFractionDigits: 4 }) : '—';
@@ -1052,10 +1051,17 @@ export class WorldCommands {
                         el(
                             'p',
                             { 'data-resource-cost': resource, 'data-tone': short ? 'danger' : '' },
-                            el('img', { src: resourceIcon(resource), alt: '' }),
+                            el('img', {
+                                src: resourceIcon(
+                                    this.services.world.snapshot.nation.definitions.resources.find(
+                                        (r) => r.resource_key === resource,
+                                    )?.icon_key,
+                                ),
+                                alt: '',
+                            }),
                             el('span', {
                                 text: this.t('costAvailable', {
-                                    resource: this.t(`resource.${resource}`),
+                                    resource: resourceName(this.data, resource, this.services.i18n),
                                     cost: number(cost),
                                     available: number(available),
                                 }),

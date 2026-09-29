@@ -1,5 +1,6 @@
 <?php
 $app = require __DIR__ . '/isolated-app.php';
+require_once __DIR__ . '/generated-map-fixture.php';
 use App\Models\{Game, NationDetail, User};
 use App\Services\{AdminGameService, GameAccess, GameMutation, GameTurnStatus, NationCommunicationService};
 use Illuminate\Support\Facades\{DB, Schema, Cache};
@@ -22,7 +23,7 @@ if (($argv[1] ?? '') === 'race') {
 }
 $other = Game::orderBy('id')->firstOrFail();
 $otherBefore = $service->summary($other);
-$target = Game::createNew(null, fn ($g) => app(ExperimentalAI\Setup::class)->populate($g, ['count' => 2]));
+$target = Game::createNew(generatedMapFixture(), fn ($g) => app(ExperimentalAI\Setup::class)->populate($g, ['count' => 2]));
 $nations = $target->nations()->get();
 $messages = app(NationCommunicationService::class);
 $message = $messages->send($nations[0], $nations[1]->id, 'Lifecycle fixture', (string) Str::uuid());

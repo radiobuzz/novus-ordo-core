@@ -95,7 +95,7 @@ test('multipart preserves browser boundary, current CSRF and chosen locale', asy
         },
     });
     token = 'b';
-    await request({ path: '/create-nation', method: 'POST', body });
+    await request({ path: '/client/setup/nation', method: 'POST', body });
 });
 test('late audio play cannot restart music after leaving login; eligibility never changes mute preference', async () => {
     let resolve,

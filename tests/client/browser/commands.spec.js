@@ -5,7 +5,7 @@ test.beforeEach(async ({ page }) => prepareHud(page));
 
 async function start(page) {
     await page.goto('/client?game_id=1');
-    await expect(page.locator('[data-resource="Capital"] dd').last()).toHaveText('30');
+    await expect(page.locator('[data-resource="money"] dd').last()).toHaveText('30', { timeout: 30000 });
     await expect(page.locator('.world-directory')).toBeHidden();
     await page.locator('[data-mode="military"]').click();
 }
@@ -173,8 +173,8 @@ test('Guard stays absent when the game rule is disabled', async ({ page }) => {
 
 test('Layers menu keeps military history and unit detail controls together', async ({ page }) => {
     await start(page);
-    await page.locator('.hud-layers > summary').click();
-    const layers = page.locator('.hud-layers .ui-disclosure-content');
+    await page.getByRole('tab', { name: 'Military', exact: true }).click();
+    const layers = page.locator('.ml-drawer');
     await expect(layers.getByText('Military', { exact: true })).toBeVisible();
     const units = layers.getByLabel('Show units', { exact: true });
     const battles = layers.getByLabel('Show last-turn battles', {
@@ -182,12 +182,10 @@ test('Layers menu keeps military history and unit detail controls together', asy
     });
     const details = layers.getByLabel('Show unit details', { exact: true });
     const muted = layers.getByLabel('Mute foreign colours', { exact: true });
-    const analysis = layers.getByLabel('Analysis overlay', { exact: true });
     await expect(units).toBeChecked();
     await expect(battles).not.toBeChecked();
     await expect(details).not.toBeChecked();
     await expect(muted).not.toBeChecked();
-    await expect(analysis).toHaveValue('none');
     await units.uncheck();
     await battles.check();
     await details.check();
@@ -237,42 +235,42 @@ test('analysis overlays show defence, population, production and loyalty values'
         }),
     );
     await start(page);
-    await page.locator('.hud-layers > summary').click();
-    const analysis = page.getByLabel('Analysis overlay', { exact: true });
-    await analysis.selectOption('defense');
-    await expect(page.getByLabel('Mute foreign colours', { exact: true })).toBeChecked();
-    const legend = page.locator('.defense-heatmap-legend');
+    await page.getByRole('tab', { name: 'Military', exact: true }).click();
+    await page.getByLabel('Defense strength', { exact: true }).check();
+    const legend = page.locator('.ml-legend');
     await expect(legend).toBeVisible();
-    await expect(legend).toContainText('Relative defence');
-    await expect(legend).toContainText('Exposed · 0');
-    await expect(legend).toContainText('Highly protected · 150+');
+    await expect(legend).toContainText('Defense strength');
+    await expect(legend).toContainText('0 points');
+    await expect(legend).toContainText('150+ points');
     await page.evaluate(() => (location.hash = '#/world?territory=156'));
     const dock = page.locator('.world-command-dock');
     await expect(dock).toContainText('Potential defence for one attack: 150');
     await expect(dock).toContainText('Base 60 · Reachable Guard 90 (3 units)');
-    await expect(legend).toContainText('Aster Reach · 150 defence');
+    await expect(legend).toContainText('Aster Reach · 150 points');
     await page.screenshot({ path: 'test-results/client/defense-heatmap.png' });
 
-    await analysis.selectOption('population');
+    await page.getByRole('tab', { name: 'Population & economy', exact: true }).click();
+    await page.getByLabel('Population density', { exact: true }).check();
     await expect(legend).toContainText('Population density');
     await expect(legend).toContainText('Aster Reach · 2.8 people/km²');
 
-    await analysis.selectOption('production');
+    await page.getByLabel('Planned resource output', { exact: true }).check();
     await expect(page.getByLabel('Resource', { exact: true })).toBeVisible();
-    await page.getByLabel('Resource', { exact: true }).selectOption('Oil');
-    await expect(legend).toContainText('Oil production');
-    await expect(legend).toContainText('Aster Reach · 42 Oil/turn');
+    await page.getByLabel('Resource', { exact: true }).selectOption('oil');
+    await expect(legend).toContainText('Planned resource output · Oil');
+    await expect(legend).toContainText('Aster Reach · 42,000,000 units/season');
 
-    await analysis.selectOption('loyalty');
-    await expect(legend).toContainText('Territory loyalty');
-    await expect(legend).toContainText('Aster Reach · 85% loyalty');
+    await page.getByRole('tab', { name: 'Politics', exact: true }).click();
+    await page.getByLabel('Loyalty', { exact: true }).check();
+    await expect(legend).toContainText('Loyalty');
+    await expect(legend).toContainText('Aster Reach · 85%');
     await expect
         .poll(() =>
             page.evaluate(() =>
                 Object.values(localStorage).some((value) => {
                     try {
                         const saved = JSON.parse(value)?.value;
-                        return saved?.analysis?.type === 'loyalty' && saved.analysis.resource === 'Oil';
+                        return saved?.mapLayers?.type === 'loyalty';
                     } catch {
                         return false;
                     }

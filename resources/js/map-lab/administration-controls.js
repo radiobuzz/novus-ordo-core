@@ -94,7 +94,7 @@ export function renderAdministration(root, state) {
     root.querySelector('[data-admin-editor]').hidden = !active;
     root.querySelector('[data-admin-inspector]').hidden = !active;
     // Existing simulation identity is intentionally not the sovereignty of this sandbox.
-    root.querySelector('[data-legacy-inspector]').hidden = active;
+    root.querySelector('[data-base-inspector]').hidden = active;
     root.querySelector('[data-admin-status]').textContent = active
         ? `${editor.operation === 'inspect' ? 'Inspecting' : editor.operation === 'add' ? 'Adding cells' : 'Removing cells'} · ${admin.countries.length} fixed countries · ${admin.provinces.length} provinces · ${admin.zones.length} zones. National ownership cannot be edited.`
         : 'Optional comparison. Enable the experiment and choose Inspect administration in terrain view.';

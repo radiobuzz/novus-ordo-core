@@ -4,7 +4,7 @@ Status: Main gameplay loop ported into the new interface as a revisable experime
 
 Date: 2026-09-19
 
-The new `/client` now includes nation/economy views, production bids, unit deployment/cancellation, movement/attack/disband/cancel orders, readiness/turn advancement, news, battle history, rankings and victory progress. Both classic map data and saved generated-map beta data are supported. Login/full creation remain at `/client/entry`. See [the gameplay experiment handoff](gameplay-experiment.md) for delivered behavior, safety checks, verification and explicit gaps. The matrix below retains the original migration boundaries as an audit checklist, not a claim that these features are still unimplemented.
+The new `/client` includes nation/economy views, production bids, unit deployment/cancellation, movement/attack/disband/cancel orders, readiness/turn advancement, news, battle history, rankings and victory progress. Generated geography is required for every game. Login/full creation remain at `/client/entry`. See [the gameplay experiment handoff](gameplay-experiment.md) for delivered behavior, safety checks, verification and explicit gaps. The matrix below retains the original migration boundaries as an audit checklist, not a claim that these features are still unimplemented.
 
 | Area | Existing entry points/evidence | Migration boundary / work to verify |
 | --- | --- | --- |
@@ -16,7 +16,7 @@ The new `/client` now includes nation/economy views, production bids, unit deplo
 | Territory/map data | `/territories`, `/territories/base-infos`, `/territories/base-infos/ref`, `/territories/turn-infos`, individual base/turn-info routes | Static versus turn-specific data, current map assets, cache identity, hidden/owner fields |
 | Owned territories | `/nation/territories/turn-infos` | Ownership restrictions and reconciliation after turn changes |
 | Nation details | `/nation`, `/nations/{nationId}`, dashboard bootstrap | Public route now named `ajax.get-public-nation-info`; inspector displays public nation identity. Full nation/leader/flag view remains later work |
-| Nation creation/setup | `/client/entry`, authenticated `/client/setup`, multipart `/create-nation`; older two-stage `/nation` API | Full wizard bridges the existing form operation, with identity, leader, images and home selection verified against isolated data. Legacy form retained. The narrower API's signature mismatch remains outside this path. No post-creation editing contract assumed. |
+| Nation creation/setup | `/client/entry`, authenticated `/client/setup`, multipart `/client/setup/nation`; older two-stage `/nation` API | Full wizard owns the current multipart operation, with identity, leader, images and home selection verified against isolated data. The narrower API's signature mismatch remains outside this path. No post-creation editing contract assumed. |
 | Current economy | `/nation/budget`, `/nation/production-bids` | Labor pools, production, stocks, upkeep, expenses, bids/priorities and response reconciliation; no old-economy mechanics |
 | Divisions/orders | `/nation/divisions`, individual division, move/disband/cancel order routes | Nested request validation, permitted paths/actions, partial-failure/uncertain outcome handling |
 | Deployments | Deployment list, territory deployments, deploy/cancel routes | Availability, resource effects, upkeep restrictions, duplicate-action guards |

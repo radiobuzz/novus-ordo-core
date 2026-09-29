@@ -1,7 +1,7 @@
 import test from 'node:test';
 import assert from 'node:assert/strict';
 import { createMapLabModel } from '../../resources/js/map-lab/model.js';
-import { createCartography } from '../../resources/js/map-lab/cartography.js';
+import { createCartography } from '../../resources/js/map/cartography.js';
 import { createNaturalResources } from '../../resources/js/map-lab/natural-resources.js';
 import {
     createDevelopment,
@@ -9,7 +9,7 @@ import {
     setDevelopmentValue,
     plotActivity,
 } from '../../resources/js/map-lab/development.js';
-import { TerrainField } from '../../resources/js/map-lab/terrain-v2-field.js';
+import { TerrainField } from '../../resources/js/map/terrain-v2-field.js';
 import { DevelopmentLandscape } from '../../resources/js/map-lab/development-landscape.js';
 import { segmentDistance } from '../../resources/js/map-lab/living-settlement.js';
 import { architecture } from '../../resources/js/map-lab/development-complexes.js';

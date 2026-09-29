@@ -9,24 +9,10 @@ export async function aiAdminPanel(app, scope, game) {
     if (!report.status) return null;
     const id = report.status.game_id;
     const output = el('div');
-    const preview = el('pre', { style: 'white-space:pre-wrap' });
-    const releaseNation = el('select', { 'aria-label': 'AI nation to release' });
-    const assignNation = el('select', { 'aria-label': 'Manual nation to assign to AI' });
-    const script = el('select');
-    for (const entry of report.scripts ?? [])
-        script.append(el('option', { value: entry.id, text: entry.name }));
-    script.value = 'experimental-v1';
-    const snapshotNation = el('select');
-    const aggression = el(
-        'select',
-        { 'aria-label': 'Assigned AI aggressiveness' },
-        el('option', { value: 20, text: 'Cautious' }),
-        el('option', { value: 50, text: 'Balanced', selected: true }),
-        el('option', { value: 85, text: 'Aggressive' }),
-    );
+    const releaseNation = el('select', { 'aria-label': 'Passive nation to release' });
+    const assignNation = el('select', { 'aria-label': 'Manual nation to automate' });
     let takeover;
     let assign;
-    let changeScript;
     const replaceOptions = (select, rows, emptyLabel) => {
         const selected = Number(select.value);
         select.replaceChildren(
@@ -45,33 +31,28 @@ export async function aiAdminPanel(app, scope, game) {
     const draw = () => {
         output.replaceChildren(
             el('p', {
-                text: `Turn ${report.status.turn_number} · ${report.status.finished ? 'Finished' : report.status.paused ? 'Paused' : 'Running'} · Human protection ${report.status.protect_humans ? 'on' : 'off'}`,
+                text: `Turn ${report.status.turn_number} · ${report.status.finished ? 'Finished' : report.status.paused ? 'Paused' : 'Running'}`,
             }),
-            ...report.reports.map((p) =>
+            el('p', {
+                class: 'admin-muted',
+                text: 'Temporary passive mode: automated nations only submit Ready. They choose no policies, production, deployments, orders, attacks or diplomacy. Ordinary seasonal simulation still applies to them.',
+            }),
+            ...report.reports.map((player) =>
                 el('p', {
-                    text: `${p.name}: ${p.ready ? 'Ready' : 'Planning'} · ${p.script ?? 'experimental-v1'} · ${p.result?.fallback ? 'Fallback from ' + p.result.fallback.script + ' (' + p.result.fallback.reason + ') · ' : ''}${p.result?.explanation ?? 'No decision yet'}`,
+                    text: `${player.name}: ${player.ready ? 'Ready' : 'Planning'} · ${player.result?.explanation ?? 'No passive turn recorded yet'}`,
                 }),
             ),
         );
-        replaceOptions(releaseNation, report.status.players, 'No AI-controlled nations');
+        replaceOptions(releaseNation, report.status.players, 'No passive nations');
         replaceOptions(assignNation, report.manual_nations ?? [], 'No manual nations available');
-        replaceOptions(
-            snapshotNation,
-            [...report.status.players, ...(report.manual_nations ?? [])],
-            'No nations',
-        );
         takeover?.control.setDisabled(
             !game.active || report.status.finished || !report.status.players.length,
-        );
-        changeScript?.control.setDisabled(
-            !game.active || report.status.finished || !report.status.players.length || !script.value,
         );
         assign?.control.setDisabled(
             !game.active ||
                 report.status.finished ||
                 !(report.manual_nations ?? []).length ||
-                report.status.players.length >= 10 ||
-                !script.value,
+                report.status.players.length >= 10,
         );
     };
     const context = () => ({
@@ -82,41 +63,40 @@ export async function aiAdminPanel(app, scope, game) {
     });
     const act = (action) =>
         app.run(async () => {
-            if (action === 'preview' || action === 'step') {
-                const result = await app.service.write(`/games/${id}/ai/step`, {
-                    ...context(),
-                    preview: action === 'preview',
-                });
-                preview.textContent = JSON.stringify(result, null, 2);
-            } else await app.service.write(`/games/${id}/ai/control`, { ...context(), action });
+            if (action === 'step') await app.service.write(`/games/${id}/ai/step`, context());
+            else await app.service.write(`/games/${id}/ai/control`, { ...context(), action });
             report = await app.service.read(`/games/${id}/ai`, scope);
             draw();
-            app.notify(`AI ${action} completed. Step never forces unready human players.`);
+            app.notify(
+                action === 'step'
+                    ? 'One passive nation became Ready. No gameplay choices were submitted.'
+                    : `Passive players: ${action} completed.`,
+            );
         });
     let stopped = false;
-    const stop = new Button({ label: 'Stop after this AI' });
+    const stop = new Button({ label: 'Stop after this nation' });
     stop.element.hidden = true;
     scope.listen(stop.element, 'click', () => {
         stopped = true;
     });
     const batch = app.button(
         scope,
-        'Play remaining AI this turn',
+        'Ready remaining passive nations',
         () =>
             app.run(async () => {
                 stopped = false;
                 stop.element.hidden = false;
                 try {
                     for (
-                        let i = 0;
-                        i < 10 && !stopped && !scope.closed && report.status.next_nation_id;
-                        i++
+                        let index = 0;
+                        index < 10 && !stopped && !scope.closed && report.status.next_nation_id;
+                        index++
                     ) {
                         await app.service.write(`/games/${id}/ai/step`, context());
                         report = await app.service.read(`/games/${id}/ai`, scope);
                         draw();
                     }
-                    app.notify('AI batch stopped. No human readiness was changed.');
+                    app.notify('Passive batch stopped. Human readiness was not changed.');
                 } finally {
                     stop.element.hidden = true;
                 }
@@ -133,7 +113,7 @@ export async function aiAdminPanel(app, scope, game) {
                 !(await confirmDialog(scope, {
                     title: `Release ${releaseNation.selectedOptions[0]?.textContent}?`,
                     message:
-                        'Removes its experimental controller only. Its nation, user, existing orders and history remain. The nation returns to Planning so it can be played immediately.',
+                        'Removes its passive controller only. Its nation, user and history remain. The nation returns to Planning.',
                     confirmLabel: 'Release controller',
                 }))
             )
@@ -145,25 +125,23 @@ export async function aiAdminPanel(app, scope, game) {
                     nation_id: target,
                 });
                 draw();
-                app.notify('Controller removed; nation preserved and returned to Planning.');
+                app.notify('Passive controller removed; nation preserved and returned to Planning.');
             });
         },
         { disabled: !game.active },
     );
     assign = app.button(
         scope,
-        'Assign AI control',
+        'Assign passive control',
         async () => {
             const target = Number(assignNation.value);
-            const selectedScript = script.value;
-            const selectedAggression = Number(aggression.value);
             const savedContext = context();
             if (
                 !(await confirmDialog(scope, {
-                    title: `Give ${assignNation.selectedOptions[0]?.textContent} to ${selectedScript}?`,
+                    title: `Automate ${assignNation.selectedOptions[0]?.textContent}?`,
                     message:
-                        'The nation and account remain intact. Existing orders and readiness are preserved; if it is still Planning, the AI can act this turn. Manual commands are blocked until the controller is released again.',
-                    confirmLabel: 'Assign controller',
+                        'The nation and account remain intact. The passive controller will only submit Ready on future open turns.',
+                    confirmLabel: 'Assign passive control',
                 }))
             )
                 return;
@@ -172,67 +150,21 @@ export async function aiAdminPanel(app, scope, game) {
                     ...savedContext,
                     action: 'assign',
                     nation_id: target,
-                    aggression: selectedAggression,
-                    script: selectedScript,
                 });
                 draw();
-                app.notify('AI controller assigned; nation, account, orders and readiness preserved.');
+                app.notify('Passive controller assigned; nation, account and history preserved.');
             });
         },
         { disabled: !game.active },
     );
-    changeScript = app.button(scope, 'Change AI script', async () => {
-        const target = Number(releaseNation.value);
-        const selectedScript = script.value;
-        const savedContext = context();
-        if (
-            !(await confirmDialog(scope, {
-                title: `Switch ${releaseNation.selectedOptions[0]?.textContent} to ${selectedScript}?`,
-                message:
-                    'Orders and readiness stay as they are. Each script keeps separate notes. A Ready nation uses the new script next turn.',
-                confirmLabel: 'Change script',
-            }))
-        )
-            return;
-        await app.run(async () => {
-            report = await app.service.write(`/games/${id}/ai/control`, {
-                ...savedContext,
-                action: 'script',
-                nation_id: target,
-                script: selectedScript,
-            });
-            draw();
-            app.notify('AI script changed. Current orders and readiness preserved.');
-        });
-    });
-    scope.listen(script, 'change', draw);
-    const download = app.button(
-        scope,
-        'Download player snapshot',
-        () =>
-            app.run(async () => {
-                const target = Number(snapshotNation.value);
-                const data = await app.service.read(`/games/${id}/ai/snapshot?nation_id=${target}`, scope);
-                const url = URL.createObjectURL(
-                    new Blob([JSON.stringify(data, null, 2)], { type: 'application/json' }),
-                );
-                const link = el('a', { href: url, download: `game-${id}-nation-${target}-snapshot.json` });
-                link.click();
-                setTimeout(() => URL.revokeObjectURL(url), 1000);
-                app.notify(
-                    'Player snapshot downloaded. It includes this nation’s private information and script notes.',
-                );
-            }),
-        { disabled: !game.nations?.length },
-    );
     draw();
     return panel(
-        { title: 'AI Players · experimental · disposable' },
+        { title: 'Passive players · temporary' },
         output,
         el(
             'div',
             { class: 'admin-actions' },
-            ...['preview', 'step', 'pause', 'resume'].map((action) =>
+            ...['step', 'pause', 'resume'].map((action) =>
                 app.button(scope, action, () => act(action), {
                     disabled: !game.active || report.status.finished,
                 }),
@@ -241,34 +173,19 @@ export async function aiAdminPanel(app, scope, game) {
         batch,
         stop.element,
         el('p', {
-            text: 'Step plays one AI without advancing the turn. Preview sends no orders. Open the player interface with Auto-ready to watch a continuous game.',
+            text: 'Step marks one passive nation Ready without advancing an unready human. The normal turn engine resolves when every participant is Ready.',
         }),
         new FieldShell({
             control: releaseNation,
-            label: 'AI-controlled nation',
-            help: 'Release makes the nation Planning so it can be played manually immediately.',
+            label: 'Passive nation',
+            help: 'Release returns the nation to Planning for manual play.',
         }).element,
         takeover,
         new FieldShell({
-            control: script,
-            label: 'AI script',
-            help: 'Installed PHP scripts. Used for assignment or changing the selected AI nation.',
-        }).element,
-        changeScript,
-        new FieldShell({
             control: assignNation,
             label: 'Manual nation',
-            help: 'Any nation in this game can be assigned, including your own. Maximum 10 AI players.',
+            help: 'Assigns the temporary pass-only controller. Maximum 10 automated nations.',
         }).element,
-        new FieldShell({ control: aggression, label: 'New AI aggressiveness' }).element,
         assign,
-        new FieldShell({
-            control: snapshotNation,
-            label: 'Snapshot nation',
-            help: 'Export player information and notes for the standalone author kit.',
-        }).element,
-        download,
-        el('a', { href: app.service.base + '/ai/author-kit', text: 'Download AI author kit (.zip)' }),
-        preview,
     );
 }

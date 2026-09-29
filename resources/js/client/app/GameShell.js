@@ -207,7 +207,6 @@ export class GameShell {
                         void panel.close();
                         void dialog.close();
                     }
-                    this.hasBetaMap = Boolean(snapshot.map);
                     translateState();
                     if (!boot.spectator && !snapshot.setup.nation_id && !this.setupLink) {
                         this.setupLink = el('a', { href: boot.urls.setup, textKey: 'world.create' });

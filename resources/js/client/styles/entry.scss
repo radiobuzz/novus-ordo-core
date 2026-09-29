@@ -58,10 +58,79 @@
         object-fit: cover;
         object-position: center;
         opacity: 0;
-        transition: opacity var(--atmosphere-fade, var(--entry-entrance-duration)) ease;
+        transition: opacity
+            var(--atmosphere-transition, var(--atmosphere-fade, var(--entry-entrance-duration))) ease;
+        transform-origin: center;
+        will-change: opacity, transform;
     }
     .atmosphere-image.is-visible {
         opacity: 1;
+    }
+    .atmosphere-image.is-animating[data-effect='zoom-in'] {
+        animation: atmosphere-zoom-in var(--atmosphere-motion-duration) linear both;
+    }
+    .atmosphere-image.is-animating[data-effect='zoom-out'] {
+        animation: atmosphere-zoom-out var(--atmosphere-motion-duration) linear both;
+    }
+    .atmosphere-image.is-animating[data-effect='pan-left'] {
+        animation: atmosphere-pan-left var(--atmosphere-motion-duration) linear both;
+    }
+    .atmosphere-image.is-animating[data-effect='pan-right'] {
+        animation: atmosphere-pan-right var(--atmosphere-motion-duration) linear both;
+    }
+    .atmosphere-image.is-animating[data-effect='drift-up'] {
+        animation: atmosphere-drift-up var(--atmosphere-motion-duration) linear both;
+    }
+    .atmosphere-image.is-animating[data-effect='drift-down'] {
+        animation: atmosphere-drift-down var(--atmosphere-motion-duration) linear both;
+    }
+    @keyframes atmosphere-zoom-in {
+        from {
+            transform: scale(1);
+        }
+        to {
+            transform: scale(1.12);
+        }
+    }
+    @keyframes atmosphere-zoom-out {
+        from {
+            transform: scale(1.12);
+        }
+        to {
+            transform: scale(1);
+        }
+    }
+    @keyframes atmosphere-pan-left {
+        from {
+            transform: scale(1.1) translateX(4%);
+        }
+        to {
+            transform: scale(1.1) translateX(-4%);
+        }
+    }
+    @keyframes atmosphere-pan-right {
+        from {
+            transform: scale(1.1) translateX(-4%);
+        }
+        to {
+            transform: scale(1.1) translateX(4%);
+        }
+    }
+    @keyframes atmosphere-drift-up {
+        from {
+            transform: scale(1.1) translateY(4%);
+        }
+        to {
+            transform: scale(1.1) translateY(-4%);
+        }
+    }
+    @keyframes atmosphere-drift-down {
+        from {
+            transform: scale(1.1) translateY(-4%);
+        }
+        to {
+            transform: scale(1.1) translateY(4%);
+        }
     }
     .atmosphere-shade {
         z-index: 2;
@@ -588,6 +657,7 @@
     @media (prefers-reduced-motion: reduce) {
         .atmosphere-image {
             transition: none;
+            animation: none !important;
         }
     }
 }

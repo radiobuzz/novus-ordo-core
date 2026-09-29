@@ -1,5 +1,5 @@
 import { traceHex } from './hex.js';
-import { FEATURE_LAYERS } from './geographic-features.js';
+import { FEATURE_LAYERS } from '../map/geographic-features.js';
 
 const hues = { Oil: 42, Iron: 12, Copper: 27, Coal: 275, Timber: 115 };
 export class AtlasOverlay {

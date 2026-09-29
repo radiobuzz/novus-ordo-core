@@ -2,47 +2,54 @@
 
 namespace App\Models;
 
-use App\Domain\ResourceType;
 use App\ModelTraits\ReplicatesForTurns;
-use App\Utils\GuardsForAssertions;
+use App\Domain\Resources\Quantity as Q;
+use App\Services\Resources\ResourceCatalogue;
 use Illuminate\Database\Eloquent\Model;
-use InvalidArgumentException;
-
 class NationResourceStockpile extends Model
 {
     use ReplicatesForTurns;
-    use GuardsForAssertions;
-
-    public function getAvailableQuantity(): float {
+    protected $casts = ['available_quantity' => 'decimal:6', 'cost_basis' => 'decimal:6'];
+    public function getAvailableQuantity(): string
+    {
         return $this->available_quantity;
     }
-
-    public function getResourceType(): ResourceType {
-        return ResourceType::from($this->resource_type);
-    }
-
-    public function onNextTurn(float $balance): void {
-        if ($this->available_quantity < -$balance) {
-            throw new InvalidArgumentException("balance: must be less than the current available quantity ({$this->available_quantity}) if it's a debit.");
+    public function onNextTurn(string $balance): void
+    {
+        $value = Q::add($this->available_quantity, $balance);
+        if (Q::cmp($value, '0') < 0) {
+            throw new \LogicException('Stock cannot be negative.');
         }
-
-        $this->available_quantity += $balance;
+        $this->available_quantity = $value;
         $this->save();
     }
-
-    public static function create(Nation $nation, Turn $turn, ResourceType $resourceType, float $initialQuantity): NationResourceStockpile {
-        if ($initialQuantity < 0) {
-            throw new InvalidArgumentException("initialQuantity: must be greater than or equal to 0.");
+    /** Remove owned goods with their carried average basis; the final unit clears rounding residue. */
+    public function removeQuantity(string $quantity): string {
+        if (Q::cmp($quantity, $this->available_quantity) > 0) throw new \LogicException('Insufficient owned stock.');
+        $basis = Q::cmp($quantity, $this->available_quantity) === 0 ? $this->cost_basis
+            : (string) \Brick\Math\BigDecimal::of($this->cost_basis)->multipliedBy($quantity)->dividedBy($this->available_quantity, 6, \Brick\Math\RoundingMode::DOWN);
+        $this->available_quantity = Q::sub($this->available_quantity, $quantity);
+        $this->cost_basis = Q::sub($this->cost_basis, $basis); $this->save();
+        return $basis;
+    }
+    public static function create(Nation $nation, Turn $turn, string $key, string $quantity): static
+    {
+        if ($nation->game_id !== $turn->game_id) {
+            throw new \LogicException('Foreign turn.');
         }
-
-        $stockpile = new NationResourceStockpile;
-        $stockpile->game_id = $nation->getGame()->getId();
-        $stockpile->nation_id = $nation->getId();
-        $stockpile->turn_id = $turn->getId();
-        $stockpile->resource_type = $resourceType->value;
-        $stockpile->available_quantity = $initialQuantity;
-        $stockpile->save();
-
-        return $stockpile;
+        $r = ResourceCatalogue::forGame($nation->getGame())->get($key);
+        if ($r['kind'] === 'capacity') {
+            throw new \LogicException('Capacity is not stored.');
+        }
+        $s = new self();
+        $s->game_id = $nation->game_id;
+        $s->nation_id = $nation->id;
+        $s->turn_id = $turn->id;
+        $s->resource_id = $r['id'];
+        $s->owner_kind = 'government';
+        $s->cost_basis = '0.000000';
+        $s->available_quantity = Q::parse($quantity);
+        $s->save();
+        return $s;
     }
 }

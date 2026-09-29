@@ -3,39 +3,23 @@ import { isWater } from '../../../map/water.js';
 /** Visual slots only: no sub-territory positions or movement rules. Shared by drawing and picking. */
 export function territoryCenter(context, id) {
     const t = context.territories.find((t) => t.territory_id === id);
-    if (!t) return null;
-    return (
-        context.picker.center?.(t) ?? {
-            x: (t.x + 0.5) * context.definition.tileWidth,
-            y: (t.y + 0.5) * context.definition.tileHeight,
-        }
-    );
+    return t ? context.picker.center(t) : null;
 }
 
 function slots(context, id) {
     const center = territoryCenter(context, id);
     if (!center) return [];
     const model = context.definition.model;
-    if (model) {
-        const region = model.regions.find((r) => r.territoryId === id);
-        return (region?.cellIds ?? [])
-            .map((id) => model.cellById.get(id))
-            .filter((cell) => cell && !isWater(cell))
-            .sort(
-                (a, b) =>
-                    Math.hypot(a.x - center.x, a.y - center.y) - Math.hypot(b.x - center.x, b.y - center.y) ||
-                    a.x - b.x ||
-                    a.y - b.y,
-            );
-    }
-    const points = [];
-    for (const y of [0, -1, 1])
-        for (const x of [0, -1, 1])
-            points.push({
-                x: center.x + x * context.definition.tileWidth * 0.3,
-                y: center.y + y * context.definition.tileHeight * 0.3,
-            });
-    return points;
+    const region = model.regions.find((r) => r.territoryId === id);
+    return (region?.cellIds ?? [])
+        .map((id) => model.cellById.get(id))
+        .filter((cell) => cell && !isWater(cell))
+        .sort(
+            (a, b) =>
+                Math.hypot(a.x - center.x, a.y - center.y) - Math.hypot(b.x - center.x, b.y - center.y) ||
+                a.x - b.x ||
+                a.y - b.y,
+        );
 }
 
 export function layoutUnits(context, camera, divisions, deployments = [], draft = []) {
@@ -57,9 +41,7 @@ export function layoutUnits(context, camera, divisions, deployments = [], draft 
         const center = territoryCenter(context, id);
         if (!center) continue;
         const positions = slots(context, id);
-        const scale = context.definition.model
-            ? context.definition.model.cellSize * 2
-            : Math.min(context.definition.tileWidth, context.definition.tileHeight);
+        const scale = context.definition.model.cellSize * 2;
         const used = positions.slice(0, units.length);
         const detailed =
             scale * camera.zoom >= 110 &&

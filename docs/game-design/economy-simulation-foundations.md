@@ -1,10 +1,14 @@
 # Economic simulation foundations — first proposal
 
+**2026-09-28 implementation checkpoint:** the narrower [first playable seasonal economy](seasonal-economy-first-playable.md) is now implemented for new games. The broader resource, demographic and trade systems below remain future work.
+
 Status: high-level local-economy concept accepted on 2026-09-24; detailed systems, coefficients, and schema remain proposals for discussion. No gameplay implementation is authorized by this document.
 
 Basis: [Economy and policies — philosophical foundation](economy-and-policies-discussion.md), including the subsequent trade and civilian-demand discussion.
 
 Purpose: give the discussion a concrete vocabulary for persistent conditions, turn activity, systems, and configurable policies. Distinguish recommendations below from already established direction. Numeric units, coefficients, exact storage, and balance remain undecided.
+
+2026-09-27 follow-up: [First economic season — worked examples and accounting checks](economy-season-dry-run.md) records the narrower initial economic slice agreed after the policy backend implementation. It tests taxation, fiscal priorities, debt/default, infrastructure allocation and local reinvestment. These are discussion experiments; the broader activity/resource/demographic system below is not implied to be implemented. Its income-settlement and monetary-accounting distinctions remain important.
 
 Latest scope clarification: migration and emerging urban centres are included in the initial proposed system; ports, explicit maritime trade routes/blockades and physical goods transport are deferred. Abstract geographic access can still influence local opportunity. Preserve the Map Lab's climate/hydrology information as world data. The [geography, population and map visuals discussion](geography-population-and-map-visuals-discussion.md) distinguishes agreed direction from proposed bay/shore heuristics and visual representations; no implementation is authorized by that discussion. The [completed copper lab](economy-lab.md) is evidence for the investment/price loop, not a frozen production formula.
 

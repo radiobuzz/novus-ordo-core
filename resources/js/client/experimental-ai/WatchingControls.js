@@ -41,11 +41,11 @@ export function watchingControls(scope, services) {
         resume.element.hidden = !driver.paused;
         note.textContent = driver.reason
             ? t(driver.reason)
-            : t(services.world.snapshot?.nation?.automation?.protect_humans ? 'protected' : 'unprotected');
+            : t('passive');
         const ai = services.world.snapshot?.nation?.automation;
         players.replaceChildren(
             ...(ai?.players ?? []).map((p) =>
-                el('p', { text: `${p.name} · ${t(p.ready ? 'ready' : 'planning')} · AI` }),
+                el('p', { text: `${p.name} · ${t(p.ready ? 'ready' : 'planning')} · ${t('passiveLabel')}` }),
             ),
         );
         if (ai?.paused) note.textContent = t('serverPaused');

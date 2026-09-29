@@ -20,6 +20,7 @@ trait ReplicatesForTurns {
     public function replicateForTurn(Turn $turn) :static {
         $newDetail = $this->replicate();
         $newDetail->turn_id = $turn->getId();
+        $newDetail->setRelation('turn', $turn);
 
         return $newDetail;
     }

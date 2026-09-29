@@ -1,0 +1,108 @@
+.economy-workspace {
+    grid-column: 1 / -1;
+    display: grid;
+    gap: var(--space-4);
+    min-width: 0;
+    [data-tone='ready'] {
+        color: var(--status-ready);
+    }
+    [data-tone='warning'] {
+        color: var(--status-warning);
+    }
+    [data-tone='danger'] {
+        color: var(--action-danger);
+    }
+    .game-table {
+        table-layout: fixed;
+        min-width: 560px;
+        th:first-child {
+            width: 40%;
+        }
+        td {
+            text-align: end;
+            font-variant-numeric: tabular-nums;
+            white-space: nowrap;
+        }
+        th {
+            overflow-wrap: anywhere;
+        }
+    }
+}
+.economy-colour-key {
+    display: flex;
+    flex-wrap: wrap;
+    gap: var(--space-2) var(--space-4);
+    font-size: var(--font-small);
+}
+.economy-preview-status {
+    min-height: 2.5em;
+    margin-block: var(--space-2);
+    font-size: var(--font-small);
+}
+.economy-warning[data-tone='danger'] {
+    border-color: var(--action-danger);
+}
+.economy-columns {
+    display: grid;
+    grid-template-columns: minmax(0, 1.2fr) minmax(0, 1fr);
+    gap: var(--space-4);
+    align-items: start;
+}
+.economy-columns > * {
+    min-width: 0;
+}
+.economy-summary {
+    display: flex;
+    flex-wrap: wrap;
+    gap: var(--space-5);
+}
+.economy-summary strong,
+.economy-indicator strong {
+    display: block;
+    font-variant-numeric: tabular-nums;
+}
+.economy-summary span,
+.economy-help,
+.economy-indicator small {
+    color: var(--text-muted);
+}
+.economy-warning {
+    color: var(--status-warning);
+    border-left: 3px solid var(--status-warning);
+    padding: var(--space-3);
+    background: var(--surface-panel);
+    margin: 0;
+}
+.economy-policy {
+    border: 0;
+    border-bottom: 1px solid var(--border-default);
+    padding: var(--space-4) 0;
+    margin: 0;
+    min-width: 0;
+}
+.economy-policy legend {
+    font-family: var(--font-display);
+}
+.economy-policy input,
+.economy-policy select {
+    max-width: 100%;
+}
+.economy-indicators {
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(150px, 1fr));
+    gap: var(--space-4);
+}
+.economy-indicator {
+    display: grid;
+    align-content: start;
+    gap: var(--space-2);
+}
+.economy-actions button {
+    margin-right: var(--space-2);
+    margin-bottom: var(--space-2);
+}
+@media (max-width: 850px) {
+    .economy-columns {
+        grid-template-columns: minmax(0, 1fr);
+    }
+}

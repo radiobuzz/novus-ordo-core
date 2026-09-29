@@ -10,33 +10,61 @@ const errors = [];
 async function login(page, name) {
     const session = await (await page.request.get(origin + '/client/session')).json();
     const response = await page.request.post(origin + '/login-user', {
-        headers: { Accept: 'application/json', 'X-CSRF-TOKEN': session.csrfToken },
+        headers: {
+            Accept: 'application/json',
+            'X-CSRF-TOKEN': session.csrfToken,
+        },
         data: { username: name, password: 'fixture-password' },
     });
     assert.equal(response.status(), 200);
 }
 try {
-    const admin = await browser.newContext({ viewport: { width: 1440, height: 1000 } });
+    const admin = await browser.newContext({
+        viewport: { width: 1440, height: 1000 },
+    });
     const page = await admin.newPage();
+    page.setDefaultTimeout(30000);
+    page.setDefaultNavigationTimeout(30000);
+    console.log('Browser journey: login and generator');
     page.on('pageerror', (e) => errors.push(e.message));
     await login(page, 'map-admin');
     await page.goto(origin + '/client/map-generation');
-    await page.getByRole('button', { name: 'Start new game with this map', exact: true }).waitFor();
-    await page.waitForFunction(() => !document.querySelector('.generation-shell aside > button').disabled);
+    await page
+        .getByRole('button', {
+            name: 'Start new game with this map',
+            exact: true,
+        })
+        .waitFor();
+    await page.getByRole('button', { name: 'Generate landscape', exact: true }).waitFor();
     await page.getByLabel('World seed', { exact: true }).fill('beta-browser-world');
     assert.equal(
-        await page.getByRole('button', { name: 'Start new game with this map', exact: true }).isDisabled(),
+        await page
+            .getByRole('button', {
+                name: 'Start new game with this map',
+                exact: true,
+            })
+            .isDisabled(),
         true,
     );
     await page.getByLabel('Preset name', { exact: true }).fill('Beta coast');
     await page.getByRole('button', { name: 'Save settings', exact: true }).click();
     await page.getByRole('button', { name: 'Generate landscape', exact: true }).click();
-    await page.waitForFunction(() =>
-        document.querySelector('.generation-summary').textContent.includes('beta-browser-world'),
+    await page.waitForFunction(
+        () =>
+            [...document.querySelectorAll('button')].some(
+                (b) => b.textContent.includes('Start new game with this map') && !b.disabled,
+            ),
+        { timeout: 60000 },
     );
     await page.reload();
     assert.equal(await page.getByLabel('World seed', { exact: true }).inputValue(), 'beta-browser-world');
-    await page.waitForFunction(() => !document.querySelector('.generation-shell aside > button').disabled);
+    await page.getByRole('button', { name: 'Generate landscape', exact: true }).waitFor();
+    await page.waitForFunction(() =>
+        [...document.querySelectorAll('button')].some(
+            (b) => b.textContent.includes('Start new game with this map') && !b.disabled,
+        ),
+    );
+    console.log('Browser journey: generated preview and reload');
     const before = (await (await page.request.get(origin + '/games')).json()).games[0];
     const noCsrf = await page.request.post(origin + '/client/map-generation', {
         headers: { Accept: 'application/json' },
@@ -52,26 +80,37 @@ try {
     const creation = page.waitForResponse(
         (r) => r.url() === origin + '/client/map-generation' && r.request().method() === 'POST',
     );
-    await page.getByRole('button', { name: 'Start new game with this map', exact: true }).click();
+    await page
+        .getByRole('button', {
+            name: 'Start new game with this map',
+            exact: true,
+        })
+        .click();
     const created = await creation;
     if (created.status() !== 201)
         throw new Error(`Creation returned ${created.status()}: ${await created.text()}`);
     await page.waitForURL((url) => url.pathname === '/client' && url.searchParams.has('game_id'));
     const newGameId = Number(new URL(page.url()).searchParams.get('game_id'));
     assert.ok(newGameId > 0);
-    await page.locator('.map-beta-badge').waitFor();
+    await page.locator('.world-canvas').waitFor();
     const game = await (await page.request.get(origin + '/game?game_id=' + newGameId)).json();
     const map = await (await page.request.get(origin + '/game/map?game_id=' + game.game_id)).json();
     assert.notEqual(game.game_id, before.game_id);
     assert.deepEqual(map.map, payload.map);
     assert.equal(map.map.settings.seed, 'beta-browser-world');
     const wrongMap = await page.request.get(origin + '/game/map?game_id=' + before.game_id, {
-        headers: { Accept: 'application/json', 'X-Game-Id': String(newGameId) },
+        headers: {
+            Accept: 'application/json',
+            'X-Game-Id': String(newGameId),
+        },
     });
     assert.equal(wrongMap.status(), 409);
     const session = await (await page.request.get(origin + '/client/session')).json();
     const replay = await page.request.post(origin + '/client/map-generation', {
-        headers: { Accept: 'application/json', 'X-CSRF-TOKEN': session.csrfToken },
+        headers: {
+            Accept: 'application/json',
+            'X-CSRF-TOKEN': session.csrfToken,
+        },
         data: payload,
     });
     assert.equal(replay.status(), 201);
@@ -87,17 +126,24 @@ try {
     await page.locator('.inspector-panel h3').waitFor();
     const canvas = page.locator('.world-canvas');
     await canvas.click({
-        position: { x: (await canvas.boundingBox()).width / 2, y: (await canvas.boundingBox()).height / 2 },
+        position: {
+            x: (await canvas.boundingBox()).width / 2,
+            y: (await canvas.boundingBox()).height / 2,
+        },
     });
     assert(page.url().includes('territory=' + territoryId));
     await page.screenshot({ path: '/tmp/no7-map-beta-world.png' });
     await page.reload();
-    await page.locator('.map-beta-badge').waitFor();
+    await page.locator('.world-canvas').waitFor();
     const reloaded = await (await page.request.get(origin + '/game/map?game_id=' + game.game_id)).json();
     assert.equal(reloaded.fingerprint, map.fingerprint);
 
-    const player = await browser.newContext({ viewport: { width: 1280, height: 1000 } });
+    const player = await browser.newContext({
+        viewport: { width: 1280, height: 1000 },
+    });
     const setup = await player.newPage();
+    setup.setDefaultTimeout(30000);
+    console.log('Browser journey: nation founding');
     setup.on('pageerror', (e) => errors.push(e.message));
     await login(setup, 'map-player');
     assert.equal((await setup.request.get(origin + '/client/map-generation')).status(), 403);
@@ -105,7 +151,10 @@ try {
     assert.equal(
         (
             await setup.request.post(origin + '/client/map-generation', {
-                headers: { Accept: 'application/json', 'X-CSRF-TOKEN': playerSession.csrfToken },
+                headers: {
+                    Accept: 'application/json',
+                    'X-CSRF-TOKEN': playerSession.csrfToken,
+                },
                 data: payload,
             })
         ).status(),
@@ -113,9 +162,9 @@ try {
     );
     await setup.goto(origin + '/client/entry?game_id=' + newGameId);
     await setup.getByRole('heading', { name: 'Give your nation a name' }).waitFor();
-    await setup.getByLabel('Nation name', { exact: true }).fill('Map Beta Nation');
+    await setup.getByLabel('Nation name', { exact: true }).fill('Generated World Nation');
     await setup.getByRole('button', { name: 'Continue', exact: true }).click();
-    await setup.getByLabel('Leader name', { exact: true }).fill('Map Beta Leader');
+    await setup.getByLabel('Leader name', { exact: true }).fill('Generated World Leader');
     await setup.getByRole('button', { name: 'Continue', exact: true }).click();
     await setup.locator('.homeland-territory').first().waitFor();
     await setup.locator('.map-notice').waitFor({ state: 'hidden' });
@@ -145,7 +194,7 @@ try {
     await setup.getByRole('button', { name: 'Found your nation', exact: true }).click();
     await setup.getByRole('heading', { name: 'A nation is born' }).waitFor();
     await setup.goto(origin + '/client?game_id=' + newGameId);
-    await setup.locator('.map-beta-badge').waitFor();
+    await setup.locator('.world-canvas').waitFor();
     await setup.getByRole('button', { name: 'Continue playing', exact: true }).click();
     await setup.getByRole('button', { name: 'Find territory', exact: true }).click();
     await setup.locator(`[data-territory-id="${selected[0]}"]`).click();

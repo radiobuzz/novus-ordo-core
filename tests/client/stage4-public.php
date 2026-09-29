@@ -1,16 +1,15 @@
 <?php
-// Read-only checks against the explicitly isolated classic/generated fixtures.
+// Read-only checks against the explicitly isolated generated-world fixtures.
 $app = require __DIR__ . '/isolated-app.php';
 use App\Models\{Game, TerritoryDetail, LeaderDetail};
-use App\Domain\{ResourceType, TerrainType};
+use App\Services\Resources\ResourceCatalogue;
 $checked = 0;
 foreach (Game::where('is_active', true)->get() as $game) {
     $turn = $game->getCurrentTurn();
     $all = TerritoryDetail::exportAllTurnPublicInfo($turn);
     foreach ($all as $row) {
         $territory = $game->territories()->findOrFail($row->territory_id);
-        $expected = collect(TerrainType::getResourceProductionByResource($territory->getTerrainType()))
-            ->mapWithKeys(fn ($rate, $type) => [ResourceType::from($type)->name => $rate])->all();
+        $expected = array_map('floatval', ResourceCatalogue::forGame($game)->yields($territory->getTerrainType()));
         if ($expected != $row->base_productivity) throw new RuntimeException('Terrain rates differ: ' . json_encode([$expected, $row->base_productivity]));
         if ($row->production_population_unit !== TerritoryDetail::UNIT_OF_POPULATION_SIZE) throw new RuntimeException('Wrong population unit');
         if ($row->owner_nation_id !== null) {
@@ -31,5 +30,5 @@ foreach (Game::where('is_active', true)->get() as $game) {
         if ($leader->game_id !== $game->getId() || !property_exists($public, 'picture_src')) throw new RuntimeException('Public leader scope/portrait missing');
     }
 }
-if ($checked < 2) throw new RuntimeException('Expected independent classic/generated fixtures');
+if ($checked < 2) throw new RuntimeException('Expected independent generated-world fixtures');
 echo "PASS: public single/bulk terrain rates, loyal-population calculation, population units and existing public leader portraits across multiple games.\n";

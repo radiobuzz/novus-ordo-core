@@ -1,20 +1,16 @@
+import { MapLayerMenu } from '../../ui/map/MapLayerMenu.js';
 import { Component } from '../../runtime/Component.js';
 import { installTrait } from '../../runtime/traits.js';
 import { button, el } from '../../ui/dom.js';
 import { mapDefinitionFor, HexMapPicker } from '../../ui/map/HexMap.js';
 import { Camera } from './Camera.js';
 import { setButtonIcon } from '../../ui/icons.js';
-import { MapPicker } from './MapPicker.js';
 import { MapViewport } from '../../ui/map/MapViewport.js';
 import { createLayers } from './layers.js';
 import './world.scss';
 import { localizedDom } from '../../ui/localizedDom.js';
 import { WorldCommands } from './WorldCommands.js';
-import { Disclosure } from '../../ui/Disclosure.js';
-import { compactLabel } from '../../ui/compactLabel.js';
 import { projectBattleMarkers } from '../../ui/map/battleOverlay.js';
-import { defenseGradientCss, projectDefenseHeatmap } from '../../ui/map/defenseHeatmap.js';
-import { analysisTypes, projectLocalAnalysis } from '../../ui/map/mapAnalysis.js';
 
 class WorldWorkspace extends Component {
     async render() {
@@ -25,24 +21,8 @@ class WorldWorkspace extends Component {
         this.stateStore = this.services.saved.child(`game-${snapshot.game_id}`).child('world');
         const saved = this.stateStore.read();
         const camera = new Camera(mapDefinition.width, mapDefinition.height);
-        const picker = mapDefinition.model
-            ? new HexMapPicker(snapshot.territories, mapDefinition)
-            : new MapPicker(snapshot.territories, mapDefinition);
+        const picker = new HexMapPicker(snapshot.territories, mapDefinition);
         const layers = createLayers();
-        const availableAnalysisTypes = snapshot.setup.nation_id
-            ? analysisTypes
-            : analysisTypes.filter((type) => ['none', 'population'].includes(type));
-        const savedAnalysisType =
-            saved.analysis?.type ?? (saved.military?.defenseHeatmap === true ? 'defense' : 'none');
-        const initialAnalysisType = availableAnalysisTypes.includes(savedAnalysisType)
-            ? savedAnalysisType
-            : 'none';
-        const resources = Object.entries(snapshot.nation?.production_planning?.resources ?? {})
-            .filter(([, resource]) => resource.produced_by_labor)
-            .map(([resource]) => resource);
-        const initialResource = resources.includes(saved.analysis?.resource)
-            ? saved.analysis.resource
-            : (resources[0] ?? 'Capital');
         const militaryLayers = {
             showUnits: saved.military?.showUnits !== false,
             lastTurnBattles: saved.military?.lastTurnBattles === true,
@@ -51,20 +31,13 @@ class WorldWorkspace extends Component {
                 Boolean(snapshot.setup.nation_id) &&
                 (typeof saved.military?.muteForeignColors === 'boolean'
                     ? saved.military.muteForeignColors
-                    : initialAnalysisType !== 'none'),
+                    : false),
             battles: [],
         };
-        const analysisLayer = {
-            type: initialAnalysisType,
-            resource: initialResource,
-            entries: [],
-            scale: null,
-        };
-        let loadMilitaryHistory = () => {};
-        let refreshAnalysis = () => {};
-        for (const layer of layers)
-            if (!layer.fixed && typeof saved.layers?.[layer.id] === 'boolean')
-                layer.visible = saved.layers[layer.id];
+        const analysisLayer = { type: 'none', resource: '', entries: [], scale: null };
+        let loadMilitaryHistory = () => {},
+            refreshAnalysis = () => {};
+        let menu;
         const canvas = el('canvas', {
             class: 'world-canvas',
             tabindex: '0',
@@ -102,20 +75,6 @@ class WorldWorkspace extends Component {
             el('div', { class: 'map-orientation' }, rotateLeft, north, rotateRight),
         );
         const notice = el('p', { class: 'map-notice', role: 'status', textKey: 'map.loading' });
-        const analysisLegendTitle = el('strong');
-        const analysisLegendHint = el('small');
-        const analysisLegendLow = el('span');
-        const analysisLegendHigh = el('span');
-        const analysisLegendSelected = el('small', { class: 'defense-heatmap-selected', hidden: true });
-        const analysisLegend = el(
-            'aside',
-            { class: 'defense-heatmap-legend', hidden: true },
-            analysisLegendTitle,
-            analysisLegendHint,
-            el('i', { class: 'defense-heatmap-gradient', style: `--defense-gradient:${defenseGradientCss}` }),
-            el('div', { class: 'defense-heatmap-range' }, analysisLegendLow, analysisLegendHigh),
-            analysisLegendSelected,
-        );
         const map = el(
             'section',
             { class: 'map-viewport', 'aria-label': 'World map' },
@@ -128,7 +87,6 @@ class WorldWorkspace extends Component {
             ),
             controls,
             notice,
-            analysisLegend,
             el(
                 'div',
                 { class: 'map-legend' },
@@ -160,157 +118,6 @@ class WorldWorkspace extends Component {
             count,
             list,
         );
-        const layerControl = new Disclosure(this.scope, {
-            label: i18n.t('world.layers'),
-            className: 'hud-layers layer-panel',
-            group: 'game-hud',
-        });
-        let mode = 'geopolitical';
-        const resourceLabel = () => i18n.t(`command.resource.${analysisLayer.resource}`);
-        const updateAnalysisLegend = () => {
-            const type = analysisLayer.type;
-            analysisLegend.hidden = type === 'none';
-            if (type === 'none') return;
-            const config = {
-                defense: ['layer.defenseTitle', 'layer.defenseHintShort', 'layer.defenseLow'],
-                population: ['layer.populationTitle', 'layer.populationHintShort', 'layer.populationLow'],
-                production: ['layer.productionTitle', 'layer.productionHintShort', 'layer.productionLow'],
-                loyalty: ['layer.loyaltyTitle', 'layer.loyaltyHintShort', 'layer.loyaltyLow'],
-            }[type];
-            analysisLegendTitle.textContent = i18n.t(config[0], { resource: resourceLabel() });
-            analysisLegendHint.textContent = i18n.t(config[1]);
-            analysisLegendLow.textContent = i18n.t(config[2]);
-            const maximum = analysisLayer.scale?.maximum;
-            analysisLegendHigh.textContent =
-                type === 'defense' && maximum == null
-                    ? i18n.t('layer.defenseLoading')
-                    : i18n.t(`layer.${type}High`, {
-                          value: i18n.number(maximum ?? 0, {
-                              maximumFractionDigits: type === 'population' ? 2 : 0,
-                          }),
-                      });
-            const explanation = i18n.t(`layer.${type}Hint`, { resource: resourceLabel() });
-            analysisLegend.setAttribute('aria-label', explanation);
-            analysisLegend.title = explanation;
-            const selected = analysisLayer.entries.find(
-                (entry) => entry.territoryId === this.services.selection.id,
-            );
-            analysisLegendSelected.hidden = !selected;
-            if (selected) {
-                const name = snapshot.territories.find(
-                    (territory) => territory.territory_id === selected.territoryId,
-                )?.name;
-                const value =
-                    type === 'loyalty'
-                        ? i18n.number(selected.value * 100, { maximumFractionDigits: 0 }) + '%'
-                        : i18n.number(type === 'defense' ? selected.total : selected.value, {
-                              maximumFractionDigits: type === 'population' ? 2 : 2,
-                          });
-                analysisLegendSelected.textContent = i18n.t(`layer.${type}Selected`, {
-                    name,
-                    value,
-                    resource: resourceLabel(),
-                });
-            }
-        };
-        i18n.changed.subscribe(this.scope, updateAnalysisLegend);
-        setButtonIcon(layerControl.trigger, 'layers');
-        const labelLayers = () =>
-            compactLabel(layerControl.trigger, i18n.t('hud.layers', { mode: i18n.t(`command.${mode}`) }));
-        i18n.changed.subscribe(this.scope, labelLayers);
-        for (const layer of layers.filter((l) => !l.fixed && (snapshot.map || l.id !== 'rivers'))) {
-            const input = el('input', { type: 'checkbox', checked: layer.visible });
-            this.scope.listen(input, 'change', () => {
-                layer.visible = input.checked;
-                renderer.invalidate();
-                this.saveView?.();
-            });
-            layerControl.content.append(el('label', {}, input, el('span', { textKey: `layer.${layer.id}` })));
-        }
-        layerControl.content.append(el('p', { class: 'layer-group-title', textKey: 'layer.military' }));
-        const militaryToggles = [
-            ['showUnits', 'layer.showUnits'],
-            ['lastTurnBattles', 'layer.lastTurnBattles'],
-            ['unitDetails', 'layer.unitDetails'],
-        ];
-        if (snapshot.setup.nation_id) militaryToggles.push(['muteForeignColors', 'layer.muteForeignColors']);
-        const militaryInputs = new Map();
-        for (const [key, textKey] of militaryToggles) {
-            const input = el('input', { type: 'checkbox', checked: militaryLayers[key] });
-            militaryInputs.set(key, input);
-            this.scope.listen(input, 'change', () => {
-                militaryLayers[key] = input.checked;
-                this.commands?.updateOverlay();
-                if (key === 'lastTurnBattles' && input.checked) void loadMilitaryHistory();
-                this.saveView?.();
-            });
-            layerControl.content.append(el('label', {}, input, el('span', { textKey })));
-        }
-        layerControl.content.append(el('p', { class: 'layer-group-title', textKey: 'layer.analysis' }));
-        const analysisSelect = el('select', { 'aria-label': i18n.t('layer.analysis') });
-        const resourceSelect = el('select', { 'aria-label': i18n.t('layer.productionResource') });
-        const resourceRow = el(
-            'label',
-            { class: 'layer-select-row', hidden: analysisLayer.type !== 'production' },
-            el('span', { textKey: 'layer.productionResource' }),
-            resourceSelect,
-        );
-        const renderAnalysisOptions = () => {
-            analysisSelect.replaceChildren(
-                ...availableAnalysisTypes.map((type) =>
-                    el('option', {
-                        value: type,
-                        text: i18n.t(`layer.analysis.${type}`),
-                        selected: type === analysisLayer.type,
-                    }),
-                ),
-            );
-            resourceSelect.replaceChildren(
-                ...resources.map((resource) =>
-                    el('option', {
-                        value: resource,
-                        text: i18n.t(`command.resource.${resource}`),
-                        selected: resource === analysisLayer.resource,
-                    }),
-                ),
-            );
-            analysisSelect.setAttribute('aria-label', i18n.t('layer.analysis'));
-            resourceSelect.setAttribute('aria-label', i18n.t('layer.productionResource'));
-        };
-        renderAnalysisOptions();
-        i18n.changed.subscribe(this.scope, renderAnalysisOptions);
-        this.scope.listen(analysisSelect, 'change', () => {
-            analysisLayer.type = analysisSelect.value;
-            analysisLayer.entries = [];
-            analysisLayer.scale = null;
-            resourceRow.hidden = analysisLayer.type !== 'production';
-            if (analysisLayer.type !== 'none' && militaryInputs.has('muteForeignColors')) {
-                militaryLayers.muteForeignColors = true;
-                militaryInputs.get('muteForeignColors').checked = true;
-            }
-            refreshAnalysis();
-            updateAnalysisLegend();
-            this.commands?.updateOverlay();
-            this.commands?.renderDock();
-            this.saveView?.();
-        });
-        this.scope.listen(resourceSelect, 'change', () => {
-            analysisLayer.resource = resourceSelect.value;
-            refreshAnalysis();
-            updateAnalysisLegend();
-            this.commands?.updateOverlay();
-            this.saveView?.();
-        });
-        layerControl.content.append(
-            el(
-                'label',
-                { class: 'layer-select-row' },
-                el('span', { textKey: 'layer.analysisOverlay' }),
-                analysisSelect,
-            ),
-            resourceRow,
-        );
-        this.services.attachHeaderControls(this.scope, layerControl.element);
         for (const [node, key] of [
             [zoom, 'map.zoom'],
             [controls, 'map.navigation'],
@@ -322,7 +129,6 @@ class WorldWorkspace extends Component {
         }
         this.element.classList.add('world-workspace');
         this.element.append(directory, map);
-        if (snapshot.map) map.append(el('span', { class: 'map-beta-badge', textKey: 'map.beta' }));
         const context = {
             definition: mapDefinition,
             territories: snapshot.territories,
@@ -342,6 +148,7 @@ class WorldWorkspace extends Component {
                 zoom.textContent = `${Math.round(camera.zoom * 100)}%`;
                 north.textContent = `${Math.round((camera.angle * 180) / Math.PI) % 360}°`;
                 this.commands?.mini.invalidate();
+                if (menu) menu.updateDetailStatus(renderer);
             },
             onSelect: (territory) => {
                 this.services.selectTerritory(territory?.territory_id ?? null);
@@ -362,6 +169,35 @@ class WorldWorkspace extends Component {
                 },
             },
         });
+        menu = new MapLayerMenu({
+            scope: this.scope,
+            i18n,
+            model: mapDefinition.model,
+            snapshot,
+            host: map,
+            controls,
+            saved: saved.mapLayers,
+            military: militaryLayers,
+            onChange: (kind) => {
+                if (kind === 'analysis') refreshAnalysis();
+                else {
+                    renderer.invalidate();
+                    this.commands?.updateOverlay();
+                }
+                if (kind === 'military' && militaryLayers.lastTurnBattles) void loadMilitaryHistory();
+                this.saveView?.();
+            },
+        });
+        context.mapLayers = menu;
+        this.scope.listen(canvas, 'click', (e) => {
+            menu.drawer.hidden = true;
+            menu.updatePanels();
+            const b = canvas.getBoundingClientRect();
+            menu.inspect(
+                renderer.cellAtScreen(e.clientX - b.left, e.clientY - b.top),
+                this.services.selection.id,
+            );
+        });
         camera.restore(saved.camera);
         installTrait(this, {
             name: 'camera-state',
@@ -373,18 +209,12 @@ class WorldWorkspace extends Component {
                         target.stateStore.write({
                             ...target.stateStore.read(),
                             camera: camera.snapshot(),
-                            layers: Object.fromEntries(
-                                layers.filter((l) => !l.fixed).map((l) => [l.id, l.visible]),
-                            ),
+                            mapLayers: menu.preferences(),
                             military: {
                                 showUnits: militaryLayers.showUnits,
                                 lastTurnBattles: militaryLayers.lastTurnBattles,
                                 unitDetails: militaryLayers.unitDetails,
                                 muteForeignColors: militaryLayers.muteForeignColors,
-                            },
-                            analysis: {
-                                type: analysisLayer.type,
-                                resource: analysisLayer.resource,
                             },
                         }),
                 },
@@ -392,18 +222,12 @@ class WorldWorkspace extends Component {
                     target.stateStore.write({
                         ...target.stateStore.read(),
                         camera: camera.snapshot(),
-                        layers: Object.fromEntries(
-                            layers.filter((l) => !l.fixed).map((l) => [l.id, l.visible]),
-                        ),
+                        mapLayers: menu.preferences(),
                         military: {
                             showUnits: militaryLayers.showUnits,
                             lastTurnBattles: militaryLayers.lastTurnBattles,
                             unitDetails: militaryLayers.unitDetails,
                             muteForeignColors: militaryLayers.muteForeignColors,
-                        },
-                        analysis: {
-                            type: analysisLayer.type,
-                            resource: analysisLayer.resource,
                         },
                     }),
             }),
@@ -485,19 +309,21 @@ class WorldWorkspace extends Component {
             const target = event.target.closest('[data-territory-id]');
             if (!target) return;
             const t = snapshot.territories.find((t) => t.territory_id === Number(target.dataset.territoryId));
-            const center = picker.center?.(t);
-            camera.x = center?.x ?? (t.x + 0.5) * mapDefinition.tileWidth;
-            camera.y = center?.y ?? (t.y + 0.5) * mapDefinition.tileHeight;
-            camera.zoom = Math.max(camera.zoom, mapDefinition.model ? camera.fitZoom * 5 : 2.8);
+            const center = picker.center(t);
+            if (!center) return;
+            camera.x = center.x;
+            camera.y = center.y;
+            camera.zoom = Math.max(camera.zoom, camera.fitZoom * 5);
             renderer.invalidate();
             tool.select(t);
         });
         this.services.selection.changed.subscribe(this.scope, (id) => {
+            menu.inspect(undefined, id);
             if (this.scope.closed) return;
             context.selectedId = id;
             this.commands?.select(id);
             renderer.invalidate();
-            updateAnalysisLegend();
+
             for (const row of list.querySelectorAll('[data-territory-id]'))
                 row.setAttribute('aria-pressed', String(Number(row.dataset.territoryId) === id));
         });
@@ -515,11 +341,7 @@ class WorldWorkspace extends Component {
             saved: this.stateStore,
             militaryLayers,
             analysisLayer,
-            onModeChange: (next) => {
-                mode = next;
-                labelLayers();
-                updateAnalysisLegend();
-            },
+            onModeChange: () => {},
         });
         loadMilitaryHistory = async () => {
             if (!militaryLayers.lastTurnBattles) return;
@@ -536,45 +358,55 @@ class WorldWorkspace extends Component {
                 if (error.name !== 'AbortError') console.warn('Military history unavailable', error);
             }
         };
-        const loadDefenseCoverage = async () => {
-            if (analysisLayer.type !== 'defense' || !snapshot.setup.nation_id) return;
-            const requested = snapshot;
-            try {
-                const coverage = await this.services.gameplay.defenseCoverage(requested, this.scope.signal);
-                if (
-                    this.scope.closed ||
-                    analysisLayer.type !== 'defense' ||
-                    !this.services.world.same(requested, snapshot)
-                )
-                    return;
-                const projection = projectDefenseHeatmap(snapshot, coverage);
-                analysisLayer.entries = projection.entries;
-                analysisLayer.scale = projection.scale;
-                updateAnalysisLegend();
-                this.commands.updateOverlay();
-                this.commands.renderDock();
-            } catch (error) {
-                if (error.name !== 'AbortError') console.warn('Defence coverage unavailable', error);
-            }
+        let analysisGeneration = 0;
+        const syncAnalysis = () => {
+            analysisLayer.type = menu.type === 'terrain' ? 'none' : menu.type;
+            analysisLayer.resource = menu.resource;
+            analysisLayer.entries = menu.result.entries;
+            analysisLayer.scale = menu.style;
+            this.commands?.updateOverlay();
+            this.commands?.refreshDock?.();
+            renderer.invalidate();
         };
         refreshAnalysis = () => {
-            analysisLayer.entries = [];
-            analysisLayer.scale = null;
-            if (analysisLayer.type === 'defense') {
-                void loadDefenseCoverage();
-            } else {
-                const projection = projectLocalAnalysis(snapshot, analysisLayer.type, analysisLayer.resource);
-                analysisLayer.entries = projection.entries;
-                analysisLayer.scale = projection.scale;
-            }
-            updateAnalysisLegend();
-            this.commands.updateOverlay();
-            this.commands.renderDock();
+            const generation = ++analysisGeneration;
+            menu.refresh();
+            syncAnalysis();
+            if (!['defense', 'guard'].includes(menu.type)) return;
+            const requested = snapshot,
+                requestedType = menu.type;
+            menu.setCoverage(null, 'loading');
+            syncAnalysis();
+            void this.services.gameplay
+                .defenseCoverage(requested, this.scope.signal)
+                .then((coverage) => {
+                    if (
+                        this.scope.closed ||
+                        generation !== analysisGeneration ||
+                        menu.type !== requestedType ||
+                        !this.services.world.same(requested, snapshot)
+                    )
+                        return;
+                    menu.setCoverage(coverage);
+                    syncAnalysis();
+                })
+                .catch((error) => {
+                    if (this.scope.closed || generation !== analysisGeneration || error.name === 'AbortError')
+                        return;
+                    menu.setCoverage(null, 'error');
+                    syncAnalysis();
+                });
         };
         if (militaryLayers.lastTurnBattles) void loadMilitaryHistory();
         refreshAnalysis();
         this.services.world.store.subscribe(this.scope, (state) => {
             const next = state.snapshot;
+            if (!next) {
+                ++analysisGeneration;
+                menu.setSnapshot({ ...snapshot, nation: null, setup: { nation_id: null } });
+                renderer.invalidate();
+                return;
+            }
             if (
                 !next ||
                 !this.services.world.sameScope(snapshot, next) ||
@@ -582,7 +414,9 @@ class WorldWorkspace extends Component {
             )
                 return;
             if (state.status === 'ready' && next !== snapshot) {
-                const changedTurn = snapshot.turn_number !== next.turn_number;
+                const changedTurn =
+                    snapshot.turn_number !== next.turn_number ||
+                    snapshot.turn_context_revision !== next.turn_context_revision;
                 const changed =
                     snapshot.territories !== next.territories ||
                     snapshot.nation_colors !== next.nation_colors;
@@ -597,6 +431,7 @@ class WorldWorkspace extends Component {
                     renderList();
                 }
                 this.commands.updateData(next);
+                menu.setSnapshot(next);
                 refreshAnalysis();
                 if (changedTurn) {
                     militaryLayers.battles = [];
@@ -607,12 +442,7 @@ class WorldWorkspace extends Component {
             this.commands.updateBusy();
         });
         renderer.invalidate();
-        // Drawing is useful even if a texture fails. Picking/list navigation remain available.
-        void renderer.loadImages(this.services.boot.mapImages).then((ok) => {
-            if (this.scope.closed) return;
-            notice.hidden = ok;
-            if (!ok) i18n.bind(this.scope, notice, 'map.failed');
-        });
+        notice.hidden = true;
     }
 }
 export function createInstance(options) {

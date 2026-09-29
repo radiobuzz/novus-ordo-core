@@ -35,11 +35,8 @@ class SelectedGame
             return $game;
         }
 
-        // Temporary compatibility for the old screens. Ambiguity must never select the first game.
-        $games = $this->access->availableGames($request->user())->limit(2)->get();
-        if ($games->count() === 1) return $games->first();
         if (!$required) return null;
-        abort(409, $games->isEmpty() ? 'No active game is available.' : 'Select a game using game_id.');
+        abort(409, 'Select a game using game_id.');
     }
 
     private function id(mixed $value): int

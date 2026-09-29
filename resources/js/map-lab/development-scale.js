@@ -1,4 +1,4 @@
-import { featureHash } from './cartography.js';
+import { featureHash } from '../map/cartography.js';
 import { hexCorners } from './hex.js';
 import { segmentDistance } from './living-settlement.js';
 
@@ -222,8 +222,8 @@ function projectScale(development, site) {
         ([a, b]) => segmentDistance(site.x, site.y, a, b) < development.unit * 3.5,
     );
     // The river bank does not shrink with the town. This conservatively covers
-    // Terrain V2's largest world-space bank stroke (0.115 * 1.4 cell radii).
-    const riverBuffer = model.cellSize * 0.17;
+    // Terrain V2's largest world-space bank half-width (0.285 * 0.9 cell radii).
+    const riverBuffer = model.cellSize * 0.26;
     const riverCuts = (points) =>
         closeRivers.some(
             ([a, b]) =>

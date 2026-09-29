@@ -7,7 +7,7 @@ export class AudioService {
     eligible = false;
     generation = 0;
     status = 'blocked';
-    constructor(src, saved, player = new Audio()) {
+    constructor(src, saved, player = new Audio(), loop = true) {
         this.player = player;
         this.saved = saved;
         const value = saved.read();
@@ -15,7 +15,7 @@ export class AudioService {
         this.volume = Number.isFinite(value.volume) ? Math.min(1, Math.max(0, value.volume)) : 0.25;
         player.src = src;
         player.preload = 'none';
-        player.loop = true;
+        player.loop = Boolean(loop);
         player.volume = this.volume;
         this.scope.own(() => {
             this.generation++;

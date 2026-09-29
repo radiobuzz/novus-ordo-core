@@ -9,7 +9,7 @@ use Illuminate\Support\Facades\Log;
 use App\Models\Nation;
 use App\Models\Territory;
 use App\Models\Turn;
-use Illuminate\Support\Facades\DB;
+use Illuminate\Support\Facades\{DB, Schema};
 
 /** Explicit game scope; selecting an archived game never changes the active game. */
 class AdminGameService
@@ -20,7 +20,7 @@ class AdminGameService
             'game_id' => $game->getId(), 'active' => $game->isActive(),
             'context_revision' => $game->turn_context_revision,
             'turn_id' => $turn->getId(), 'turn_number' => $turn->getNumber(),
-            'map_type' => $game->map()->exists() ? 'hex-beta-1' : 'classic',
+            'map_type' => 'generated',
             'nation_count' => $game->nations()->count(),
             'ready_count' => $game->nationsReadyForNextTurn()->count(),
             'territory_count' => $game->territories()->count(),
@@ -44,11 +44,11 @@ class AdminGameService
 
     public function map(Game $game): array {
         $turn = Turn::getCurrentForGame($game);
-        $map = $game->map()->first();
+        $map = $game->map()->firstOrFail();
         $owners = DB::table('territory_details')->where('turn_id', $turn->getId())
             ->pluck('owner_nation_id', 'territory_id');
         return ['game_id' => $game->getId(), 'turn_id' => $turn->getId(),
-            'map' => $map?->getSnapshot(), 'fingerprint' => $map?->getFingerprint(),
+            'map' => $map->getSnapshot(), 'fingerprint' => $map->getFingerprint(),
             'territories' => $game->territories()->get()->map(fn (Territory $territory) => [
                 'territory_id' => $territory->getId(), 'x' => $territory->getX(), 'y' => $territory->getY(),
                 'name' => $territory->getName(), 'terrain_type' => $territory->getTerrainType()->name,
@@ -73,6 +73,12 @@ class AdminGameService
                 Metacache::expireAllForGame($current);
                 // Ownership uses a restrictive nation FK; remove these game-owned snapshots first.
                 DB::table('territory_details')->where('game_id', $game->id)->delete();
+                app(\App\Services\Policies\PolicyCatalogue::class)->deleteGameDefinitions($current);
+                // The fresh-resource rollout deletes disposable pre-resource games before
+                // the breaking catalogue migration creates these tables.
+                if (Schema::hasTable('resource_sets')) {
+                    \App\Services\Resources\ResourceCatalogue::deleteGameDefinitions($current);
+                }
                 $current->delete(); // Game foreign keys cascade through turns, nations, AI and diplomacy.
                 return ['game_id' => $game->id, 'deleted' => true];
             }

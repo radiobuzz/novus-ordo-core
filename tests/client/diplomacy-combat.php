@@ -86,12 +86,13 @@ $case('nation without home disbands stranded visitors with a notice', function (
 
 $case('queued deployments reserve grantable stock; projected output cannot be given away', function () use ($a, $homeA, $check) {
     $grants = app(\App\Services\NationGrantService::class);
-    $before = (float) $grants->available($a)['Capital'];
+    $before = (float) $grants->available($a)['money'];
     app(\App\Services\NationCommands::class)->deploy($a, [new \App\Domain\DeploymentCommand($homeA->id, DivisionType::Infantry)]);
-    $check((float) $grants->available($a)['Capital'] <= $before - 3, 'Queued deployment did not reserve money');
+    $check((float) $grants->available($a)['money'] <= $before - 3, 'Queued deployment did not reserve money');
+    $moneyId = $a->getDetail()->resources()->get('money')['id'];
     DB::table('nation_resource_stockpiles')->where('nation_id', $a->id)->where('turn_id', $a->getDetail()->turn_id)
-        ->where('resource_type', \App\Domain\ResourceType::Capital->value)->update(['available_quantity' => 0]);
-    $check($grants->available($a)['Capital'] === '0.0000', 'Unproduced Capital was grantable');
+        ->where('resource_id', $moneyId)->update(['available_quantity' => 0]);
+    $check($grants->available($a)['money'] === '0.000000', 'Unproduced money was grantable');
 });
 
 $initial = Turn::getCurrentForGame($game); $revision = $game->fresh()->turn_context_revision;

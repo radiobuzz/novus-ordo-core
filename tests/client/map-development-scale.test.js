@@ -1,7 +1,7 @@
 import test from 'node:test';
 import assert from 'node:assert/strict';
 import { createMapLabModel } from '../../resources/js/map-lab/model.js';
-import { createCartography } from '../../resources/js/map-lab/cartography.js';
+import { createCartography } from '../../resources/js/map/cartography.js';
 import { createNaturalResources } from '../../resources/js/map-lab/natural-resources.js';
 import {
     createDevelopment,
@@ -16,7 +16,7 @@ import {
     polygonArea,
     clipPolygon,
 } from '../../resources/js/map-lab/development-scale.js';
-import { TerrainField } from '../../resources/js/map-lab/terrain-v2-field.js';
+import { TerrainField } from '../../resources/js/map/terrain-v2-field.js';
 import { DevelopmentLandscape } from '../../resources/js/map-lab/development-landscape.js';
 import { architecture } from '../../resources/js/map-lab/development-complexes.js';
 import { hexCorners } from '../../resources/js/map-lab/hex.js';
@@ -149,7 +149,7 @@ test('all compact study types stay dry, bounded and resource-backed across 7/19/
                         assert.ok(field.sample(q.x, q.y)[1] >= 0.95);
                         assert.ok(
                             riverEdges.every(
-                                ([a, b]) => segmentDistance(q.x, q.y, a, b) >= model.cellSize * 0.17,
+                                ([a, b]) => segmentDistance(q.x, q.y, a, b) >= model.cellSize * 0.26,
                             ),
                         );
                     }

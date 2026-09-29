@@ -44,10 +44,10 @@ if ($rankingHistory['game_id'] !== $game['game_id'] || $rankingHistory['through_
     throw new RuntimeException('Ranking-history contract mismatch.');
 }
 $historyTurn = App\Models\Turn::getForGameByNumberOrNull(
-    App\Models\Game::getCurrent(),
+    App\Models\Game::where('is_active', true)->firstOrFail(),
     $rankingHistory['through_turn'],
 );
-$currentRankings = App\Models\Game::getCurrent()->exportRankings($historyTurn);
+$currentRankings = App\Models\Game::where('is_active', true)->firstOrFail()->exportRankings($historyTurn);
 foreach ($currentRankings as $currentRanking) {
     $historicalRanking = collect($rankingHistory['rankings'])->firstWhere('key', $currentRanking->key);
     $latest = collect($historicalRanking['series'])

@@ -125,7 +125,7 @@ export class TurnAutomation {
         } else this.remaining = null;
         this.changed.emit();
         const command =
-            ai?.next_nation_id && ai.next_enabled
+            ai?.next_nation_id
                 ? 'experimentalAIStep'
                 : canAutoReady && !mineReady && this.remaining === 0
                   ? 'readyForNextTurn'

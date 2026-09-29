@@ -142,14 +142,10 @@ test('upkeep retains a visibly stale map; session expiry clears private panels',
     await expect(page.locator('.inspector-panel')).toBeHidden();
 });
 
-test('image failures fall back to selectable geometry; corrupt preferences are harmless', async ({
-    page,
-}) => {
+test('corrupt map preferences are harmless', async ({ page }) => {
     await page.addInitScript(() => localStorage.setItem('no7:v1:user-1:game-1:world', '{bad'));
-    await page.route('**/map_layer_*.png', (route) => route.abort());
     await page.goto('/client?game_id=1');
     await expect(page.locator('.world-canvas')).toBeVisible();
-    await expect(page.locator('.map-notice')).toContainText('could not load');
     await select(page, 'Aster Reach');
     await expect(page.locator('.inspector-panel h3')).toHaveText('Aster Reach');
 });
@@ -234,18 +230,6 @@ test('emulated touch pan and pinch navigate without accidental selection', async
     await session.send('Input.dispatchTouchEvent', { type: 'touchEnd', touchPoints: [] });
     await expect(page.locator('.inspector-panel')).toBeHidden();
     await context.close();
-});
-
-test('theme tokens update the canvas palette', async ({ page }) => {
-    await start(page);
-    await page.evaluate(() => document.documentElement.style.setProperty('--map-ocean', 'rgb(10, 20, 30)'));
-    await expect
-        .poll(() =>
-            page
-                .locator('.world-canvas')
-                .evaluate((el) => Array.from(el.getContext('2d').getImageData(0, 0, 1, 1).data)),
-        )
-        .toEqual([10, 20, 30, 255]);
 });
 
 test('a player without a nation can browse without requesting owner-only data', async ({ page }) => {

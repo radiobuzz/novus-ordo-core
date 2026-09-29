@@ -1,5 +1,58 @@
 # Shared game data — implementation plan
 
+## Economic preview display retention — 2026-09-29
+
+Budget & Policies and the acquisition planner retain report DOM during local editing, validation and preview requests. A last-displayed preview is presentation-only, explicitly marked as previous while pending; it never enables submission. Existing generation/abort checks fence late results. Scope/rules/turn context changes clear the old display, while compatible refreshes retain input and table identity. The confirmed snapshot and service-owned drafts remain unchanged in responsibility.
+
+
+## Production presentation — Package E
+
+The confirmed production projection now includes stored last-resource reports and owned territorial opening capacity, forecast additions/output, workforce and observed constraints. The read adapter groups existing resolver attempts; it neither reruns settlement nor persists allocation. Shared service ownership, combined drafts, preview fencing and command reconciliation are unchanged. Priority is editable through that same plan. [Contract](../game-design/production-presentation-contract.md).
+
+## Production economy live integration — 2026-09-29
+
+Package D is delivered: confirmed workspace budget/physical/fiscal projections use one coordinated result. GameplayService owns both acquisition and policy drafts; either save sends one atomic package. Both rule counters, turn/revision and player context are validated. Shared draft changes invalidate late previews, and accepted cleanup preserves newer edits. No mutation retry or second confirmed-data store. The old bid payload is removed. See [the lifecycle contract](../game-design/production-lifecycle-contract.md). Actual Chromium checks cover combined save, exact decimals, refresh/input identity, stale rejection, French and narrow layout. Full presentation remains Package E.
+
+## Planned production/ownership integration — 2026-09-29
+
+The [implementation plan](../game-design/production-development-implementation-plan.md) proposes a single authoritative economic result for current owned stocks, acquisition forecasts, budget and territorial production. GameDataService remains confirmed owner; GameplayService retains drafts. Policy and acquisition edits must share a proposed forecast and atomic combined-save contract rather than separate partially inconsistent saves. Preserve context/counter validation, newer drafts, refresh identity and uncertain-write handling. This is a proposed contract extension, not delivered runtime behavior; no new store or client-side economic engine is planned.
+
+## Admin maintenance commands — 2026-09-29
+
+AdminService remains the owner of maintenance preview and POST commands; the feature holds only a short-lived confirmation token. Reset uses the server's domain snapshot token and existing per-game lifecycle locks. Successful writes refresh the directory and replace the obsolete selected-game view; read failures and uncertain writes are distinguished without mutation retries. No player store, event bus or background polling was added. [Implementation and verification](admin-maintenance.md).
+
+## Agriculture and food-security projections — 2026-09-29
+
+Existing policy preview and player workspace payloads now include the physical food forecast alongside fiscal projections. `ResourceLedger` derives next-season settings from saved pending choices; a policy draft passes its own compiled settings into the same pure calculation. Pending-policy saves reconcile through the existing command path and refresh resource allocations. No extra endpoint, client formula, cache or subscription. The nutrition role is excluded from manual `bid_resources`; the planner displays its automatic forecast. Seasonal settlement uses the activated package, and population growth consumes its settled food report. Real endpoint/browser and isolated season/rollback checks passed. [Implementation notes](../game-design/agriculture-and-food-security-first-pass.md).
+
+## Delivered map layer adoption — 2026-09-29
+
+The [map layer integration](map-layer-integration-results.md) consumes existing confirmed territory states, completed income reports, labor pools, saved-plan projections and immutable geography. GameInfo/entry setup now expose only public resource metadata for resource filtering without a nation. GameDataService remains the World owner; NationSetupService retains homeland loading; GameplayService owns coalesced Guard/history reads. Private values are not stored in preferences. Active static geographic projection is cached per menu/model; mutable projections refresh on confirmed publication. Coverage responses cannot replace another selected layer, and same-turn rollback context changes refresh projections. No new store, per-layer polling, game migration or economic formula duplication.
+
+## Planned map layer adoption — 2026-09-28
+
+The [data-backed layer inventory and integration plan](map-layer-integration-plan.md) keeps GameDataService as World snapshot owner, NationSetupService as homeland setup owner, and GameplayService as owner of lazy Guard/battle reads. Existing territory economy states and last-season reports supply real overlays; microcell geography remains distinct from regional state. A minimal public resource-metadata addition to setup is proposed for catalogue filtering before founding. No new confirmed store, synthetic samples, per-layer polling, duplicated client economic formulas or historical data conversion. This section records planned work, not implementation.
+
+## Planned persistent geography — 2026-09-28
+
+[ADR 0032](decisions/0032-persistent-microcell-world.md) and the [map implementation plan](../game-design/map-v2-implementation-plan.md) retain GameDataService as the confirmed-data owner. Cache static geography by immutable map identity/fingerprint and reuse it across seasons and panels; current snapshots supply ownership, military and economic overlays. MapStudio owns its unsaved generation preview through the existing workspace lifecycle. Fence stale generation/load responses and release model/render caches when changing maps. Existing command serialization and uncertain-outcome reconciliation govern save/start actions. No new confirmed-data store, per-turn geography copies or old-map compatibility layer is planned. Implementation remains pending.
+
+## Resource catalogue contract — 2026-09-28
+
+[The resource foundation](../game-design/resource-system-first-pass.md) now supplies shared definitions, semantic roles, resource edit counter, decimal-string budgets, production plans and authoritative physical projections. `GameDataService` remains the confirmed owner. `GameplayService` retains production drafts and submits the catalogue counter with commands. Its read-only preview endpoint uses the same PHP allocation calculation as seasonal settlement; local debounce/abort and generation checks reject stale results. No extra confirmed cache or enum adapter. Compatible input identity survives refresh. Passive automated participants are delivered; live migration/release is still pending.
+
+## Passive automated participants — 2026-09-28
+
+The existing automation snapshot and `AICommands` lane now carry only game/turn/generation context, passive-player readiness and pause state. A step marks exactly one automated nation Ready under the game lock and then reconciles through `GameDataService`; it cannot submit production, policy, military or diplomacy commands. Completion is server-idempotent and rollback rotates context while restoring recorded readiness. `TurnAutomation` remains the browser scheduler and human Auto-ready remains the ordinary gameplay command. There is no strategy observation, memory, forecast, preview payload, custom script or independent store. Administration owns pause/resume and assignment/release controls. See the [current module boundary](../../modules/ai-player/README.md).
+
+## Seasonal economy — 2026-09-28
+
+`PlayerWorkspace` includes confirmed national policies, local economic conditions, the last seasonal ledger and the forecast under saved choices. `GameDataService` remains the sole confirmed owner. `GameplayService.policyDraft()` holds unsaved edits in memory under game/nation/turn-context/rules-counter identity. The feature owns native inputs and debounce/abort handling; routine refresh retains compatible input identity. Preview calls are read-only; saving uses the existing serialized command and reconciliation contract with a PUT endpoint. Only an accepted matching draft is cleared; rejection/uncertainty preserve it, and external pending changes surface a conflict. A new revision/counter invalidates the editing context. No per-turn definition copies or additional snapshot cache. See [ADR 0031](decisions/0031-seasonal-economy-workspace.md).
+
+## Generated-world-only scope — 2026-09-27
+
+[ADR 0030](decisions/0030-generated-world-only-runtime.md) removes the temporary classic-map and single-active-game compatibility paths. Every confirmed World snapshot now includes immutable generated geography; `GameDataService` remains its sole read owner and caches that geography by explicit game ID. Views continue to borrow the shared snapshot and camera while picking, minimap, overlays and ownership comparison all use one generated geometry contract. Requests without game identity are rejected rather than resolved from the active-game count. Historical classic/beta acceptance checkpoints below are retained as delivery evidence and are superseded for current runtime scope.
+
 ## Military situation layers — 2026-09-26
 
 `GameplayService.militaryHistory()` coalesces current-turn public News and the current nation's private battle logs under the selected World's generation and scope. Spectators skip the private request. `WorldWorkspace` projects the result for the canvas and owns only saved display preferences; it does not publish report data into the authoritative World snapshot. Public battle context supplies every location, while nullable structured loss totals remain confined to `ParticipantBattleLog`. Turn changes clear projected markers and trigger a new read only when the layer is enabled. See [ADR 0026](decisions/0026-military-map-situation-layers.md).
@@ -33,9 +86,9 @@ Admin summaries expose the existing game context revision for explicit Activate/
 Delivered: a `DiplomacyService` per selected `GameInstance` owns private inbox/pages, its immutable store, polling and draft/request-key lifetime. World snapshots own confirmed relation permissions and grantable budgets, and the existing gameplay identity read supplies names. The existing human command gate reconciles both owners after communication commands. An incoming action-message marker asks the world owner to refresh budgets/orders/permissions for the other participant too; ordinary text does not trigger extra world reads. Late reads are rejected on conversation generation or durable turn-context mismatch; private state is cleared on access loss. Command payloads include the durable revision, preventing a rollback to the same turn number from accepting an old command. This closes that context gap for the current human command lane; it is not a universal transaction claim for every legacy endpoint. See [ADR 0020](decisions/0020-primitive-diplomacy.md) and the isolated/browser tests in the implementation handoff.
 
 
-## Local AI script selection — 2026-09-22
+## Historical local AI script selection — 2026-09-22
 
-Script selection stays in the existing administration service and rotates the server's AI generation fence without resetting player readiness. Private author snapshots are explicit admin reads, not additions to the gameplay store. The sequential AI lane now also runs when the signed-in account's nation is automated; this allows giving one's own nation to a bot without losing the browser driver. Human Auto-ready still skips automated nations, and ordinary human mutation guards remain. Strategy notes and decisions stay server-side.
+This section records the retired strategic experiment. Script selection, private author snapshots and strategy notes were removed by resource Package B; the current contract is the passive participant section above.
 
 ## Stage 4 shared public identity and derived summaries — 2026-09-22
 
@@ -59,13 +112,13 @@ New combat news stores nullable structured context beside its safe fallback text
 
 On the active turn-502 game, the guarded read-only check returned five metrics / 20,080 points, about 846 KB before HTTP compression, in roughly 436 ms. Final history points matched the ordinary current rankings for every metric. This supports the present lazy full-history response; future evidence may justify range/downsampling without changing view ownership. No game data was written.
 
-## Experimental AI integration — 2026-09-21
+## Historical experimental AI integration — 2026-09-21
 
 `experimental-ai/TurnAutomation.js` owns the browser timer and sequential scheduling and consumes only confirmed `GameDataService` snapshots. AI steps use the disposable `experimental-ai/AICommands.js` lane, with their own busy/outcome state; Auto-ready still uses the human's ordinary `GameplayService` Ready command. Each AI step reconciles before the next. There is no independent game-data store or optimistic bot readiness. The persistent World/camera remains mounted. Lost/failed mutations and failed reconciliation stop automation without resending; drafts/manual commands pause Auto-ready, including manual commands during a bot step. Turn briefings remain manually available but do not interrupt active Auto-ready watching.
 
 The user-approved Ready-flashing fix separates another participant's activity from the human's pending submission. `GameDataService.refreshAfterActivity()` invalidates older reads after that activity settles and starts a healthy background refresh without publishing `pending`. It waits for any overlapping human command's preflight/submission/reconciliation; if the human supersedes the background read, it rereads afterward. Concurrent activity notifications coalesce and request a read after the latest completion. Own-command single-flight, uncertain-outcome review, stale/access/context gates and real turn-transition blocking remain. Existing other-human polling already uses this healthy-refresh availability policy and now has explicit Ready-button regression coverage. Bot submission uses the existing transport, identity/generation payload and authoritative server checks; no engine, locking or game-rule change. A local batch still does not claim atomic same-turn database reads.
 
-Game/turn IDs plus an experiment-owned generation fence AI steps, takeover and rollback; bot application shares game locks and commits actions, memory, completion and readiness atomically. Human commands from AI games carry the generation fence in addition to their existing identity context. Web Locks coordinate bot submissions and, where supported, one Auto-ready countdown owner per nation across tabs; server completion keys protect cross-process bot races. This narrow fence does not complete the broader human-command backend checkpoint or introduce a general provider framework. See [handoff/removal inventory](../../modules/ai-player/README.md).
+Game/turn IDs plus an experiment-owned generation fence still protect passive steps, assignment/release and rollback. Package B removed action plans and memory; the shared lock now commits only completion and readiness. Human commands from automated games retain the generation fence. Web Locks coordinate browser submissions and, where supported, one Auto-ready countdown owner per nation across tabs; server completion keys protect cross-process passive-step races. See the [current passive boundary](../../modules/ai-player/README.md).
 
 Status: D0 audit, D1 shared-data foundation, D2 persistent World workflow and the subsequent player-panel persistence pass are delivered. Economy, Nation, Military, Reports and territory inspectors now update within their existing instances. Comprehensive backend context protection and remaining D4 work are not complete. Names, grouping and sequence remain revisable. See [ADR 0010](decisions/0010-shared-game-data.md).
 
@@ -358,7 +411,7 @@ Main existing integration points (grouped by source directory):
 - `resources/js/client/services/`: `WorldService.js`, `GameplayService.js` for reads, polling and commands; proposed coordinator belongs here. `resources/js/client/main.js` owns service composition.
 - `resources/js/client/app/GameShell.js`: route/refresh lifetime and header status.
 - `resources/js/client/features/`: `world/world.feature.js`, `world/WorldCommands.js`, `gameplay/gameplay.feature.js`, `territory/territory.feature.js` for live consumers/drafts.
-- `resources/js/client/ui/map/`: `HexMap.js`, `MapPicker.js`, `Minimap.js`, alongside `resources/js/map/snapshot.js`, for derived map state and stable rendering.
+- `resources/js/client/ui/map/`: `GeneratedMap.js`, `HexMap.js`, `Minimap.js`, alongside `resources/js/map/snapshot.js`, for derived map state and stable rendering.
 - `app/Http/Controllers/ClientGameplayController.php`, `app/Http/Middleware/EnsureClientCommandContext.php`, `app/Models/Game.php`, `app/Models/Turn.php` and relevant read models: review boundary for any approved additive server contract.
 
 Extend `tests/client/services.test.js`, `gameplay.test.js`, runtime tests and browser `commands.spec.js` / `client.spec.js`; add focused store/coordinator tests. Use `npm run test:client`, relevant Chromium suites, build/generated-client checks, PHP contracts if affected, and the existing isolated gameplay/guard helpers described in [the gameplay handoff](gameplay-experiment.md). Never test mutations on the live game. Other-browser/physical-device checks remain separately reported, not implied by Chromium.

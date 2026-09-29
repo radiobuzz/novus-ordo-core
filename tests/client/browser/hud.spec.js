@@ -36,12 +36,12 @@ test('compact header, budget detail, menu, layers and minimap preserve the map',
         window.miniBefore = document.querySelector('.minimap-canvas');
     });
     const box = await page.locator('.world-canvas').boundingBox();
-    await page.locator('[data-resource="Capital"] summary').click();
-    await expect(page.locator('[data-resource="Capital"] dl')).toContainText('Reserve held20');
-    await expect(page.locator('[data-resource="Food"] summary')).toContainText('-2/turn');
-    await expect(page.locator('[data-resource="RecruitmentPool"] summary')).toContainText('No reserve');
+    await page.locator('[data-resource="money"] summary').click();
+    await expect(page.locator('[data-resource="money"] dl')).toContainText('Reserve held20');
+    await expect(page.locator('[data-resource="food"] summary')).toContainText('-2/turn');
+    await expect(page.locator('[data-resource="recruitment"] summary')).toContainText('No reserve');
     await page.keyboard.press('Escape');
-    await expect(page.locator('[data-resource="Capital"] summary')).toBeFocused();
+    await expect(page.locator('[data-resource="money"] summary')).toBeFocused();
     await page.locator('.hud-readiness summary').click();
     await expect(page.locator('.hud-readiness')).toContainText('The Northern Compact');
     await page.keyboard.press('Escape');
@@ -149,9 +149,9 @@ test('header fits narrow French layout and disclosures work by keyboard', async 
     await expect(page.locator('.minimap-canvas')).toBeVisible();
     expect(await page.evaluate(() => document.documentElement.scrollWidth <= innerWidth)).toBe(true);
     await page.screenshot({ path: '/tmp/no7-hud-pass-ZKKVld/mobile.png' });
-    await page.locator('[data-resource="Oil"] summary').focus();
+    await page.locator('[data-resource="oil"] summary').focus();
     await page.keyboard.press('Enter');
-    const box = await page.locator('[data-resource="Oil"] .ui-disclosure-content').boundingBox();
+    const box = await page.locator('[data-resource="oil"] .ui-disclosure-content').boundingBox();
     expect(box.x).toBeGreaterThanOrEqual(0);
     expect(box.x + box.width).toBeLessThanOrEqual(390);
     await page.keyboard.press('Escape');
@@ -165,14 +165,14 @@ test('open resource details update in place and no stale private report survives
     let data = structuredClone(fixtures('/client/gameplay'));
     await page.route('**/client/gameplay', (route) => route.fulfill({ json: data }));
     await enter(page);
-    await page.locator('[data-resource="Capital"] summary').click();
+    await page.locator('[data-resource="money"] summary').click();
     await page.evaluate(() => {
         window.resourceTrigger = document.activeElement;
     });
-    data.budget.balances.Capital = -1234.5678;
-    data.budget.expenses.Capital = 1244.5678;
+    data.budget.balances.money = -1234.5678;
+    data.budget.expenses.money = 1244.5678;
     await page.evaluate(() => window.dispatchEvent(new Event('focus')));
-    await expect(page.locator('[data-resource="Capital"] dd').first()).toHaveText('-1,234.5678');
+    await expect(page.locator('[data-resource="money"] dd').first()).toHaveText('-1,234.5678');
     expect(
         await page.evaluate(() => resourceTrigger === document.activeElement && resourceTrigger.isConnected),
     ).toBe(true);

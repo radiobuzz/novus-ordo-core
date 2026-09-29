@@ -18,7 +18,6 @@ use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Relations\BelongsTo;
 use Illuminate\Database\Eloquent\SoftDeletes;
 use Illuminate\Support\Facades\DB;
-use App\Domain\ResourceType;
 
 class Order extends Model
 {
@@ -56,7 +55,7 @@ class Order extends Model
         $this->save();
     }
 
-    public static function getTotalCostsByResourceType(Nation $nation, Turn $turn): array {
+    public static function getTotalOperationCosts(Nation $nation, Turn $turn): array {
         $rows = DB::table('orders')
             ->where('orders.nation_id', $nation->getId())
             ->where('orders.turn_id', $turn->getId())
@@ -64,11 +63,12 @@ class Order extends Model
             ->whereNull('orders.deleted_at')
             ->join('divisions', 'orders.division_id', '=', 'divisions.id')
             ->get(['orders.type', 'divisions.division_type']);
-        $costs = array_fill_keys(array_map(fn ($type) => $type->value, ResourceType::cases()), 0.0);
+        $catalogue = \App\Services\Resources\ResourceCatalogue::forGame($nation->getGame());
+        $costs = $catalogue->zero();
         foreach ($rows as $row) {
             $factor = (int) $row->type === OrderType::Guard->value ? self::GUARD_READINESS_COST_FACTOR : 1.0;
-            foreach (DivisionType::getMeta(DivisionType::from($row->division_type))->attackCosts as $resource => $cost) {
-                $costs[$resource] += $cost * $factor;
+            foreach ($catalogue->costs('operation', DivisionType::from($row->division_type)) as $resource => $cost) {
+                $costs[$resource] = \App\Domain\Resources\Quantity::add($costs[$resource], \App\Domain\Resources\Quantity::mul($cost, (string) $factor));
             }
         }
         return $costs;

@@ -1,3 +1,4 @@
+import { resourceName } from '../../ui/resourceVisuals.js';
 import { selectedPower } from '../../services/forceSummary.js';
 import { Component } from '../../runtime/Component.js';
 import { Scope } from '../../runtime/Scope.js';
@@ -18,6 +19,7 @@ import { mapDefinitionFor } from '../../ui/map/HexMap.js';
 import { createLayers } from '../../ui/map/layers.js';
 import { militaryOverlay } from '../../ui/map/militaryOverlay.js';
 import { RankingsView } from './RankingsView.js';
+import { EconomyPanel } from './EconomyPanel.js';
 import '../world/world.scss';
 
 const title = (value) => value.replace(/([a-z])([A-Z])/g, '$1 $2').replaceAll('_', ' ');
@@ -130,7 +132,7 @@ class GameplayWorkspace extends Component {
                 el('h1', {
                     text: {
                         nation: 'Your nation',
-                        economy: 'Economy & production',
+                        economy: this.services.i18n.t('economy.title'),
                         military: 'Military command',
                         reports: 'World reports',
                     }[page],
@@ -249,6 +251,20 @@ class GameplayWorkspace extends Component {
     }
     nation() {
         const { identity, nation } = this.data;
+        const economicSummary = el('div', { class: 'economy-summary' });
+        const economicPanel = section(this.services.i18n.t('economy.outlook'), economicSummary,
+            el('a', { href: '#/economy', text: this.services.i18n.t('economy.title') }));
+        this.updates.push(() => {
+            const current = this.data.economy?.current;
+            economicPanel.hidden = !current;
+            if (!current) return;
+            economicSummary.replaceChildren(...['civilian_income', 'income_per_person', 'infrastructure', 'unrest', 'informal'].map(key => {
+                const percent = ['infrastructure', 'unrest', 'informal'].includes(key);
+                return el('div', {}, el('span', { text: this.services.i18n.t(`economy.${key}`) }),
+                    el('strong', { text: this.number(current[key] * (percent ? 100 : key === 'income_per_person' ? 1e6 : 1)) + (percent ? '%' : '') }));
+            }));
+        });
+        this.content.append(economicPanel);
         const formal = el('p');
         const stats = el('div');
         const ready = new StatusBadge({ label: '', tone: 'accent' });
@@ -313,7 +329,7 @@ class GameplayWorkspace extends Component {
             section(
                 'Command summary',
                 cardStrip('Command summary', ...metrics),
-                el('p', {}, el('a', { href: '#/economy', text: 'Review resources and production' })),
+                el('p', {}, el('a', { href: '#/economy', text: this.services.i18n.t('economy.title') })),
                 el('p', {}, el('a', { href: '#/military', text: 'Deploy divisions and issue orders' })),
                 el('p', {}, el('a', { href: '#/reports', text: 'Read news, battles and victory progress' })),
             ),
@@ -334,6 +350,10 @@ class GameplayWorkspace extends Component {
         );
     }
     economy() {
+        const economy = new EconomyPanel(this.scope, this.services);
+        this.content.append(economy.element);
+        this.updates.push(() => economy.update(this.snapshot));
+        economy.update(this.snapshot);
         const planner = new Button({
             label: this.services.i18n.t('planner.open'),
             variant: 'primary',
@@ -343,8 +363,9 @@ class GameplayWorkspace extends Component {
         this.services.i18n.changed.subscribe(this.scope, () =>
             planner.setLabel(this.services.i18n.t('planner.open')),
         );
-        this.content.append(planner.element);
-        this.content.append(
+        const resources = el('details', { class: 'economy-resources' }, el('summary', { text: this.services.i18n.t('economy.resources') }), planner.element);
+        this.content.append(resources);
+        resources.append(
             section(
                 'Resource budget',
                 this.help(
@@ -354,8 +375,8 @@ class GameplayWorkspace extends Component {
                 this.liveTable(
                     ['Resource', 'Production', 'Reserves', 'Upkeep', 'Expenses', 'Available', 'Balance'],
                     () =>
-                        this.data.definitions.resources.map((r) => [
-                            r.description ?? this.services.i18n.t(`command.resource.${r.resource_type}`),
+                        this.data.definitions.resources.filter(r => r.role !== 'treasury').map((r) => [
+                            resourceName(this.data, r.resource_key, this.services.i18n),
                             ...[
                                 'production',
                                 'stockpiles',
@@ -366,20 +387,20 @@ class GameplayWorkspace extends Component {
                             ].map((key) =>
                                 key === 'stockpiles' && !r.can_be_stocked
                                     ? 'Not stockpiled'
-                                    : this.number(this.data.budget[key][r.resource_type]),
+                                    : this.number(this.data.budget[key][r.resource_key]),
                             ),
                         ]),
                 ),
             ),
         );
-        this.content.append(
+        resources.append(
             section(
                 'Labor pools',
                 this.liveTable(['Territory', 'Labor', 'Free labor'], () =>
                     this.data.budget.labor_pools.map((p) => [
                         this.territoryLink(p.territory_id),
-                        this.number(p.size / this.data.definitions.labor_per_unit),
-                        this.number(p.free_labor / this.data.definitions.labor_per_unit),
+                        this.number(p.size / 1_000_000),
+                        this.number(p.free_labor / 1_000_000),
                     ]),
                 ),
             ),
@@ -390,11 +411,11 @@ class GameplayWorkspace extends Component {
                     () =>
                         this.data.budget.labor_facility_allocations.map((f) => [
                             this.territoryLink(f.territory_id),
-                            title(f.resource_type),
-                            this.number(f.capacity / this.data.definitions.labor_per_unit),
+                            resourceName(this.data, f.resource_key, this.services.i18n),
+                            this.number(f.capacity / 1_000_000),
                             this.number(f.productivity),
-                            this.number(f.allocation / this.data.definitions.labor_per_unit),
-                            this.number(f.production / this.data.definitions.labor_per_unit),
+                            this.number(f.allocation / 1_000_000),
+                            this.number(f.production),
                         ]),
                 ),
             ),
@@ -455,7 +476,6 @@ class GameplayWorkspace extends Component {
             definition: mapDefinitionFor(this.snapshot.map, this.snapshot.territories),
             territories: this.snapshot.territories,
             layers: createLayers(),
-            images: this.services.boot.mapImages,
             savedCamera: mapState.read().camera,
             context: {
                 ownNationId: ownId,
@@ -478,10 +498,8 @@ class GameplayWorkspace extends Component {
                 division?.territory_id ?? this.snapshot.ownTerritories[0]?.territory_id,
             );
             if (!territory) return;
-            const point = viewport.picker.center?.(territory) ?? {
-                x: (territory.x + 0.5) * viewport.context.definition.tileWidth,
-                y: (territory.y + 0.5) * viewport.context.definition.tileHeight,
-            };
+            const point = viewport.picker.center(territory);
+            if (!point) return;
             viewport.camera.x = point.x;
             viewport.camera.y = point.y;
             viewport.camera.zoom = viewport.camera.fitZoom * 5;

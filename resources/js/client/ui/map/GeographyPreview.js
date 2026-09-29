@@ -1,4 +1,5 @@
-import { MapRenderer } from '../../../map/renderer.js';
+import { mapText as t } from './mapStrings.js';
+import { GeographicRenderer as MapRenderer } from '../../../map/geographic-renderer.js';
 import { Camera } from './Camera.js';
 import { MapInteractions } from './MapInteractions.js';
 import { el, button } from '../dom.js';
@@ -15,9 +16,12 @@ export class GeographyPreview {
         });
         this.detail = el('p', {
             class: 'geography-detail',
-            text: 'Select a region to inspect its land cells.',
+            text: t('Select a region to inspect its land cells.'),
         });
-        const fit = button('Fit world'),
+        this.shoreSelect = el('select', { 'aria-label': 'Shore edge', hidden: true });
+        this.shoreDetail = el('p', { class: 'geography-detail' });
+        scope.listen(this.shoreSelect, 'change', () => this.inspectShore());
+        const fit = button(t('Fit world')),
             plus = button('+'),
             minus = button('−');
         plus.setAttribute('aria-label', 'Zoom in');
@@ -33,7 +37,7 @@ export class GeographyPreview {
                 minus,
                 plus,
                 fit,
-                el('label', {}, borders, ' Region boundaries'),
+                el('label', {}, borders, t('Region boundaries')),
             ),
             this.detail,
         );
@@ -76,13 +80,38 @@ export class GeographyPreview {
                     const land = region.cellIds.filter(
                         (id) => !['ocean', 'lake'].includes(this.state.model.cellById.get(id).terrain),
                     ).length;
-                    this.detail.textContent = `${region.name} · ${land} of 19 cells are land · ${cell.terrain}`;
+                    this.state.selectedCellId = cell.id;
+                    this.renderer.invalidate();
+                    const features = (this.state.model.atlas?.featuresByCell.get(cell.id) ?? []).map(
+                        (id) => this.state.model.atlas.featureById.get(id).name,
+                    );
+                    const shores =
+                        this.state.model.atlas?.coasts.shores.filter((s) => s.landId === cell.id) ?? [];
+                    this.shoreSelect.replaceChildren(
+                        ...shores.map((s) =>
+                            el('option', { value: s.id, text: `${s.waterType} · ${s.waterId}` }),
+                        ),
+                    );
+                    this.shoreSelect.hidden = !shores.length;
+                    this.inspectShore();
+                    const resources = Object.entries(cell.resourcePotential ?? {}).map(
+                        ([key, p]) =>
+                            `${key}: density ${p.density.toFixed(3)} · potential ${p.capacity.toFixed(3)}/season`,
+                    );
+                    this.detail.textContent = `${region.name} · ${land} of ${this.state.model.cellCount} cells are land · ${cell.biome ?? cell.terrain}\nElevation: ${cell.elevation.toFixed(1)} m\nTemperature index: ${cell.temperature.toFixed(3)} · moisture: ${cell.moisture.toFixed(3)}\nRainfall index: ${cell.rainfall.toFixed(3)}\nWater depth: ${(cell.waterDepth ?? Math.max(0, -cell.baseElevation)).toFixed(1)} m\n${features.join(' · ')}\n${resources.join('\n')}`;
                 },
             },
         );
         scope.own(() => this.renderer?.destroy());
     }
-    show(model) {
+    inspectShore() {
+        const s = this.state?.model.atlas?.coasts.shoreById.get(this.shoreSelect.value);
+        this.shoreDetail.textContent = s
+            ? `Shore access: ${['Favourable', 'Limited', 'Difficult', 'Unsuitable'][s.accessGrade]}\nExposure: ${s.exposure.toFixed(3)}${s.truncated ? ' (map boundary limits estimate)' : ''}\nRise: ${s.shoreRise?.toFixed(1) ?? 'unknown'} · inland rise: ${s.inlandRise?.toFixed(1) ?? 'unknown'}\n${s.reasons.join(' · ')}`
+            : '';
+    }
+    show(model, preserveView = false) {
+        const previousCamera = preserveView ? this.camera.snapshot() : null;
         this.renderer?.destroy();
         this.state = {
             model,
@@ -94,13 +123,17 @@ export class GeographyPreview {
                 relief: true,
                 rivers: true,
                 borders: this.borders.checked,
-                names: false,
+                names: true,
             },
         };
         this.camera = new Camera(model.width, model.height);
         this.renderer = new MapRenderer(this.canvas, this.camera, () => this.state);
         this.camera.fit();
+        if (previousCamera) this.camera.restore(previousCamera);
         this.renderer.invalidate();
-        this.detail.textContent = 'Select a region to inspect its land cells.';
+        this.shoreSelect.replaceChildren();
+        this.shoreSelect.hidden = true;
+        this.shoreDetail.textContent = '';
+        this.detail.textContent = t('Select a region to inspect its land cells.');
     }
 }

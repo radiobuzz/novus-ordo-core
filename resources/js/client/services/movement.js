@@ -47,24 +47,3 @@ export function movementPath(
     }
     return null;
 }
-
-export function productionBid(resource, quantity, productivity, definitions) {
-    const maxQuantity = Math.round(Number(quantity) * definitions.labor_per_unit);
-    const efficiency = Number(productivity);
-    if (
-        !definitions.bid_resources.includes(resource) ||
-        !Number.isSafeInteger(maxQuantity) ||
-        maxQuantity < 0 ||
-        !Number.isFinite(efficiency) ||
-        efficiency < 0
-    )
-        throw new Error('Enter a non-negative quantity and productivity within the supported range.');
-    return {
-        resource_type: resource,
-        max_quantity: maxQuantity,
-        max_labor_allocation_per_unit:
-            efficiency > 0
-                ? Math.min(definitions.max_bid_labor, Math.ceil(definitions.labor_per_unit / efficiency))
-                : definitions.max_bid_labor,
-    };
-}

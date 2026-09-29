@@ -1,8 +1,8 @@
 import test from 'node:test';
 import assert from 'node:assert/strict';
-import { createCoasts } from '../../resources/js/map-lab/coasts.js';
+import { createCoasts } from '../../resources/js/map/coasts.js';
 import { createMapLabModel } from '../../resources/js/map-lab/model.js';
-import { createCartography } from '../../resources/js/map-lab/cartography.js';
+import { createCartography } from '../../resources/js/map/cartography.js';
 import { hexDisk, axialKey, axialToPixel } from '../../resources/js/map-lab/hex.js';
 
 function fixture(density, kind, altitude = 0) {

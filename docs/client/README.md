@@ -1,10 +1,38 @@
 # Novus Ordo client planning
 
+## Production cleanup — Package F (2026-09-29)
+
+The superseded economic calculators, bid/facility models and placeholder effects are retired. Generic acquisitions, funded production, owned stocks and the Package E UI remain the active path. Useful catalogue/policy/accounting checks now target that path; passive seasons and rollback remain covered. No application database changes or Git publication. See [results and rollout](../game-design/production-retirement-results.md).
+
+2026-09-29: **Production/development Packages A–D are implemented.** Fresh games now use the coordinated economy for founding, turns, opening-owned actions, grants and shared previews. Policies and acquisitions save as one seasonal package. [Runtime contract and verification](../game-design/production-lifecycle-contract.md); fuller player presentation and retirement work remain Packages E–F. No additional migration beyond Package B.
+
 Living plans and architectural decisions for the new game client.
 
 Start here when resuming work. This folder records accepted decisions, implementation evidence, and remaining work.
 
 ## Current position
+
+2026-09-29: [production accounting Package A](../game-design/production-accounting-contract.md) is implemented as pure PHP settlement primitives and fixtures, with 264 checks including four consecutive household seasons and replay. Public/private ownership, funded exchange, explicit nutrition support, shared labor, inventory cost, delayed investment and debt/capture accounting have executable contracts. No live economic resolver, schema or UI changed. [Package B](../game-design/production-state-contract.md) now adds configuration and seasonal persistence; [Package C](../game-design/production-resolver-contract.md) implements the pure coordinated resolver; Package D connects live turns and workspace data.
+
+2026-09-29 planning: [generic production, ownership and development](../game-design/production-development-implementation-plan.md) turns the reviewed resource UI sketch into ordered accounting, catalogue/state, shared resolver, lifecycle, UI and retirement packages. It requires all produced resources to use one configured pipeline while currency/capacity keep distinct semantics. Pricing, household funding, ownership transfers and military acquisition timing are explicitly identified contract decisions. Documentation only; no economic cutover or live reset has occurred.
+
+2026-09-29: [admin maintenance and logout](admin-maintenance.md) are delivered. Overview offers confirmed world reset and orphan status-file cleanup; the header includes Sign out, and the logout 500 is fixed.
+
+2026-09-29: [agriculture and food security are delivered](../game-design/agriculture-and-food-security-first-pass.md) for fresh games: three policies, developed agricultural capacity, automatic food reserves, consumption-based shortage consequences and existing-screen forecasts. No migration required; balance remains provisional.
+
+2026-09-29: [game map layer integration is delivered](map-layer-integration-results.md). World and Homeland share the compact bottom dock, honest data-backed layers, independent display controls and domain palettes. The old World header menu is retired. No new simulation, old-save conversion or live-game reset.
+
+2026-09-28 planning: [game map layer integration](map-layer-integration-plan.md) audits the existing geographic, economic and military payloads and defines the World/Homeland cutover. Only data-backed layers are included; synthetic lab values and future simulation layers are excluded. The plan records territorial versus microcell precision, Food/agricultural-potential naming, contextual resource filtering, the density field mismatch, ordered work packages and verification. Documentation only; production integration has not started.
+
+2026-09-28 UI experiment: the [map layer menu prototype and complete layer catalogue](map-layer-menu-experiment.md) are available at `/dev-panel/ui-foundations#map-layers`. Seven bottom-dock categories expose 33 views with a persistent legend and independent annotations. Geography is generated; economic/military examples are explicitly synthetic. Focused checks pass; production adoption awaits review.
+
+2026-09-28 planning: [persistent microcell geography and the updated map workspace](../game-design/map-v2-implementation-plan.md) now have an ordered implementation plan and [ADR 0032](decisions/0032-persistent-microcell-world.md). Configurable region dimensions, 7/19/37 resolution, complete saved geography, named features, coastal data and selectable resource profiles are the target. The final rollout discards previous games and saved maps; no reset or implementation was performed in this planning step. This supersedes saved-map preservation for that future rollout and incorporates the outstanding resource Package C release journey.
+
+2026-09-28 resource foundation: [Packages A and B are implemented](../game-design/resource-system-first-pass.md) with game-owned catalogue tables, exact quantities, shared server allocation/preview, current unit costs, grants, Guard and dynamic client controls. The retired enum runtime and strategic AI were removed; automated nations now only submit Ready while ordinary simulation continues. The breaking schema and forward strategic-field cleanup are installed in development after disposable games were removed, while accounts and saved maps were preserved. Rolled-back creation checks passed for all four saved maps with a passive player. [Package C's](../game-design/resource-system-implementation-handoff.md#c-fresh-game-release-and-review) final browser journey and release review remain.
+
+2026-09-28: [Budget & Policies and the first seasonal economy](decisions/0031-seasonal-economy-workspace.md) are implemented for new games. Taxes, infrastructure, informal activity, local reinvestment, debt/default and underfunded-unit desertion now resolve through policies. The player workspace offers editable pending choices, approximate forecasts and national indicators; existing non-money production remains available. Start a fresh game; old-save compatibility is outside this pass. See [rules and verification](../game-design/seasonal-economy-first-playable.md).
+
+2026-09-27: [ADR 0030](decisions/0030-generated-world-only-runtime.md) makes generated geography and the current client the sole 7.1 runtime. Classic game creation, rectangular/raster rendering, implicit single-game selection, retired screen redirects and preserved Vite chunks are removed. The `v7.0.0` tag plus a compatible database backup remains the Version 7 recovery path.
 
 2026-09-26: the [Map Lab scale checkpoint study](decisions/0029-map-lab-development-scale.md) adds fixed-camera Current / Half / Quarter comparisons, separate structure-size/spacing controls and editable synthetic microcell allowance/intensity. The previous artwork remains restorable; projected clearing and parcels stay coordinated. This is lab-only visual evaluation, not real population or production.
 
@@ -20,9 +48,9 @@ Start here when resuming work. This folder records accepted decisions, implement
 
 2026-09-26: [primitive diplomacy](../game-design/primitive-diplomacy-plan.md) now lets custom AI scripts read a bounded private conversation history and send text replies during their normal decision turn. Peace support remains; AI alliances and grants remain unavailable. [ADR 0020](decisions/0020-primitive-diplomacy.md) records the boundary.
 
-As of 2026-09-23, [all five multi-game and retirement stages](multi-game-plan.md) are delivered: independent active games, explicit request/game context, scoped turns/AI, disposable selected-game instances, Games/Administration/Tools navigation, accepted gameplay additions and final legacy-interface removal. `/` and retired screen bookmarks now enter the new client. The follow-up header uses icon workspace navigation with Games in its menu; compact unit stacks and a mobile destination-picking state reduce command-panel obstruction. Nation colours are selected during nation creation rather than edited from a gameplay setting. [ADR 0017](decisions/0017-multiple-active-games.md) supersedes the earlier single-current-game/replacement assumption.
+As of 2026-09-27, [all five multi-game and retirement stages](multi-game-plan.md) are delivered: independent active games, explicit request/game context, scoped turns/AI, disposable selected-game instances, Games/Administration/Tools navigation, accepted gameplay additions and final legacy-interface removal. Retired screen URLs are absent; only `/` and `/login` retain canonical entry redirects. The follow-up header uses icon workspace navigation with Games in its menu; compact unit stacks and a mobile destination-picking state reduce command-panel obstruction. Nation colours are selected during nation creation rather than edited from a gameplay setting. [ADR 0017](decisions/0017-multiple-active-games.md) supersedes the earlier single-current-game/replacement assumption, and [ADR 0030](decisions/0030-generated-world-only-runtime.md) removes its temporary compatibility paths.
 
-`/client` is the default playable interface, with generated-map beta support and the map-first military UI. See [the gameplay handoff](gameplay-experiment.md), [game UI pass 1](game-ui-pass-1.md) and [map beta notes](../game-design/map-beta.md) for delivered scope, tests and limits. Earlier phase documents describe their original authorization, not the current delivery status; any fallback references in those historical records are superseded by the retirement plan.
+`/client` is the playable interface, with generated geography and the map-first military UI. See [the gameplay handoff](gameplay-experiment.md), [game UI pass 1](game-ui-pass-1.md) and [generated-world notes](../game-design/map-beta.md) for delivered scope, tests and limits. Earlier phase documents describe their original authorization, not the current delivery status; classic-map and fallback references in those historical records are superseded by ADR 0030.
 
 Start with the [phase 1–2 handoff](phase-1-2-handoff.md) for how to use/build/test it and the [integration contracts](integration-contracts.md) for verified data shapes. Real-phone and cross-browser verification remain open.
 
@@ -36,14 +64,15 @@ World rankings in Reports now use current bar charts plus a lazy History tab der
 
 | Document | Purpose | Status |
 | --- | --- | --- |
+| [Decision 0030](decisions/0030-generated-world-only-runtime.md) | One generated-world runtime, explicit game identity and retired classic interface | Accepted and implemented for 7.1 |
 | [Primitive Guard orders](decisions/0025-guard-orders.md) | Persistent reserve duty, threat preallocation and mandatory Stand Down | Implemented; migration/operator opt-in pending for existing games |
 | [Nation flag editor](decisions/0021-nation-flag-editor.md) | Identity-step dialog, matched recipe/PNG drafts and transactional persistence | Implemented; flag-design migration still requires operator application |
 | [Primitive diplomacy implementation plan](../game-design/primitive-diplomacy-plan.md) | Private conversations, bilateral treaties, stockpiled resource grants, limited AI peace and a separate flag-editor release item | Implemented for new games; isolated checks passed; running-database migration and release playtest pending |
 | [Economy Lab](../game-design/economy-lab.md) | Browser-only copper market, delayed private investment, controlled on/off stories and visible accounts | Final experiment for this theme; rules provisional |
 | [Decision 0016](decisions/0016-geographic-feature-atlas.md) | One overlapping geographic-feature registry, separate from terrain and politics | Accepted; Map Lab prototype |
-| [AI Player V1 plan](../game-design/ai-nations-plan.md) | Temporary V1Experimental, viable economy/combat, sequential turns and watching options | Implemented; experimental; complete future removal required |
-| [AI Player handoff](../../modules/ai-player/README.md) | Script selection, author kit, setup, watching, verification and removal inventory | Current implementation evidence |
-| [Local AI script decision](decisions/0018-local-ai-scripts.md) | Single-file strategies, shared player operations, notebooks and V1 fallback | Accepted and implemented |
+| [AI Player V1 plan](../game-design/ai-nations-plan.md) | Historical strategic experiment and original removal requirement | Retired by resource Package B |
+| [Passive-player boundary](../../modules/ai-player/README.md) | Pass-only setup, readiness, lifecycle and administration | Current implementation evidence |
+| [Local AI script decision](decisions/0018-local-ai-scripts.md) | Historical single-file strategy decision | Retired by resource Package B |
 | [Decision 0015](decisions/0015-ai-player-boundary.md) | Disposable local AI implementation and a small game adapter; future API direction | Accepted and implemented |
 | [National production planner](decisions/0014-national-production-planner.md) | Centred compact planner, joint territorial forecast and atomic batch save | Implemented; experimental; economic map deferred |
 | [Game UI pass 4](game-ui-pass-4.md) | Nation colours/borders/markings, icons, optional sound and map-side existing production | Implemented; experimental |
@@ -104,4 +133,8 @@ Playtest [unit control](game-ui-pass-3.md): zoom-aware miniatures/flat counters,
 
 Playtest [the compact HUD and turn briefing](game-ui-pass-2.md): module/settings navigation now lives in the hamburger menu, resources open exact breakdowns, Ready is one click, and News reopens the current bulletin. The minimap can collapse without changing the main camera. This does not replace the remaining shared-data checkpoints below.
 
-Review the delivered [persistent player panels](live-data-plan.md) and shared contextual help. Player workspaces and inspectors now update within their instances; routine polling retains command availability. The durable turn-context backend proposal and remaining D4 verification remain open. Administration/map preparation tools remain available. Default-client cutover, production permissions and new game mechanics remain separate decisions.
+Review the delivered [persistent player panels](live-data-plan.md) and shared contextual help. Player workspaces and inspectors now update within their instances; routine polling retains command availability. The durable turn-context backend proposal and remaining D4 verification remain open. Administration/map preparation tools remain available. Production permissions and new game mechanics remain separate decisions.
+
+Production/development Package B: [definitions and seasonal state](../game-design/production-state-contract.md). Run `php8.3 tests/client/production-state.php` only through the guarded disposable MariaDB bootstrap (`NO7_ENTRY_TEST_ROOT`); it creates and deletes fixture games. Live economic cutover remains Packages C–F.
+
+Production/development Package C: run `php8.3 tests/client/production-economy.php` and `php8.3 tests/client/production-accounting.php` without a database. [Contract and live-integration boundary](../game-design/production-resolver-contract.md).

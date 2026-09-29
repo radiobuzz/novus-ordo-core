@@ -27,11 +27,6 @@ Artisan::command('app:rollback-turn {gameId}', function (int $gameId) {
     $this->info("Rolled back game {$gameId}.");
 })->purpose('Roll back the explicitly selected active game.');
 
-Artisan::command('app:start-game', function () {
-    $game = Game::createNew();
-    $this->info("Created game {$game->getId()}. Existing games remain active.");
-})->purpose('Create an independent active game.');
-
 Artisan::command('app:provision-admin {userName}', function (string $userName) {
     assert($this instanceof Command);
 

@@ -1,8 +1,8 @@
 <?php
 namespace App\Services;
 
-use App\Domain\{DivisionType, LaborPoolConstants, ProductionBidConstants, ResourceType};
-use App\Models\{Deployment, DivisionDetail, LeaderDetail, Nation, Order, ProductionBid, Turn};
+use App\Domain\DivisionType;
+use App\Models\{Deployment, DivisionDetail, LeaderDetail, Nation, Order, Turn};
 use App\ReadModels\OwnedDivisionInfo;
 
 /** Same owner payload for the HTTP client and internal players. */
@@ -11,6 +11,9 @@ final class PlayerWorkspace
     public function export(Nation $nation): array {
         $detail = $nation->getDetail();
         $turn = $detail->getTurn();
+        $policies = app(\App\Services\Policies\PolicyService::class)->state($nation, $turn);
+        $resolved = app(EconomyService::class)->resolve($detail);
+        $projection = app(\App\Services\Resources\ResourceLedger::class)->preview($detail, result: $resolved);
         return [
             'game_id' => $nation->getGame()->getId(),
             'turn_number' => $turn->getNumber(),
@@ -27,25 +30,22 @@ final class PlayerWorkspace
             'leaders' => LeaderDetail::getAll($turn)
                 ->filter(fn (LeaderDetail $leader) => $leader->nation_id === $nation->getId())
                 ->map(fn (LeaderDetail $leader) => $leader->export())->values(),
-            'budget' => $detail->exportBudget(),
-            'production_planning' => $detail->exportProductionPlanning(),
+            'budget' => $detail->exportBudget($projection),
+            'policies' => $policies,
+            'economy' => ($policies['enabled'] ?? false) ? app(EconomyService::class)->overview($detail, $policies, $resolved) : null,
+            'production_planning' => $projection,
             'turn_summary' => $detail->exportTurnSummary(),
             'deployment_limits' => collect(DivisionType::cases())->mapWithKeys(fn (DivisionType $type) => [
                 $type->name => $detail->getMaximumAffordableDeployment($type),
             ]),
-            'bids' => ProductionBid::getAllCommandBids($detail)
-                ->map(fn (ProductionBid $bid) => $bid->exportForOwner())->values(),
+            'acquisitions' => array_values(app(\App\Services\Resources\ResourceLedger::class)->plans($detail)),
             'divisions' => $this->divisions($nation, $turn),
             'deployments' => $detail->deployments()->get()
                 ->map(fn (Deployment $deployment) => $deployment->export())->values(),
             'definitions' => [
-                'divisions' => DivisionType::exportMetas(),
-                'resources' => ResourceType::exportMetas(),
-                'bid_resources' => collect(ResourceType::cases())
-                    ->filter(fn (ResourceType $resource) => ResourceType::getMeta($resource)->canPlaceCommand)
-                    ->map(fn (ResourceType $resource) => $resource->name)->values(),
-                'labor_per_unit' => LaborPoolConstants::LABOR_PER_UNIT_OF_PRODUCTION,
-                'max_bid_labor' => ProductionBidConstants::MAX_LABOR_PER_UNIT_LIMIT,
+                'divisions' => DivisionType::exportMetas($nation->getGame()),
+                ...\App\Services\Resources\ResourceCatalogue::forGame($nation->getGame())->export(),
+                'acquisition_resources' => array_keys(\App\Services\Resources\ResourceCatalogue::forGame($nation->getGame())->producers()),
             ],
         ];
     }

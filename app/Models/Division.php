@@ -85,7 +85,7 @@ class Division extends Model
 
         $engaging = $this->getNation()->getDetail()->isHostileTerritory($destination);
 
-        if ($engaging && !$this->getDetail()->isOperating() && !$this->getNation()->getDetail()->canAffordCosts(DivisionType::calculateTotalAttackCostsByResourceType($this->getDivisionType()))) {
+        if ($engaging && !$this->getDetail()->isOperating() && !$this->getNation()->getDetail()->canAffordCosts(\App\Services\Resources\ResourceCatalogue::forGame($this->getNation()->getGame())->costs('operation', $this->getDivisionType()))) {
             throw new LogicException("Can't afford the resources for an extra attack by a division of type {$this->getDivisionType()->name}");
         }
 

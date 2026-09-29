@@ -1,5 +1,6 @@
 <?php
 $app = require __DIR__ . '/isolated-app.php';
+require_once __DIR__ . '/generated-map-fixture.php';
 use App\Models\Game;
 use Illuminate\Support\Facades\{DB, Schema};
 use Symfony\Component\Process\Process;
@@ -18,7 +19,7 @@ try {
     $migration->up();
     $check(DB::table('games')->where('diplomacy_enabled', true)->count() === 0, 'Migration unexpectedly enabled existing games');
     $check(DB::table('games')->whereNull('turn_context_revision')->count() === 0, 'Existing games missing revision');
-    $check(Game::createNew()->diplomacy_enabled, 'New game did not opt into diplomacy');
+    $check(Game::createNew(generatedMapFixture())->diplomacy_enabled, 'New game did not opt into diplomacy');
 } finally {
     // Test-only rehearsal restores this temporary database even if a migration assertion fails.
     DB::disconnect();

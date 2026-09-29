@@ -1,0 +1,586 @@
+{
+  "name": "Production economy — owned output and development",
+  "description": "Funded public/private production, earned income, development and food security.",
+  "policies": [
+    {
+      "key": "income_tax",
+      "category_key": "economy",
+      "labels": {
+        "en": "Income tax",
+        "fr": "Impôt sur le revenu"
+      },
+      "descriptions": {
+        "en": "Taxes formal civilian income. High rates encourage avoidance and unrest; compliance recovers slowly after reductions.",
+        "fr": "Impose les revenus déclarés. Des taux élevés encouragent l’économie informelle et les troubles; la conformité se rétablit lentement après une baisse."
+      },
+      "sort_order": 1,
+      "status": "active",
+      "options": [
+        {
+          "key": "standard",
+          "labels": {
+            "en": "Standard"
+          },
+          "descriptions": {},
+          "is_default": true,
+          "sort_order": 1,
+          "retired": false,
+          "effects": [
+            {
+              "key": "tax_rule",
+              "effect_type": "finance.income_tax",
+              "arguments": {
+                "base": "taxable_income",
+                "rate": {
+                  "parameter": "rate"
+                }
+              },
+              "sort_order": 0
+            }
+          ]
+        }
+      ],
+      "parameters": [
+        {
+          "key": "rate",
+          "labels": {
+            "en": "Tax rate"
+          },
+          "value_type": "decimal",
+          "unit_key": "fraction_of_taxable_income",
+          "default_value": "0.25",
+          "min_value": "0.00",
+          "max_value": "1.00",
+          "step": "0.01",
+          "sort_order": 0
+        }
+      ],
+      "conditions": []
+    },
+    {
+      "key": "infrastructure_funding",
+      "category_key": "infrastructure",
+      "labels": {
+        "en": "Infrastructure funding",
+        "fr": "Financement des infrastructures"
+      },
+      "descriptions": {
+        "en": "Share of assessed maintenance and feasible improvements. Maintenance is paid first. Funding depends on affordable cash and credit; benefits build over subsequent seasons.",
+        "fr": "Part des besoins d’entretien et des améliorations réalisables. L’entretien est prioritaire. Le financement dépend des fonds disponibles; les bénéfices apparaissent progressivement."
+      },
+      "sort_order": 2,
+      "status": "active",
+      "options": [
+        {
+          "key": "enabled",
+          "labels": {
+            "en": "Enabled"
+          },
+          "descriptions": {},
+          "is_default": true,
+          "sort_order": 2,
+          "retired": false,
+          "effects": [
+            {
+              "key": "program_allocation",
+              "effect_type": "budget.program_funding",
+              "arguments": {
+                "program": "infrastructure",
+                "funding_ratio": {
+                  "parameter": "funding_ratio"
+                }
+              },
+              "sort_order": 0
+            }
+          ]
+        }
+      ],
+      "parameters": [
+        {
+          "key": "funding_ratio",
+          "labels": {
+            "en": "Share of calculated funding requirement"
+          },
+          "value_type": "decimal",
+          "unit_key": "fraction_of_program_requirement",
+          "default_value": "1.00",
+          "min_value": "0.00",
+          "max_value": "1.00",
+          "step": "0.01",
+          "sort_order": 0
+        }
+      ],
+      "conditions": []
+    },
+    {
+      "key": "infrastructure_priority",
+      "category_key": "infrastructure",
+      "labels": {
+        "en": "Investment priority",
+        "fr": "Priorité des investissements"
+      },
+      "descriptions": {
+        "en": "Distributes infrastructure improvements after maintenance. This changes where funds go, not the total requested.",
+        "fr": "Répartit les améliorations après l’entretien, sans modifier le budget total."
+      },
+      "sort_order": 3,
+      "status": "active",
+      "parameters": [],
+      "conditions": [],
+      "options": [
+        {
+          "key": "regional",
+          "labels": {
+            "en": "Regional development",
+            "fr": "Développement régional"
+          },
+          "descriptions": {},
+          "is_default": true,
+          "sort_order": 0,
+          "retired": false,
+          "effects": [
+            {
+              "key": "distribution",
+              "effect_type": "allocation.infrastructure_priority",
+              "arguments": {
+                "program": "infrastructure",
+                "priority": "regional"
+              },
+              "sort_order": 0
+            }
+          ]
+        },
+        {
+          "key": "population",
+          "labels": {
+            "en": "Population",
+            "fr": "Population"
+          },
+          "descriptions": {},
+          "is_default": false,
+          "sort_order": 1,
+          "retired": false,
+          "effects": [
+            {
+              "key": "distribution",
+              "effect_type": "allocation.infrastructure_priority",
+              "arguments": {
+                "program": "infrastructure",
+                "priority": "population"
+              },
+              "sort_order": 0
+            }
+          ]
+        },
+        {
+          "key": "concentration",
+          "labels": {
+            "en": "Economic concentration",
+            "fr": "Concentration économique"
+          },
+          "descriptions": {},
+          "is_default": false,
+          "sort_order": 2,
+          "retired": false,
+          "effects": [
+            {
+              "key": "distribution",
+              "effect_type": "allocation.infrastructure_priority",
+              "arguments": {
+                "program": "infrastructure",
+                "priority": "concentration"
+              },
+              "sort_order": 0
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "key": "agricultural_funding",
+      "category_key": "agriculture",
+      "labels": {
+        "en": "Agricultural development funding",
+        "fr": "Financement du développement agricole"
+      },
+      "descriptions": {
+        "en": "Funds gradual expansion of developed agricultural capacity. Existing farms continue producing without this program. Paid after infrastructure; improvements produce from the following season.",
+        "fr": "Finance progressivement la capacité agricole. Les exploitations existantes continuent sans ce programme. Payé après les infrastructures; les améliorations produisent à partir de la saison suivante."
+      },
+      "sort_order": 4,
+      "status": "active",
+      "options": [
+        {
+          "key": "enabled",
+          "labels": {
+            "en": "Enabled",
+            "fr": "Activé"
+          },
+          "descriptions": {},
+          "is_default": true,
+          "sort_order": 0,
+          "retired": false,
+          "effects": [
+            {
+              "key": "setting",
+              "effect_type": "production.development_funding",
+              "arguments": {
+                "funding_ratio": {
+                  "parameter": "funding_ratio"
+                },
+                "resource": "role:nutrition"
+              },
+              "sort_order": 0
+            }
+          ]
+        }
+      ],
+      "parameters": [
+        {
+          "key": "funding_ratio",
+          "labels": {
+            "en": "Share of feasible development requirement",
+            "fr": "Part des besoins de développement réalisable"
+          },
+          "value_type": "decimal",
+          "unit_key": "fraction_of_program_requirement",
+          "default_value": "0.50",
+          "min_value": "0.00",
+          "max_value": "1.00",
+          "step": "0.01",
+          "sort_order": 0
+        }
+      ],
+      "conditions": []
+    },
+    {
+      "key": "agricultural_priority",
+      "category_key": "agriculture",
+      "labels": {
+        "en": "Agricultural investment priority",
+        "fr": "Priorité des investissements agricoles"
+      },
+      "descriptions": {
+        "en": "Distributes funded improvements within suitable territories. Priorities matter when the budget cannot fund every feasible improvement.",
+        "fr": "Répartit les améliorations entre les territoires propices. La priorité importe quand le budget ne couvre pas toutes les améliorations réalisables."
+      },
+      "sort_order": 5,
+      "status": "active",
+      "options": [
+        {
+          "key": "potential",
+          "labels": {
+            "en": "Productive potential",
+            "fr": "Potentiel productif"
+          },
+          "descriptions": {},
+          "is_default": true,
+          "sort_order": 0,
+          "retired": false,
+          "effects": [
+            {
+              "key": "setting",
+              "effect_type": "allocation.production_priority",
+              "arguments": {
+                "priority": "potential",
+                "resource": "role:nutrition"
+              },
+              "sort_order": 0
+            }
+          ]
+        },
+        {
+          "key": "regional",
+          "labels": {
+            "en": "Regional development",
+            "fr": "Développement régional"
+          },
+          "descriptions": {},
+          "is_default": false,
+          "sort_order": 0,
+          "retired": false,
+          "effects": [
+            {
+              "key": "setting",
+              "effect_type": "allocation.production_priority",
+              "arguments": {
+                "priority": "regional",
+                "resource": "role:nutrition"
+              },
+              "sort_order": 0
+            }
+          ]
+        },
+        {
+          "key": "population",
+          "labels": {
+            "en": "Population needs",
+            "fr": "Besoins de la population"
+          },
+          "descriptions": {},
+          "is_default": false,
+          "sort_order": 0,
+          "retired": false,
+          "effects": [
+            {
+              "key": "setting",
+              "effect_type": "allocation.production_priority",
+              "arguments": {
+                "priority": "population",
+                "resource": "role:nutrition"
+              },
+              "sort_order": 0
+            }
+          ]
+        }
+      ],
+      "parameters": [],
+      "conditions": []
+    },
+    {
+      "key": "food_reserve",
+      "category_key": "agriculture",
+      "labels": {
+        "en": "Food reserve target",
+        "fr": "Objectif de réserve alimentaire"
+      },
+      "descriptions": {
+        "en": "Fund acquisitions toward a closing government reserve target. Purchases require cash and available supply; reserves do not boost population growth.",
+        "fr": "Finance des acquisitions pour atteindre la réserve publique visée. Les achats exigent des fonds et une offre disponible."
+      },
+      "sort_order": 6,
+      "status": "active",
+      "options": [
+        {
+          "key": "current",
+          "labels": {
+            "en": "Current needs only",
+            "fr": "Besoins courants seulement"
+          },
+          "descriptions": {},
+          "is_default": false,
+          "sort_order": 0,
+          "retired": false,
+          "effects": [
+            {
+              "key": "setting",
+              "effect_type": "food.reserve_target",
+              "arguments": {
+                "resource_role": "nutrition",
+                "seasons": "0"
+              },
+              "sort_order": 0
+            }
+          ]
+        },
+        {
+          "key": "basic",
+          "labels": {
+            "en": "Basic — half a season",
+            "fr": "Base — une demi-saison"
+          },
+          "descriptions": {},
+          "is_default": true,
+          "sort_order": 0,
+          "retired": false,
+          "effects": [
+            {
+              "key": "setting",
+              "effect_type": "food.reserve_target",
+              "arguments": {
+                "resource_role": "nutrition",
+                "seasons": "0.5"
+              },
+              "sort_order": 0
+            }
+          ]
+        },
+        {
+          "key": "strategic",
+          "labels": {
+            "en": "Strategic — one season",
+            "fr": "Stratégique — une saison"
+          },
+          "descriptions": {},
+          "is_default": false,
+          "sort_order": 0,
+          "retired": false,
+          "effects": [
+            {
+              "key": "setting",
+              "effect_type": "food.reserve_target",
+              "arguments": {
+                "resource_role": "nutrition",
+                "seasons": "1"
+              },
+              "sort_order": 0
+            }
+          ]
+        },
+        {
+          "key": "extended",
+          "labels": {
+            "en": "Extended — two seasons",
+            "fr": "Étendue — deux saisons"
+          },
+          "descriptions": {},
+          "is_default": false,
+          "sort_order": 0,
+          "retired": false,
+          "effects": [
+            {
+              "key": "setting",
+              "effect_type": "food.reserve_target",
+              "arguments": {
+                "resource_role": "nutrition",
+                "seasons": "2"
+              },
+              "sort_order": 0
+            }
+          ]
+        }
+      ],
+      "parameters": [],
+      "conditions": []
+    },
+    {
+      "key": "food_support",
+      "category_key": "economy",
+      "labels": {
+        "en": "Emergency food release",
+        "fr": "Distribution alimentaire d’urgence"
+      },
+      "descriptions": {
+        "en": "Allows reserves to cover civilian shortages after ordinary purchases. Only actual unmet need is released."
+      },
+      "sort_order": 10,
+      "status": "active",
+      "parameters": [],
+      "conditions": [],
+      "options": [
+        {
+          "key": "off",
+          "labels": {
+            "en": "Keep reserves"
+          },
+          "descriptions": {},
+          "is_default": false,
+          "sort_order": 0,
+          "retired": false,
+          "effects": [
+            {
+              "key": "setting",
+              "effect_type": "food.emergency_release",
+              "arguments": {
+                "resource_role": "nutrition",
+                "fraction": "0"
+              },
+              "sort_order": 0
+            }
+          ]
+        },
+        {
+          "key": "release",
+          "labels": {
+            "en": "Release reserves for unmet civilian needs"
+          },
+          "descriptions": {},
+          "is_default": true,
+          "sort_order": 1,
+          "retired": false,
+          "effects": [
+            {
+              "key": "setting",
+              "effect_type": "food.emergency_release",
+              "arguments": {
+                "resource_role": "nutrition",
+                "fraction": "1"
+              },
+              "sort_order": 0
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "key": "production_investors",
+      "category_key": "economy",
+      "labels": {
+        "en": "New productive investment",
+        "fr": "Nouveaux investissements productifs"
+      },
+      "descriptions": {
+        "en": "Determines who may expand productive capacity. Existing assets and inventories retain their owners; this does not nationalize or privatize them."
+      },
+      "sort_order": 10,
+      "status": "active",
+      "parameters": [],
+      "conditions": [],
+      "options": [
+        {
+          "key": "private",
+          "labels": {
+            "en": "Private investment"
+          },
+          "descriptions": {},
+          "is_default": false,
+          "sort_order": 0,
+          "retired": false,
+          "effects": [
+            {
+              "key": "setting",
+              "effect_type": "institutions.development_ownership",
+              "arguments": {
+                "sector": "production",
+                "arrangement": "private"
+              },
+              "sort_order": 0
+            }
+          ]
+        },
+        {
+          "key": "mixed",
+          "labels": {
+            "en": "Public and private investment"
+          },
+          "descriptions": {},
+          "is_default": true,
+          "sort_order": 1,
+          "retired": false,
+          "effects": [
+            {
+              "key": "setting",
+              "effect_type": "institutions.development_ownership",
+              "arguments": {
+                "sector": "production",
+                "arrangement": "mixed"
+              },
+              "sort_order": 0
+            }
+          ]
+        },
+        {
+          "key": "public",
+          "labels": {
+            "en": "Public investment"
+          },
+          "descriptions": {},
+          "is_default": false,
+          "sort_order": 2,
+          "retired": false,
+          "effects": [
+            {
+              "key": "setting",
+              "effect_type": "institutions.development_ownership",
+              "arguments": {
+                "sector": "production",
+                "arrangement": "public"
+              },
+              "sort_order": 0
+            }
+          ]
+        }
+      ]
+    }
+  ]
+}

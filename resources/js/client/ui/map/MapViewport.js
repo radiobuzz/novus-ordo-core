@@ -1,15 +1,12 @@
 import { el, button } from '../dom.js';
 import { Camera } from './Camera.js';
-import { MapPicker } from './MapPicker.js';
-import { CanvasRenderer } from './CanvasRenderer.js';
 import { MapInteractions } from './MapInteractions.js';
 import { HexMapPicker, HexMapRenderer } from './HexMap.js';
 
 /** Caller supplies layers, data, and the meaning of selection. */
 export class MapViewport {
     static connect({ canvas, camera, context, scope, onChange, onSelect, tool }) {
-        const Renderer = context.definition.model ? HexMapRenderer : CanvasRenderer;
-        const renderer = new Renderer(canvas, camera, context, scope, onChange);
+        const renderer = new HexMapRenderer(canvas, camera, context, scope, onChange);
         new MapInteractions(canvas, camera, renderer, context.picker, scope, tool ?? { select: onSelect });
         return renderer;
     }
@@ -19,16 +16,13 @@ export class MapViewport {
         definition,
         territories,
         layers,
-        images,
         onSelect,
         savedCamera,
         onDraw,
         context = {},
     }) {
         this.camera = new Camera(definition.width, definition.height);
-        this.picker = definition.model
-            ? new HexMapPicker(territories, definition)
-            : new MapPicker(territories, definition);
+        this.picker = new HexMapPicker(territories, definition);
         this.canvas = el('canvas', { class: 'world-canvas', tabindex: 0 });
         i18n.bind(scope, this.canvas, 'map.label', {}, 'aria-label');
         const zoom = el('span', { class: 'zoom-value' });
@@ -80,12 +74,8 @@ export class MapViewport {
                 this.camera.fit();
                 this.invalidate();
             });
-            this.ready = this.renderer.loadImages(images).then((ok) => {
-                if (scope.closed) return;
-                notice.hidden = ok;
-                if (!ok) i18n.bind(scope, notice, 'map.failed');
-                return ok;
-            });
+            notice.hidden = true;
+            this.ready = Promise.resolve(true);
         } catch {
             i18n.bind(scope, notice, 'map.failed');
         }

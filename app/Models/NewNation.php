@@ -122,8 +122,8 @@ class NewNation extends Model
 
             $homeTerritories->each(function (Territory $territory) use ($nation) {
                 $detail = $territory->getDetail();
-                $detail->assignHomeToOwner($nation);
                 $detail->setPopulationSize(NewNation::HOME_TERRITORY_POPULATION);
+                $detail->assignHomeToOwner($nation);
                 $detail->resetLaborPool();
             });
 
@@ -131,6 +131,8 @@ class NewNation extends Model
 
             $nation->save();
 
+            app(\App\Services\Policies\PolicyService::class)->initializeNation($nation, $nation->getGame()->getCurrentTurn());
+            app(\App\Services\EconomyService::class)->initializeNation($nation, $nation->getGame()->getCurrentTurn());
             $nation->getDetail()->finalizeNationCreation();
 
             Metacache::expireAllforTurn($nation->getGame()->getCurrentTurn());

@@ -2,7 +2,7 @@ import { test, expect } from '@playwright/test';
 import { fixtures } from '../fixtures.js';
 import { prepareHud } from './hud-helpers.js';
 import { createMapModel } from '../../../resources/js/map/model.js';
-import { exportMap } from '../../../resources/js/map/snapshot.js';
+import { exportMap, restoreMap } from '../../../resources/js/map/snapshot.js';
 
 test.beforeEach(async ({ page }) => prepareHud(page));
 async function menu(page) {
@@ -14,7 +14,7 @@ test('national bands remain distinct and rivers stay visible without decorative 
 }) => {
     test.setTimeout(45000);
     const map = exportMap(createMapModel());
-    expect(map.rivers.length).toBeGreaterThan(0);
+    expect(restoreMap(map).rivers.length).toBeGreaterThan(0);
     const current = fixtures('/territories/turn-infos');
     current.data.forEach((t, i) => {
         t.owner_nation_id = i % 30 < 15 ? 7 : 8;
@@ -26,9 +26,12 @@ test('national bands remain distinct and rivers stay visible without decorative 
     await page.goto('/client?game_id=1');
     await expect(page.locator('.world-canvas')).toBeVisible();
     await expect(page.locator('.map-notice')).toBeHidden();
-    await page.getByText('Layers · Geopolitical', { exact: true }).click();
-    await page.getByLabel('Ownership', { exact: true }).uncheck();
-    await page.getByLabel('Map detail', { exact: true }).uncheck();
+    await page.getByRole('tab', { name: 'Politics', exact: true }).click();
+    await page.getByLabel('National ownership', { exact: true }).uncheck();
+    await page.getByRole('tab', { name: 'Display', exact: true }).click();
+    await page.locator('.ml-drawer summary').filter({ hasText: 'Base map' }).click();
+    await page.getByLabel('Landscape details', { exact: true }).uncheck();
+    await page.locator('.ml-drawer summary').filter({ hasText: 'Lines & markers' }).click();
     await expect(page.getByLabel('Rivers', { exact: true })).toBeChecked();
     const canvas = page.locator('.world-canvas');
     const countRed = () =>
@@ -41,20 +44,19 @@ test('national bands remain distinct and rivers stay visible without decorative 
             return count;
         });
     await expect.poll(countRed).toBeGreaterThan(100);
-    await page.getByLabel('Borders', { exact: true }).uncheck();
+    await page.getByLabel('National borders', { exact: true }).uncheck();
     await expect.poll(countRed).toBe(0);
-    await page.getByLabel('Borders', { exact: true }).check();
+    await page.getByLabel('National borders', { exact: true }).check();
     await expect.poll(countRed).toBeGreaterThan(100);
     await page.keyboard.press('Escape');
     await page.screenshot({ path: 'test-results/client/borders-rivers.png' });
     const riverImage = await canvas.evaluate((c) => c.toDataURL());
-    await page.getByText('Layers · Geopolitical', { exact: true }).click();
+    await page.getByRole('tab', { name: 'Display', exact: true }).click();
     await page.getByLabel('Rivers', { exact: true }).uncheck();
     await expect.poll(() => canvas.evaluate((c) => c.toDataURL())).not.toBe(riverImage);
     await page.getByLabel('Rivers', { exact: true }).check();
     await expect.poll(() => canvas.evaluate((c) => c.toDataURL())).toBe(riverImage);
 });
-
 test('sound is silent by default, independently switchable, remembered and not replayed by refresh', async ({
     page,
 }) => {
@@ -159,73 +161,4 @@ test('sound is silent by default, independently switchable, remembered and not r
     await expect(page.getByLabel('Hover and click sounds', { exact: true })).not.toBeChecked();
     await expect(page.getByLabel('Unit and game-event sounds', { exact: true })).not.toBeChecked();
     expect(await page.evaluate(() => audioContexts)).toBe(0);
-});
-
-test('Economic mode preserves production inputs through refresh, selection and mixed command outcomes', async ({
-    page,
-}) => {
-    const data = fixtures('/client/gameplay'),
-        errors = [],
-        writes = [];
-    let reject = true;
-    page.on('pageerror', (e) => errors.push(e.message));
-    await page.route('**/client/gameplay', (route) => route.fulfill({ json: data }));
-    await page.route('**/nation/production-plan', (route) => {
-        const body = route.request().postDataJSON();
-        writes.push(body);
-        if (reject) return route.fulfill({ status: 422, json: { message: 'Fixture rejection' } });
-        data.bids = body.bids;
-        data.budget.production.Food = 6;
-        return route.fulfill({ status: 204 });
-    });
-    await page.goto('/client?game_id=1');
-    await page.locator('[data-mode="economic"]').click();
-    const food = page.locator('[data-production-resource="Food"]');
-    const quantity = food.getByLabel('Food extra / turn', { exact: true });
-    const quantitySlider = food.getByLabel('Food target slider', { exact: true });
-    await page.locator('.planner-advanced > summary').click();
-    const productivity = page.getByLabel('Food minimum productivity', { exact: true });
-    await quantity.fill('9');
-    await productivity.fill('3');
-    await expect(quantitySlider).toHaveValue('9');
-    await quantitySlider.fill('8');
-    await expect(quantity).toHaveValue('8');
-    await quantity.fill('9');
-    await expect(food).toContainText('below target');
-    await page.evaluate(() => {
-        window.productionField = document.querySelector('[data-production-resource="Food"] input');
-        window.productionCanvas = document.querySelector('.world-canvas');
-    });
-    await page.evaluate(() => window.dispatchEvent(new Event('focus')));
-    await expect(page.locator('.game-hud')).toHaveAttribute('data-freshness', 'ready');
-    await expect(quantity).toHaveValue('9');
-    await page.evaluate(() => (location.hash = '#/world?territory=156'));
-    await expect(quantity).toHaveValue('9');
-    expect(
-        await page.evaluate(
-            () => productionField === document.querySelector('[data-production-resource="Food"] input'),
-        ),
-    ).toBe(true);
-    await page.getByRole('button', { name: 'Apply production plan', exact: true }).click();
-    await expect(page.locator('.production-planner')).toContainText('Production plan rejected');
-    await expect(quantity).toHaveValue('9');
-    reject = false;
-    await page.getByRole('button', { name: 'Apply production plan', exact: true }).click();
-    await expect(food).toContainText('6 →');
-    await expect(productivity).toHaveValue('3');
-    expect(writes).toHaveLength(2);
-    expect(writes[1].bids.find((bid) => bid.resource_type === 'Food').max_quantity).toBe(9000000);
-    expect(writes[1].bids.find((bid) => bid.resource_type === 'Food').max_labor_allocation_per_unit).toBe(
-        333334,
-    );
-    expect(await page.evaluate(() => productionCanvas === document.querySelector('.world-canvas'))).toBe(
-        true,
-    );
-    await page.screenshot({ path: 'test-results/client/economic-production.png' });
-    await page.setViewportSize({ width: 390, height: 844 });
-    await expect(quantity).toBeVisible();
-    await expect(quantitySlider).toBeVisible();
-    expect(await page.evaluate(() => document.documentElement.scrollWidth <= innerWidth + 1)).toBe(true);
-    await page.screenshot({ path: 'test-results/client/economic-production-mobile.png' });
-    expect(errors).toEqual([]);
 });

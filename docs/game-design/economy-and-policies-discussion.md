@@ -203,6 +203,10 @@ Public-service policy and the service sector are different concepts. Health and 
 
 ## Open decisions and next discussion
 
+The user approved the high-level policy table structure and delegated schema details. The [schema draft](policy-system-schema.md) now proposes eight tables with concrete examples and existing-turn integration. This is a review document, not an implemented migration or economy.
+
+Latest direction, 2026-09-27: the [policy-system foundation](policy-system-foundation.md) now records a bounded first playable loop, supported effects in database-authored policies, game-owned ruleset snapshots independent of later template edits, visible dependency consequences, funding-dependent service delivery, desired previews, and future nation-specific roleplay terminology. Generic terms are used initially. Ordinary policy changes take effect at the next seasonal boundary, with pending choices editable until turn lock. Detailed schema remains open; the entire future effect inventory is not a prerequisite to starting.
+
 The immediate policy-design priority is now the [effect catalogue](policy-effect-catalogue.md): inventory current levers, distinguish them from NO2/lab mechanisms and future requirements, and agree vocabulary for authority, geographic scope, targets and simulation scale. The user accepted this as the next design task; the catalogue's detailed proposals remain open.
 
 Policy-system discussion, 2026-09-27: before choosing storage, an authoring interface or implementation details, extract the old NO2 policies as the concrete starting point. The [policy extraction and findings](no2-policy-extraction.md) and [complete catalogue](no2-policy-catalogue.md) now document 46 topics, 161 choices, dependencies, effects and reform packages. Historical coefficients and implementation quirks are evidence to review, not newly accepted mechanics. Database authoring, JSON assets and versioning remain design decisions.

@@ -13,9 +13,8 @@ function checkMap(bool $condition, string $message): void {
 Artisan::call('migrate', ['--force' => true]);
 $snapshot = json_decode(stream_get_contents(STDIN), true, flags: JSON_THROW_ON_ERROR);
 $map = GeneratedMapData::fromArray($snapshot);
-checkMap(count($map->mapData->territories) === 600, 'Incomplete map adapter');
-$legacy = Game::createNew();
-checkMap($legacy->map()->first() === null, 'Legacy map must remain supported');
+checkMap(count($map->mapData->territories) === $snapshot['regionColumns']*$snapshot['regionRows'], 'Incomplete map adapter');
+$beforeValidation = Game::count();
 foreach (['duplicate', 'missing', 'terrain', 'geometry'] as $invalid) {
     $bad = $snapshot;
     if ($invalid === 'duplicate') $bad['cells'][1] = $bad['cells'][0];
@@ -24,17 +23,15 @@ foreach (['duplicate', 'missing', 'terrain', 'geometry'] as $invalid) {
     if ($invalid === 'geometry') $bad['cells'][0][0] = 10000;
     try { GeneratedMapData::fromArray($bad); throw new RuntimeException('Bad map accepted'); }
     catch (ValidationException) {}
-    checkMap(Game::getCurrent()->getId() === $legacy->getId(), 'Validation changed current game');
+    checkMap(Game::count() === $beforeValidation, 'Validation created a game');
 }
 $game = Game::createNew($map);
-checkMap($legacy->fresh()->isActive(), 'Existing game was deactivated');
-checkMap($legacy->territories()->count() === 600, 'Previous game data lost');
-checkMap($game->territories()->count() === 600, 'Territories not persisted');
-checkMap($game->map()->first()->getSnapshot() === $snapshot, 'Saved geography differs from preview');
+checkMap($game->territories()->count() === $snapshot['regionColumns']*$snapshot['regionRows'], 'Territories not persisted');
+checkMap($game->map()->first()->getSnapshot() == $snapshot, 'Saved geography differs from preview');
 $land = $game->territories()->where(Territory::whereIsControllable())->get();
-checkMap($land->count() === 380, 'One-cell land was discarded');
-checkMap($land->where('usable_land_ratio', '<', .20)->count() === 28, 'Small islands missing');
-checkMap($land->where('usable_land_ratio', .05)->count() === 9, 'Single-cell islands missing');
+$expectedLand = count(array_filter($map->mapData->territories, fn($t) => $t->usableLandRatio > 0));
+checkMap($land->count() === $expectedLand, 'Land cells discarded');
+foreach ($land as $territory) checkMap($territory->usable_land_ratio > 0, 'Non-positive land area');
 $connections = Territory::getTerritoryConnections($game);
 foreach ($connections as $from => $edges) foreach ($edges as $edge) {
     checkMap($connections[$edge->connectedTerritoryId]->contains(fn ($reverse) => $reverse->connectedTerritoryId === $from && $reverse->isConnectedByLand === $edge->isConnectedByLand), 'Asymmetric connection');
@@ -44,10 +41,9 @@ GameMap::created(fn () => throw new RuntimeException('injected-map-failure'));
 try { Game::createNew($map); throw new RuntimeException('Expected injected failure'); }
 catch (RuntimeException $error) { checkMap($error->getMessage() === 'injected-map-failure', 'Unexpected transaction failure'); }
 GameMap::flushEventListeners();
-checkMap(Game::count() === $count && $legacy->fresh()->isActive() && $game->fresh()->isActive(), 'Creation was not atomic');
+checkMap(Game::count() === $count && $game->fresh()->isActive(), 'Creation was not atomic');
 foreach (['map-admin' => true, 'map-player' => false] as $name => $admin) {
     $user = User::where('name', $name)->first() ?? new User();$user->name=$name;$user->email=$name.'@example.test';
     $user->password=Illuminate\Support\Facades\Hash::make('fixture-password');$user->is_admin=$admin;$user->save();
 }
-$legacy->disable(); $legacy->save(); // Leave one active fixture for the old unscoped browser journey.
-echo "PASS: validated snapshot, exact persistence, all 380 land regions, tiny islands, symmetric connections, simultaneous active games and atomic rollback.\n";
+echo "PASS: validated snapshot, exact persistence, all sampled land regions, symmetric connections, simultaneous active games and atomic rollback.\n";

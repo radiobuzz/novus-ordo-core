@@ -1,61 +1,39 @@
 <?php
 namespace App\Services;
-
-use App\Domain\ResourceType;
+use App\Domain\Resources\Quantity as Q;
 use App\Models\{Nation, NationResourceStockpile};
-use Illuminate\Validation\ValidationException;
-
-/** Stored, uncommitted resources only. Call transfer while holding the game's mutation lock. */
+use App\Services\Resources\ResourceLedger;
 final class NationGrantService {
-    public static function quantityUnits(mixed $value): int {
-        if ((!is_string($value) && !is_int($value) && !is_float($value))
-            || !preg_match('/^(0|[1-9][0-9]{0,9})(?:\.([0-9]{1,4}))?$/D', (string) $value, $parts)) {
-            throw ValidationException::withMessages(['quantity' => 'Use a positive amount with at most four decimal places.']);
-        }
-        $units = (int) $parts[1] * 10000 + (int) str_pad($parts[2] ?? '', 4, '0');
-        if ($units < 1 || $units > 10000000000000) {
-            throw ValidationException::withMessages(['quantity' => 'The amount must be between 0.0001 and 1,000,000,000.']);
-        }
-        return $units;
+    public static function quantity(mixed $value): string {
+        $quantity = Q::parse($value);
+        if (Q::cmp($quantity, '0') <= 0) abort(422, 'Use a positive grant quantity.');
+        return $quantity;
     }
-
-    public static function formatted(int $units): string {
-        return intdiv($units, 10000) . '.' . str_pad((string) ($units % 10000), 4, '0', STR_PAD_LEFT);
-    }
-
     public function available(Nation $nation): array {
-        $detail = $nation->getDetail();
-        $inputs = $detail->exportProductionPlanning()['resources'];
-        $result = [];
-        foreach (ResourceType::cases() as $type) {
-            if (!ResourceType::getMeta($type)->canBeStocked) continue;
-            $row = $inputs[$type->name];
-            $raw = max(0, $row['stock'] - $row['expenses'] - $row['upkeep']);
-            $units = (int) floor($raw * 10000 / \App\Domain\LaborPoolConstants::LABOR_PER_UNIT_OF_PRODUCTION);
-            $result[$type->name] = self::formatted($units);
-        }
+        $detail = $nation->getDetail(); $result = [];
+        $available = app(ResourceLedger::class)->available($detail);
+        foreach ($detail->resources()->resources as $key => $resource) if ($resource['grantable']) $result[$key] = $available[$key];
         return $result;
     }
-
-    public function transfer(Nation $sender, Nation $recipient, ResourceType $type, int $units): bool {
+    public function transfer(Nation $sender, Nation $recipient, string $key, string $quantity): bool {
         if (!GameMutation::holds($sender->getGame())) throw new \LogicException('Grant requires the game lock.');
-        if ($sender->game_id !== $recipient->game_id || $sender->getId() === $recipient->getId()) abort(422, 'Invalid recipient.');
-        if (!ResourceType::getMeta($type)->canBeStocked) abort(422, 'This resource cannot be granted.');
-        if ($units < 1 || $units > 10000000000000) abort(422, 'Invalid grant quantity.');
-        $available = $this->available($sender)[$type->name];
-        $availableUnits = (int) round((float) $available * 10000);
-        if ($units > $availableUnits) return false;
-        foreach ([[$sender, -$units], [$recipient, $units]] as [$nation, $change]) {
+        if ($sender->game_id !== $recipient->game_id || $sender->id === $recipient->id) abort(422, 'Invalid recipient.');
+        $resource = $sender->getDetail()->resources()->get($key);
+        abort_unless($resource['grantable'], 422, 'This resource cannot be granted.');
+        $quantity = self::quantity($quantity);
+        if (Q::cmp($quantity, $this->available($sender)[$key]) > 0) return false;
+        $basis = '0';
+        foreach ([[$sender, true], [$recipient, false]] as [$nation, $debit]) {
             $detail = $nation->getDetail();
-            $stock = NationResourceStockpile::where('nation_id', $nation->getId())
-                ->where('turn_id', $detail->turn_id)->where('resource_type', $type->value)->lockForUpdate()->first();
-            if (!$stock) $stock = NationResourceStockpile::create($nation, $detail->getTurn(), $type, 0);
-            // Preserve sub-grant-precision residuals already present in the economy.
-            $stock->available_quantity += $change / 10000;
-            if ($stock->available_quantity < 0) throw new \LogicException('Grant would overdraw stock.');
-            $stock->save();
-            $detail->unsetRelations();
-            $detail->onDeployment(); // Existing allocator; submitted production bids remain unchanged.
+            $stock = NationResourceStockpile::where('owner_kind', 'government')->where('nation_id', $nation->id)->where('turn_id', $detail->turn_id)
+                ->where('resource_id', $resource['id'])->lockForUpdate()->first();
+            if (!$stock) $stock = NationResourceStockpile::create($nation, $detail->getTurn(), $key, '0');
+            if ($debit) $basis = $stock->removeQuantity($quantity);
+            else {
+                $stock->cost_basis = Q::add($stock->cost_basis, $basis);
+                $stock->available_quantity = Q::add($stock->available_quantity, $quantity);
+                $stock->save();
+            }
         }
         return true;
     }

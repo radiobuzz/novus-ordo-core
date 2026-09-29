@@ -9,6 +9,7 @@ use App\Services\LoggedInGameContext;
 use App\Services\LoggedUserContext;
 use App\Utils\Annotations\Summary;
 use Illuminate\Http\JsonResponse;
+use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Response;
 
 class UserController extends Controller
@@ -29,7 +30,7 @@ class UserController extends Controller
         return response()->json($user->exportNationSetupSatusForOwner($context->getGame()));
     }
     
-    public function logoutCurrentUser(): Response {
+    public function logoutCurrentUser(): RedirectResponse {
         User::logoutCurrentUser();
 
         return redirect()->route('client.entry');

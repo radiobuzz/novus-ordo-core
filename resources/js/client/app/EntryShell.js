@@ -18,6 +18,7 @@ export class EntryShell {
         this.atmosphere = new AtmosphereBackground(this.scope, {
             background: boot.assets.background,
             slides: boot.assets.backgroundSlides,
+            audio,
         });
         this.atmosphere.setSlideshow(!boot.userId);
         this.screen = el('main', { class: 'entry-screen' });

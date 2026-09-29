@@ -1,8 +1,9 @@
 import { ApiError } from '../api/ApiError.js';
+import { acquisitionPlan } from './production.js';
 import { Signal } from '../runtime/Signal.js';
 
 const commands = new Set([
-    'placeProductionBid',
+    'savePendingPolicies',
     'applyProductionPlan',
     'deploy',
     'cancelDeployments',
@@ -24,11 +25,14 @@ export class GameplayService {
         this.busy = false;
         this.notice = '';
         this.changed = new Signal();
+        this.economicDraftChanged = new Signal();
+        this.economicRevision = 0;
         this.outcome = null;
         this.needsReview = false;
         world.store?.subscribe(world.scope, (state) => {
             if (!state.snapshot) {
-                this.bidDrafts = {};
+                this.policyState = null;
+                this.acquisitionDrafts = {};
                 this.draftKey = null;
                 this.deploymentState = null;
                 this.rankingHistoryState = null;
@@ -69,12 +73,68 @@ export class GameplayService {
         });
     }
     drafts(snapshot) {
-        const key = `${snapshot.game_id}:${snapshot.turn_number}:${snapshot.setup.nation_id}`;
+        const key = `${snapshot.game_id}:${snapshot.turn_number}:${snapshot.turn_context_revision}:${snapshot.setup.nation_id}:${snapshot.nation?.definitions?.edit_counter}`;
         if (key !== this.draftKey) {
             this.draftKey = key;
-            this.bidDrafts = {};
+            this.acquisitionDrafts = {};
         }
-        return this.bidDrafts;
+        return this.acquisitionDrafts;
+    }
+    policyDraft(snapshot) {
+        const key = `${snapshot.game_id}:${snapshot.setup.nation_id}:${snapshot.turn_context_revision}:${snapshot.nation?.policies?.edit_counter}`;
+        if (this.policyState?.key !== key) this.policyState = { key, changes: null, base: null };
+        return this.policyState;
+    }
+    notifyEconomicDraft() {
+        this.economicRevision++;
+        this.economicDraftChanged.emit();
+    }
+    economicPlan(snapshot, overrides = {}) {
+        const policies = snapshot.nation.policies;
+        const draft = this.policyDraft(snapshot);
+        if (draft.changes !== null && draft.base !== JSON.stringify([policies.current, policies.pending]))
+            throw new ApiError('conflict', 'The saved policy plan changed. Review your draft first.');
+        return {
+            turn_id: policies.turn_id,
+            edit_counter: policies.edit_counter,
+            changes: draft.changes ?? policies.pending,
+            acquisitions: acquisitionPlan(snapshot.nation, this.drafts(snapshot)),
+            ...overrides,
+        };
+    }
+    async previewPolicies(snapshot, changes, signal, acquisitions = null) {
+        const revision = this.economicRevision;
+        const generation = this.world.generation;
+        const result = await this.api.previewPolicies({
+            signal,
+            body: {
+                ...this.economicPlan(snapshot, { changes, ...(acquisitions ? { acquisitions } : {}) }),
+                client_context: {
+                    game_id: snapshot.game_id,
+                    nation_id: snapshot.setup.nation_id,
+                    user_id: this.boot.userId,
+                    resource_edit_counter: snapshot.nation.definitions.edit_counter,
+                    turn_number: snapshot.turn_number,
+                    turn_context_revision: snapshot.turn_context_revision,
+                },
+            },
+        });
+        if (
+            revision !== this.economicRevision ||
+            generation !== this.world.generation ||
+            !this.world.same(snapshot, this.world.snapshot) ||
+            snapshot.nation.policies.edit_counter !== this.world.snapshot.nation.policies.edit_counter ||
+            snapshot.nation.definitions.edit_counter !== this.world.snapshot.nation.definitions.edit_counter
+        )
+            throw new ApiError('conflict', 'The economic plan changed. Refresh the estimate.');
+        return result;
+    }
+    async previewProduction(snapshot, acquisitions, signal) {
+        const changes = this.economicPlan(snapshot).changes;
+        const result = await this.previewPolicies(snapshot, changes, signal, acquisitions);
+        if (!result.valid)
+            throw new ApiError('validation', 'Review the policy draft before saving the seasonal plan.');
+        return result.production_planning;
     }
     deploymentDraft(snapshot) {
         const key = `${snapshot.game_id}:${snapshot.turn_number}:${snapshot.setup.nation_id}`;
@@ -355,6 +415,8 @@ export class GameplayService {
         if (this.busy) throw new ApiError('conflict', 'Another command is still pending.');
         if (this.needsReview)
             throw new ApiError('conflict', 'Review the uncertain command outcome before submitting again.');
+        const economic = ['savePendingPolicies', 'applyProductionPlan'].includes(name);
+        if (economic) body = this.economicPlan(snapshot, body);
         this.busy = true;
         this.lastCommand = name;
         this.notice = 'Submitting…';
@@ -363,18 +425,16 @@ export class GameplayService {
         this.changed.emit();
         let started = false;
         let response;
-        const bidDraft =
-            name === 'placeProductionBid' ? JSON.stringify(this.drafts(snapshot)[body.resource_type]) : null;
-        const planKey = `${snapshot.game_id}:${snapshot.turn_number}:${snapshot.setup.nation_id}`;
-        const planDrafts =
-            name === 'applyProductionPlan'
-                ? Object.fromEntries(
-                      body.bids.map((bid) => [
-                          bid.resource_type,
-                          JSON.stringify(this.drafts(snapshot)[bid.resource_type]),
-                      ]),
-                  )
-                : null;
+        const policyKey = `${snapshot.game_id}:${snapshot.setup.nation_id}:${snapshot.turn_context_revision}:${snapshot.nation?.policies?.edit_counter}`;
+        const planKey = this.draftKey;
+        const planDrafts = economic
+            ? Object.fromEntries(
+                  body.acquisitions.map((bid) => [
+                      bid.resource_key,
+                      JSON.stringify(this.drafts(snapshot)[bid.resource_key]),
+                  ]),
+              )
+            : null;
         try {
             this.world.beginCommand(snapshot);
             started = true;
@@ -394,10 +454,19 @@ export class GameplayService {
                             : {}),
                         nation_id: snapshot.setup.nation_id,
                         user_id: this.boot.userId,
+                        resource_edit_counter: snapshot.nation?.definitions.edit_counter,
                     },
                 },
             });
             this.outcome = { state: 'accepted', reconciled: false };
+            if (
+                economic &&
+                this.policyState?.key === policyKey &&
+                JSON.stringify(this.policyState.changes) === JSON.stringify(body.changes)
+            ) {
+                this.policyState.changes = null;
+                this.policyState.base = null;
+            }
             // Accepted preview cleanup belongs to the service, even if World was closed/reopened.
             // IDs are local metadata, never sent to the API; unrelated/newer placements survive.
             if (name === 'deploy' && deploymentDraftIds.length) {
@@ -410,12 +479,6 @@ export class GameplayService {
                 }
             }
             this.notice = 'Command accepted. Checking the latest server state…';
-            if (
-                name === 'placeProductionBid' &&
-                this.draftKey === planKey &&
-                JSON.stringify(this.bidDrafts[body.resource_type]) === bidDraft
-            )
-                delete this.bidDrafts[body.resource_type];
         } catch (error) {
             const rejected = {
                 deploy: 'Deployment rejected. Check the available resources, quantity and territory loyalty.',
@@ -423,7 +486,6 @@ export class GameplayService {
                     'Orders rejected. Check movement range, ownership and resources for attack costs.',
                 sendGuardOrders:
                     'Guard orders rejected. Select idle units in territory you control and check operation costs.',
-                placeProductionBid: 'Production bid rejected. Check quantity and productivity.',
                 applyProductionPlan: 'Production plan rejected. Check the targets and advanced settings.',
             };
             this.outcome = { state: error.uncertain ? 'uncertain' : 'rejected', reconciled: false };
@@ -457,8 +519,8 @@ export class GameplayService {
             // Keep the submitted fields visible while reconciling; never repaint old saved bids.
             if (planDrafts && reconciled && this.outcome.state === 'accepted' && this.draftKey === planKey)
                 for (const [resource, submitted] of Object.entries(planDrafts))
-                    if (JSON.stringify(this.bidDrafts[resource]) === submitted)
-                        delete this.bidDrafts[resource];
+                    if (JSON.stringify(this.acquisitionDrafts[resource]) === submitted)
+                        delete this.acquisitionDrafts[resource];
             this.outcome = { ...this.outcome, reconciled };
             if (this.outcome.state === 'accepted')
                 this.notice = reconciled

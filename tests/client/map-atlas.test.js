@@ -1,11 +1,11 @@
 import test from 'node:test';
 import assert from 'node:assert/strict';
 import { createMapLabModel } from '../../resources/js/map-lab/model.js';
-import { createCartography, createOceans, createRiverNames } from '../../resources/js/map-lab/cartography.js';
+import { createCartography, createOceans, createRiverNames } from '../../resources/js/map/cartography.js';
 import { createNaturalResources, RESOURCE_KINDS } from '../../resources/js/map-lab/natural-resources.js';
 import { createEconomy, updateOilSubstrate, recordOilUse } from '../../resources/js/map-lab/economy.js';
 import { axialKey, neighborCoordinates } from '../../resources/js/map-lab/hex.js';
-import { createAreaFeatures, relateLakes } from '../../resources/js/map-lab/geographic-features.js';
+import { createAreaFeatures, relateLakes } from '../../resources/js/map/geographic-features.js';
 
 const terrain = (m) =>
     JSON.stringify(

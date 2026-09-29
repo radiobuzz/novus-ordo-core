@@ -116,22 +116,18 @@ test('production batch clears only accepted unchanged drafts after reconciliatio
     await world.refresh();
     const snapshot = world.snapshot,
         drafts = gameplay.drafts(snapshot);
-    drafts.Food = { quantity: '2', productivity: '0' };
-    drafts.Oil = { quantity: '1', productivity: '0' };
-    const pending = gameplay.command(
-        'applyProductionPlan',
-        { bids: [{ resource_type: 'Food' }, { resource_type: 'Oil' }] },
-        snapshot,
-    );
+    drafts.food = { quantity: '2', spending_limit: '0' };
+    drafts.oil = { quantity: '1', spending_limit: '0' };
+    const pending = gameplay.command('applyProductionPlan', {}, snapshot);
     await new Promise((resolve) => setImmediate(resolve));
-    drafts.Oil = { quantity: '3', productivity: '0' };
+    drafts.oil = { quantity: '3', spending_limit: '0' };
     write.resolve();
     await new Promise((resolve) => setImmediate(resolve));
-    assert.equal(gameplay.drafts(snapshot).Food.quantity, '2', 'keep inputs during reconciliation');
+    assert.equal(gameplay.drafts(snapshot).food.quantity, '2', 'keep inputs during reconciliation');
     read.resolve();
     await pending;
-    assert.equal(gameplay.drafts(snapshot).Food, undefined);
-    assert.equal(gameplay.drafts(snapshot).Oil.quantity, '3');
+    assert.equal(gameplay.drafts(snapshot).food, undefined);
+    assert.equal(gameplay.drafts(snapshot).oil.quantity, '3');
     assert.equal(writes, 1);
     await world.dispose();
 });
@@ -147,15 +143,13 @@ test('uncertain production batch is never retried and retains the complete draft
     });
     await world.refresh();
     const snapshot = world.snapshot;
-    gameplay.drafts(snapshot).Oil = { quantity: '1', productivity: '0' };
-    await assert.rejects(
-        gameplay.command('applyProductionPlan', { bids: [{ resource_type: 'Oil' }] }, snapshot),
-    );
+    gameplay.drafts(snapshot).oil = { quantity: '1', spending_limit: '0' };
+    await assert.rejects(gameplay.command('applyProductionPlan', {}, snapshot));
     assert.equal(gameplay.outcome.state, 'uncertain');
     assert.equal(gameplay.needsReview, true);
-    assert.equal(gameplay.drafts(snapshot).Oil.quantity, '1');
+    assert.equal(gameplay.drafts(snapshot).oil.quantity, '1');
     await world.refresh();
-    await assert.rejects(gameplay.command('applyProductionPlan', { bids: [] }, snapshot));
+    await assert.rejects(gameplay.command('applyProductionPlan', {}, snapshot));
     assert.equal(writes, 1);
     await world.dispose();
 });
@@ -371,7 +365,7 @@ test('shared reads keep confirmed display and publish owner budget/orders togeth
             reads++;
             if (block) await block.promise;
             const data = structuredClone(fixtures(path));
-            data.budget.available_production.Capital = amount;
+            data.budget.available_production.money = amount;
             data.deployments = amount === 30 ? [] : [{ deployment_id: 42 }];
             return data;
         }
@@ -394,7 +388,7 @@ test('shared reads keep confirmed display and publish owner budget/orders togeth
     await a;
     assert.equal(reads, 2);
     assert.equal(world.snapshot.territories, first.territories);
-    assert.equal(values.at(-1).budget.available_production.Capital, 27);
+    assert.equal(values.at(-1).budget.available_production.money, 27);
     assert.equal(values.at(-1).deployments[0].deployment_id, 42);
     const second = world.snapshot;
     await world.refresh();
@@ -443,7 +437,7 @@ test('a command during a healthy poll cancels that read and publishes only post-
         }
         const data = structuredClone(fixtures(path));
         if (path === '/client/gameplay') {
-            data.budget.available_production.Capital = amount;
+            data.budget.available_production.money = amount;
             const wait = block;
             block = null;
             if (wait) await wait.promise;
@@ -458,10 +452,10 @@ test('a command during a healthy poll cancels that read and publishes only post-
     assert.equal(world.current, true);
     await gameplay.command('deploy', { deployments: [] }, world.snapshot);
     assert.equal(writes, 1);
-    assert.equal(world.snapshot.nation.budget.available_production.Capital, 27);
+    assert.equal(world.snapshot.nation.budget.available_production.money, 27);
     pause.resolve();
     await poll;
-    assert.equal(world.snapshot.nation.budget.available_production.Capital, 27);
+    assert.equal(world.snapshot.nation.budget.available_production.money, 27);
     await world.dispose();
 });
 

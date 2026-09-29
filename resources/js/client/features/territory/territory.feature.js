@@ -1,3 +1,4 @@
+import { resourceName } from '../../ui/resourceVisuals.js';
 import { territorialDefense } from '../../services/forceSummary.js';
 import { Component } from '../../runtime/Component.js';
 import { Scope } from '../../runtime/Scope.js';
@@ -48,13 +49,15 @@ class TerritoryInspector extends Component {
         );
         const facts = el('dl', { class: 'fact-list' });
         const productionTitle = el('h4');
-        const productionValues = el('dl', { class: 'fact-list' });
+        const productionValues = el('dl', { class: 'fact-list territory-production-values' });
         const noProduction = el('p', { class: 'muted' });
+        const activity = el('div', { class: 'territory-activity' });
         const production = el(
             'section',
             { class: 'inspector-section' },
             productionTitle,
             productionValues,
+            activity,
             noProduction,
             productivity,
         );
@@ -140,6 +143,24 @@ class TerritoryInspector extends Component {
                 ],
                 [i18n.t('territory.sea'), i18n.t(t.has_sea_access ? 'common.yes' : 'common.no')],
                 ...t.stats.map((stat) => [stat.title, formatStat(stat, i18n)]),
+                ...(own
+                    ? ['infrastructure', 'unrest', 'informal'].flatMap((key) => {
+                          const local = this.snapshot.nation?.economy?.territories.find(
+                              (cell) => cell.id === t.territory_id,
+                          );
+                          return local
+                              ? [
+                                    [
+                                        i18n.t(`economy.${key}`),
+                                        i18n.number(local.state[key], {
+                                            style: 'percent',
+                                            maximumFractionDigits: 1,
+                                        }),
+                                    ],
+                                ]
+                              : [];
+                      })
+                    : []),
             ]);
             nationCard.hidden = !t.owner_nation_id;
             ownerSummary.textContent = i18n.t('territory.inspectNation', {
@@ -190,7 +211,7 @@ class TerritoryInspector extends Component {
             updateFacts(
                 rates,
                 Object.entries(t.base_productivity ?? {}).map(([resource, rate]) => [
-                    i18n.t('command.resource.' + resource),
+                    resourceName(this.services.world.snapshot.nation, resource, i18n),
                     i18n.number(rate, { maximumFractionDigits: 2 }) + '×',
                 ]),
             );
@@ -202,10 +223,53 @@ class TerritoryInspector extends Component {
             updateFacts(
                 productionValues,
                 Object.entries(t.owner_production ?? {}).map(([resource, value]) => [
-                    i18n.t('command.resource.' + resource),
+                    resourceName(this.services.world.snapshot.nation, resource, i18n),
                     i18n.number(value, { maximumFractionDigits: 1 }),
                 ]),
             );
+            const localProduction = own
+                ? this.snapshot.nation?.production_planning?.territories?.[t.territory_id]
+                : null;
+            activity.hidden = !localProduction;
+            if (localProduction) {
+                const pt = (k) => i18n.t(`planner.${k}`);
+                const number = (v) => i18n.number(Number(v), { maximumFractionDigits: 3 });
+                activity.replaceChildren(
+                    el('h4', { text: pt('savedEstimate') }),
+                    el('p', {
+                        text: `${pt('workforce')}: ${number(localProduction.workforce)} · ${pt('workersUsed')}: ${number(localProduction.workers_used)}`,
+                    }),
+                    el('p', { class: 'muted', text: pt('territoryHelp') }),
+                    ...Object.entries(localProduction.resources).map(([key, r]) =>
+                        el(
+                            'details',
+                            {},
+                            el('summary', { text: resourceName(this.snapshot.nation, key, i18n) }),
+                            el('p', { text: `${pt('potential')}: ${number(r.potential)}` }),
+                            ...Object.entries(r.owners).map(([ownerKind, owner]) => {
+                                const list = el('dl', { class: 'fact-list' });
+                                updateFacts(
+                                    list,
+                                    ['capacity', 'production', 'development'].map((k) => [
+                                        pt(k),
+                                        number(owner[k]),
+                                    ]),
+                                );
+                                return el(
+                                    'section',
+                                    {},
+                                    el('h5', { text: pt(ownerKind) }),
+                                    list,
+                                    el('p', {
+                                        class: 'muted',
+                                        text: `${pt('constraints')}: ${owner.constraints.length ? owner.constraints.map((c) => pt(`constraint_${c}`)).join(' · ') : pt('noConstraints')}`,
+                                    }),
+                                );
+                            }),
+                        ),
+                    ),
+                );
+            }
             owner.hidden = !ownerInfo;
             ownerTitle.textContent = ownerInfo ? i18n.t('territory.owner') : '';
             deployment.textContent = ownerInfo

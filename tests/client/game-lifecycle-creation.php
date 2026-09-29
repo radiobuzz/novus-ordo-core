@@ -1,15 +1,16 @@
 <?php
 $app = require __DIR__ . '/isolated-app.php';
+require_once __DIR__ . '/generated-map-fixture.php';
 use App\Models\{Game, Nation, NewNation, Territory, User};
 use App\Services\{AdminGameService, LoggedInGameContext, NationCreationService};
 use Illuminate\Support\Facades\Auth;
 use Illuminate\Http\{Request, UploadedFile};
 
 $check = function ($value, $message) { if (!$value) throw new RuntimeException($message); };
-$game = Game::createNew();
+$game = Game::createNew(generatedMapFixture());
 $user = User::create('lifecycle-join-' . $game->id, App\Domain\Password::randomize());
 Auth::login($user);
-$app->instance('request', Request::create('/create-nation?game_id=' . $game->id, 'POST'));
+$app->instance('request', Request::create('/client/setup/nation?game_id=' . $game->id, 'POST'));
 $context = new LoggedInGameContext();
 $eligible = $game->freeSuitableTerritoriesInTurn()->get()->keyBy('id');
 $edges = Territory::getTerritoryConnections($game);
@@ -24,7 +25,7 @@ foreach ($eligible as $start) {
 }
 class_exists(App\Http\Controllers\UiController::class);
 $request = new App\Http\Controllers\CreateNationUiRequest($context);
-Request::createFrom(Request::create('/create-nation', 'POST'), $request);
+Request::createFrom(Request::create('/client/setup/nation', 'POST'), $request);
 $request->setContainer($app)->setRedirector(app('redirect'));
 $request->replace(['nation_name' => 'Lifecycle Join', 'leader_name' => 'Fixture Leader', 'territory_ids_as_json' => json_encode($home)]);
 $request->files->set('nation_flag', UploadedFile::fake()->image('flag.png', 300, 200));

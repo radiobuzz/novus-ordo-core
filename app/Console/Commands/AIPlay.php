@@ -7,11 +7,11 @@ use App\Models\{Game, Turn};
 use ExperimentalAI\Runner;
 use Illuminate\Console\Command;
 
-/** Bounded local test driver; removable with the experiment. */
+/** Bounded local driver for passive automated players. */
 class AIPlay extends Command
 {
-    protected $signature = 'app:ai-play {game : Explicit active game ID} {--turns=1 : Maximum turns, 1–100} {--preview : Preview the next AI without sending orders}';
-    protected $description = 'Run experimental AI through normal commands; never ready a human player.';
+    protected $signature = 'app:ai-play {game : Explicit active game ID} {--turns=1 : Maximum turns, 1–100}';
+    protected $description = 'Mark passive automated nations ready; never ready a human player.';
 
     public function handle(GameAdapter $adapter, Runner $runner): int {
         $limit = filter_var($this->option('turns'), FILTER_VALIDATE_INT);
@@ -26,11 +26,9 @@ class AIPlay extends Command
             if (!$status) { $this->error('This game has no experimental AI.'); return self::FAILURE; }
             if ($status['finished']) { $this->info('Game finished.'); break; }
             while (($status = $adapter->status($game))['next_nation_id']) {
-                $result = $runner->step($game, $status + ['nation_id' => $status['next_nation_id']], (bool) $this->option('preview'));
+                $result = $runner->step($game, $status + ['nation_id' => $status['next_nation_id']]);
                 $this->line(json_encode($result));
-                if ($this->option('preview')) return self::SUCCESS;
             }
-            if ($this->option('preview')) { $this->info('All AI players are ready.'); return self::SUCCESS; }
             $game->fresh()->tryNextTurnIfNationsReady($turn);
             $next = Turn::getCurrentForGame($game->fresh());
             if ($next->getId() === $turn->getId()) { $this->info('Waiting for human readiness.'); break; }

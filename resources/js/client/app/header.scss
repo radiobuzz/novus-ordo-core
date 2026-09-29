@@ -59,30 +59,6 @@
         .ui-disclosure-content p {
             font-size: 0.8rem;
         }
-        .hud-layers {
-            padding: 0;
-            border: 0;
-            margin: 0;
-        }
-        .hud-layers > summary {
-            max-width: 150px;
-            white-space: nowrap;
-            overflow: hidden;
-            text-overflow: ellipsis;
-        }
-        .hud-layers label {
-            display: flex;
-            align-items: center;
-            gap: var(--space-3);
-            min-height: var(--control-height);
-        }
-        .hud-layers .layer-group-title {
-            margin: var(--space-3) 0 var(--space-1);
-            padding-top: var(--space-3);
-            border-top: 1px solid var(--border-default);
-            color: var(--accent-command);
-            font-weight: 700;
-        }
     }
     .hud-mark {
         font: 1.7rem var(--font-display);
@@ -297,6 +273,10 @@
         .hud-resource-turn {
             display: none;
         }
+        .hud-resource[data-resource-kind='currency'] .hud-resource-reserve,
+        .hud-resource[data-resource-kind='stock'] .hud-resource-reserve {
+            display: block;
+        }
     }
     @media (max-width: 760px) {
         .world-minimap .ui-panel-heading {
@@ -322,9 +302,6 @@
         .game-hud summary {
             font-size: var(--font-tiny);
             padding-inline: var(--space-2);
-        }
-        .game-hud .hud-layers > summary {
-            max-width: 76px;
         }
         .hud-resource > summary {
             flex-direction: column;

@@ -9,7 +9,7 @@ use Illuminate\Database\Eloquent\Model;
 class MapDraft extends Model
 {
     public function getSnapshot(): array {
-        return json_decode($this->snapshot, true, flags: JSON_THROW_ON_ERROR);
+        return MapDefinition::findOrFail($this->map_definition_id)->getSnapshot();
     }
 
     public function exportSummary(): array {
@@ -21,8 +21,9 @@ class MapDraft extends Model
         $draft = new MapDraft();
         $draft->name = $name;
         $draft->seed = $data->snapshot['settings']['seed'];
-        $draft->snapshot = json_encode($data->snapshot, JSON_THROW_ON_ERROR);
-        $draft->fingerprint = hash('sha256', $draft->snapshot);
+        $definition = MapDefinition::store($data);
+        $draft->map_definition_id = $definition->id;
+        $draft->fingerprint = $definition->fingerprint;
         $draft->save();
         return $draft;
     }

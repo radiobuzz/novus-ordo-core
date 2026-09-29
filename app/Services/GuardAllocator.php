@@ -1,6 +1,8 @@
 <?php
 
 namespace App\Services;
+use App\Services\Resources\ResourceCatalogue;
+use App\Domain\Resources\Quantity as Q;
 
 use App\Domain\{DivisionType, OrderType, TerrainType};
 use App\Models\{Division, DivisionDetail, Game, NationResourceStockpile, News, Order, Territory, TerritoryDetail, Turn};
@@ -12,6 +14,7 @@ final class GuardAllocator
     public function allocate(Game $game, Turn $current, Turn $next, Collection $attackGroups): Collection {
         if (!(bool) ($game->guard_enabled ?? false) || $attackGroups->isEmpty()) return collect();
 
+        $catalogue = ResourceCatalogue::forGame($game);
         $diplomacy = app(DiplomacyService::class);
         $participants = app(GameParticipants::class);
         $territories = $game->territories()->get()->keyBy('id');
@@ -30,11 +33,11 @@ final class GuardAllocator
             && $details->get($division->id)?->isActive()
         );
         if ($guards->isEmpty()) return collect();
-        $stockpiles = NationResourceStockpile::where('game_id', $game->id)->where('turn_id', $next->id)
+        $stockpiles = NationResourceStockpile::where('owner_kind', 'government')->where('game_id', $game->id)->where('turn_id', $next->id)
             ->whereIn('nation_id', $guards->pluck('nation_id')->unique())->lockForUpdate()->get()
-            ->keyBy(fn (NationResourceStockpile $stockpile) => $stockpile->nation_id . ':' . $stockpile->resource_type);
+            ->keyBy(fn (NationResourceStockpile $stockpile) => $stockpile->nation_id . ':' . $catalogue->key($stockpile->resource_id));
         $remaining = $stockpiles->mapWithKeys(fn (NationResourceStockpile $stockpile, string $key) =>
-            [$key => (int) round($stockpile->available_quantity * 10000)]
+            [$key => $stockpile->available_quantity]
         )->all();
 
         $threats = collect();
@@ -67,16 +70,16 @@ final class GuardAllocator
             $defense[$detail->territory_id] += DivisionType::getMeta($division->getDivisionType())->defensePower;
         }
 
-        $available = $guards->mapWithKeys(function (Division $division) use ($details) {
+        $available = $guards->mapWithKeys(function (Division $division) use ($details, $catalogue) {
             $detail = $details[$division->id];
             $meta = DivisionType::getMeta($division->getDivisionType());
             return [$division->id => [
                 'division' => $division,
                 'origin_id' => (int) $detail->territory_id,
                 'meta' => $meta,
-                'response_costs' => collect($meta->attackCosts)
-                    ->map(fn ($cost) => (int) round($cost * Order::GUARD_RESPONSE_COST_FACTOR * 10000))
-                    ->filter()->all(),
+                'response_costs' => collect($catalogue->costs('operation', $division->getDivisionType()))
+                    ->map(fn ($cost) => Q::mul($cost, (string) Order::GUARD_RESPONSE_COST_FACTOR))
+                    ->filter(fn ($cost) => Q::cmp($cost, '0') > 0)->all(),
             ]];
         });
         $responses = collect();
@@ -194,10 +197,10 @@ final class GuardAllocator
         return null;
     }
 
-    /** Costs use fixed 1/10,000 units, matching resource-grant accounting precision. */
+    /** Costs and remaining stock use exact six-decimal quantities. */
     private function canAffordResponse(int $nationId, array $costs, array $remaining): bool {
         foreach ($costs as $resource => $cost) {
-            if (($remaining[$nationId . ':' . $resource] ?? 0) < $cost) return false;
+            if (Q::cmp($remaining[$nationId . ':' . $resource] ?? '0', $cost) < 0) return false;
         }
         return true;
     }
@@ -205,10 +208,26 @@ final class GuardAllocator
     private function payResponse(int $nationId, array $costs, Collection $stockpiles, array &$remaining): void {
         foreach ($costs as $resource => $cost) {
             $key = $nationId . ':' . $resource;
-            $remaining[$key] -= $cost;
             $stockpile = $stockpiles[$key];
-            $stockpile->available_quantity = $remaining[$key] / 10000;
-            $stockpile->save();
+            $detail = \App\Models\NationDetail::where('nation_id', $nationId)->where('turn_id', $stockpile->turn_id)->firstOrFail();
+            if ($resource === $detail->resources()->role('treasury')) {
+                app(EconomyService::class)->settleResponsePayroll($detail, $stockpile, $cost);
+                $remaining[$key] = $stockpile->available_quantity;
+                continue;
+            }
+            $stockpile->removeQuantity($cost);
+            $remaining[$key] = $stockpile->available_quantity;
+            $report = $detail?->resource_report;
+            if (isset($report[$resource])) {
+                $report[$resource]['response_expenses'] = Q::add($report[$resource]['response_expenses'] ?? '0', $cost);
+                $report[$resource]['government_closing'] = $remaining[$key];
+                $report[$resource]['reserve_shortfall'] = Q::max('0', Q::sub($report[$resource]['reserve_target'], $remaining[$key]));
+                if ($resource === $detail->resources()->role('nutrition')) {
+                    $economy = $detail->economy_report; $economy['food'] = $report[$resource]; $detail->economy_report = $economy;
+                }
+                $detail->resource_report = $report;
+                $detail->save();
+            }
         }
     }
 

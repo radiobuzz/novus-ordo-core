@@ -32,17 +32,10 @@ try {
     assert.equal(login.status(), 302);
     assert.ok(login.headers().location.endsWith('/client'));
 
-    for (const [path, destination] of [
-        ['/dashboard', '/client'],
-        ['/create-nation', '/client/entry'],
-        ['/dev-panel', '/client/admin'],
-    ]) {
-        const response = await client.get(path, { maxRedirects: 0 });
-        assert.equal(response.status(), 302);
-        assert.ok(response.headers().location.endsWith(destination));
-    }
-
     for (const path of [
+        '/dashboard',
+        '/create-nation',
+        '/dev-panel',
         '/js/jquery-3.7.1.min.js',
         '/js/dashboard.js',
         '/js/component-map-display.js',
@@ -53,7 +46,7 @@ try {
     }
 
     console.log(
-        'PASS: default and retired entry screens redirect to the new client; old browser assets and developer endpoints are gone.',
+        'PASS: canonical entry redirects work; retired screens, browser assets and developer endpoints are gone.',
     );
 } finally {
     await browser.close();

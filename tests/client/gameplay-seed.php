@@ -2,8 +2,7 @@
 // Explicit isolated bootstrap is mandatory. No live game/user is ever modified.
 $app = require __DIR__ . '/isolated-app.php';
 Illuminate\Support\Facades\Artisan::call('migrate', ['--force' => true]);
-$classic = ($argv[1] ?? '') === 'classic';
-$map = $classic ? null : App\Domain\GeneratedMapData::fromArray(json_decode(stream_get_contents(STDIN), true, flags: JSON_THROW_ON_ERROR));
+$map = App\Domain\GeneratedMapData::fromArray(json_decode(stream_get_contents(STDIN), true, flags: JSON_THROW_ON_ERROR));
 // This legacy single-game journey explicitly archives prior isolated fixtures.
 App\Models\Game::query()->update(['is_active' => false]);
 $game = App\Models\Game::createNew($map);
@@ -27,4 +26,4 @@ foreach ($eligible->sortByDesc('usable_land_ratio') as $start) {
 }
 if (!$home) throw new RuntimeException('Fixture has no connected homeland.');
 $nation = App\Models\NewNation::create($game, $user, 'Gameplay Test Nation')->finishSetup(homeTerritoryIds: $home, leaderName: 'Test Leader');
-echo 'Isolated ' . ($classic ? 'classic' : 'beta') . " gameplay fixture: game {$game->getId()}, nation {$nation->getId()}.\n";
+echo "Isolated generated-world gameplay fixture: game {$game->getId()}, nation {$nation->getId()}.\n";

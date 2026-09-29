@@ -19,7 +19,7 @@ Access follows the user's explicit instruction: **no new permissions system**. T
 | Original admin capability | Replacement |
 | --- | --- |
 | Active game ID/current turn | Overview and persistent working-game selector; includes retained older games |
-| Start a classic game | Overview → Start classic-map game; confirmation creates an independent active game |
+| Start a game | Map workspace → load a saved generated world → Start game; confirmation creates an independent active game |
 | Next turn / AJAX force-next-turn | Overview → Force next turn; both old controls invoke the same engine operation |
 | Rollback last turn | Overview → Rollback; unavailable on turn 1; confirmation names game and removed turn |
 | List/add users | Accounts, with native search and generated password disclosure when blank |
@@ -35,13 +35,13 @@ Stage 5 removed the developer service-code and browser-console pages after confi
 
 ## Map workflow
 
-1. Open Map workspace. Tune the same landscape generator and settings as the standalone beta tool. Range fields now pair a native slider with an exact numeric value.
+1. Open Map workspace. Tune the shared landscape generator and settings. Range fields pair a native slider with an exact numeric value.
 2. Generate a landscape. Editing settings marks the preview stale; stale previews cannot be saved or used to start a game.
 3. Give it a name and **Save map to library**. This persists the exact validated snapshot independently of any game. Each save creates a separate immutable entry, even when names repeat. Nothing overwrites another map.
 4. Load a library entry to restore the exact stored geography, not merely regenerate its seed. **Start game from this map** is enabled only for the exact loaded/saved preview.
 5. Confirm creation. Existing games remain active. The new game gets its own snapshot, so later generator work cannot modify it.
 
-Browser settings presets retain the old keys, `no7:map-beta:settings` and `no7:map-beta:presets`. They are not shared server maps. The admin's current unsaved settings/preview survive module and game-scope navigation in that page's memory; a full reload requires regenerating from browser settings or loading a saved map. Credentials are never included in that state. JSON export downloads the current clean preview; JSON import, library deletion/renaming, terrain painting and live-world map replacement are not implemented.
+Browser settings and presets use `no7:map:v2:settings` and `no7:map:v2:presets`. They are not shared server maps. The admin's current unsaved settings/preview survive module and game-scope navigation in that page's memory; a full reload requires regenerating from browser settings or loading a saved map. Credentials are never included in that state. JSON export downloads the current clean preview; JSON import, library deletion/renaming, terrain painting and live-world map replacement are not implemented.
 
 The standalone `/client/map-generation` now composes the same `MapStudio`, keeping its existing start endpoint and confirmation workflow. Neither consumer changes generator algorithms, resource rules, regional movement or combat.
 
@@ -56,7 +56,7 @@ The standalone `/client/map-generation` now composes the same `MapStudio`, keepi
 
 ## Command safety and limits
 
-Turn commands carry the selected game and expected **turn ID**, not just a display turn number. The service rejects archived targets and stale turns, coordinates through the shared per-game mutation lock, then invokes the engine's own turn-locked methods. Rollback adds an optional expected-turn check *inside* the existing lock. Classic creation uses the independent-game creation contract.
+Turn commands carry the selected game and expected **turn ID**, not just a display turn number. The service rejects archived targets and stale turns, coordinates through the shared per-game mutation lock, then invokes the engine's own turn-locked methods. Rollback adds an optional expected-turn check *inside* the existing lock. Generated-world creation uses the independent-game creation contract.
 
 No command retries automatically. Pending state prevents duplicate UI activation; an uncertain network response tells the operator to inspect current state before retrying. Refresh is explicit, not an automatic loop that can discard edits. The overview rejects mismatched turn/map read snapshots. These guards reduce stale actions but are not a new event log, undo stack or transactional rewrite of turn resolution.
 

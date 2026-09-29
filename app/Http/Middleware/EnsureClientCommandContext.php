@@ -18,7 +18,7 @@ class EnsureClientCommandContext
     private function insideLock(Request $request, Closure $next): Response {
         $context = new NationContext;
         if (!app(\App\Services\GameParticipants::class)->canCommand($context->getNation())) {
-            abort(409, 'This nation is controlled by experimental AI. Take control in administration before issuing orders.');
+            abort(409, 'This nation is a passive automated participant. Take control in administration before issuing orders.');
         }
         if ($request->exists('ai_context')) {
             $aiContext = $request->validate([
@@ -32,8 +32,7 @@ class EnsureClientCommandContext
             }
         }
         if (!$request->exists('client_context')) {
-            if ($context->getGame()->diplomacy_enabled) abort(409, 'A current command context is required.');
-            return $next($request);
+            abort(409, 'A current command context is required.');
         }
 
         $values = $request->validate([
@@ -43,8 +42,10 @@ class EnsureClientCommandContext
             'client_context.nation_id' => 'required|integer|min:1',
             'client_context.user_id' => 'required|integer|min:1',
             'client_context.turn_context_revision' => 'sometimes|uuid',
+            'client_context.resource_edit_counter' => 'required|integer|min:1',
         ])['client_context'];
         $context = new NationContext;
+        abort_unless((int) $values['resource_edit_counter'] === \App\Services\Resources\ResourceCatalogue::forGame($context->getGame())->set['edit_counter'], 409, 'Resource definitions changed. Refresh before continuing.');
         $revision = $context->getGame()->turn_context_revision;
         if (($context->getGame()->diplomacy_enabled || isset($values['turn_context_revision']))
             && $revision !== ($values['turn_context_revision'] ?? null)) {

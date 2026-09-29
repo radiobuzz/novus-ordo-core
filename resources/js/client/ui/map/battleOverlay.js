@@ -71,10 +71,8 @@ export function battleOverlay(markers) {
         for (const marker of markers) {
             const territory = territories.get(marker.territoryId);
             if (!territory) continue;
-            const world = context.picker.center?.(territory) ?? {
-                x: (territory.x + 0.5) * context.definition.tileWidth,
-                y: (territory.y + 0.5) * context.definition.tileHeight,
-            };
+            const world = context.picker.center(territory);
+            if (!world) continue;
             const { x, y } = camera.worldToScreen(world.x, world.y);
             if (x < -30 || y < -30 || x > camera.width + 30 || y > camera.height + 30) continue;
             ctx.fillStyle = marker.conquered ? '#a74343' : '#6d596f';

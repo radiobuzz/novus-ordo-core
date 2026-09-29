@@ -1,5 +1,5 @@
-import { featureHash } from './cartography.js';
-import { TerrainField } from './terrain-v2-field.js';
+import { featureHash } from '../map/cartography.js';
+import { TerrainField } from '../map/terrain-v2-field.js';
 import { neighborCoordinates, axialKey } from './hex.js';
 import { livingSettlement } from './living-settlement.js';
 import { planComplex, supportsUrbanIntensity } from './development-complexes.js';

@@ -20,8 +20,7 @@ use App\Http\Middleware\EnsureGameIsNotUpkeeping;
 use App\Http\Middleware\EnsureWhenRunningInDevelopmentOnly;
 use Illuminate\Support\Facades\Route;
 
-// The new client is the only user interface. Keep old screen URLs as redirects
-// long enough for bookmarks, while removing their implementations below.
+// The generated-world client is the only user interface.
 Route::get('/', fn () => redirect()->route('client'));
 
 Route::get('/client/tools', [ClientController::class, 'tools'])
@@ -47,6 +46,17 @@ Route::view('/dev-panel/ui-foundations', 'dev.ui-foundations')
 Route::middleware(['auth', EnsureWhenRunningInDevelopmentOnly::class, NoStoreResponse::class])->group(function () {
     Route::get('/client/admin', [AdminController::class, 'index'])->name('admin.index');
     Route::prefix('/client/admin/api')->group(function () {
+        Route::get('/policy-sets', [\App\Http\Controllers\AdminPolicyController::class, 'index']);
+        Route::post('/policy-sets', [\App\Http\Controllers\AdminPolicyController::class, 'create']);
+        Route::get('/policy-sets/{set}', [\App\Http\Controllers\AdminPolicyController::class, 'show'])->whereNumber('set');
+        Route::put('/policy-sets/{set}', [\App\Http\Controllers\AdminPolicyController::class, 'update'])->whereNumber('set');
+        Route::post('/policy-sets/{set}/clone', [\App\Http\Controllers\AdminPolicyController::class, 'clone'])->whereNumber('set');
+        Route::get('/games/{game}/policies', [\App\Http\Controllers\AdminPolicyController::class, 'game']);
+        Route::post('/games/{game}/policies', [\App\Http\Controllers\AdminPolicyController::class, 'configureGame']);
+        Route::post('/games/{game}/policies/nations/{nation}/reset', [\App\Http\Controllers\AdminPolicyController::class, 'resetNation'])->whereNumber('nation');
+        Route::get('/maintenance', [AdminController::class, 'maintenance']);
+        Route::post('/maintenance/reset-worlds', [AdminController::class, 'resetWorlds']);
+        Route::post('/maintenance/clean-status-files', [AdminController::class, 'cleanStatusFiles']);
         Route::get('/games', [AdminController::class, 'games'])->name('admin.games');
         Route::post('/games', [AdminController::class, 'start'])->name('admin.start');
         Route::get('/games/{game}', [AdminController::class, 'game'])->name('admin.game');
@@ -55,8 +65,6 @@ Route::middleware(['auth', EnsureWhenRunningInDevelopmentOnly::class, NoStoreRes
         Route::post('/games/{game}/turn', [AdminController::class, 'turn'])->name('admin.turn');
         Route::get('/games/{game}/inspect', [AdminController::class, 'inspect'])->name('admin.inspect');
         Route::get('/games/{game}/ai', [\App\Integrations\AIPlayers\Controller::class, 'report']);
-        Route::get('/games/{game}/ai/snapshot', [\App\Integrations\AIPlayers\Controller::class, 'snapshot']);
-        Route::get('/ai/author-kit', [\App\Integrations\AIPlayers\Controller::class, 'kit']);
         Route::post('/games/{game}/ai/step', [\App\Integrations\AIPlayers\Controller::class, 'adminStep']);
         Route::post('/games/{game}/ai/control', [\App\Integrations\AIPlayers\Controller::class, 'control']);
         Route::get('/users', [AdminController::class, 'users'])->name('admin.users');
@@ -66,11 +74,13 @@ Route::middleware(['auth', EnsureWhenRunningInDevelopmentOnly::class, NoStoreRes
         Route::get('/maps', [AdminController::class, 'maps'])->name('admin.maps');
         Route::post('/maps', [AdminController::class, 'saveMap'])->name('admin.save-map');
         Route::get('/maps/{draft}', [AdminController::class, 'map'])->name('admin.map');
+        Route::get('/slideshow', [AdminController::class, 'slideshow'])->name('admin.slideshow');
+        Route::post('/slideshow', [AdminController::class, 'saveSlideshow'])->name('admin.slideshow-save');
+        Route::post('/slideshow/publish', [AdminController::class, 'publishSlideshow'])->name('admin.slideshow-publish');
+        Route::post('/slideshow/assets/{kind}', [AdminController::class, 'uploadSlideshowAsset'])
+            ->whereIn('kind', ['image', 'audio'])->name('admin.slideshow-asset');
     });
 });
-
-Route::get('/dev-panel', fn () => redirect()->route('admin.index'))
-    ->middleware(['auth', EnsureWhenRunningInDevelopmentOnly::class, NoStoreResponse::class]);
 
 // User and login/logout routes.
 Route::get('/client/entry', [EntryController::class, 'index'])->name('client.entry');
@@ -106,6 +116,13 @@ Route::get('/game/news', [NewsController::class, 'news'])
     ->name('ajax.get-game-news');
 
 // Nation routes.
+Route::middleware(['auth', NoStoreResponse::class])->prefix('nation/policies')->group(function () {
+    Route::get('/', [\App\Http\Controllers\PolicyController::class, 'show']);
+    Route::middleware(\App\Http\Middleware\EnsureClientCommandContext::class)->group(function () {
+        Route::post('/preview', [\App\Http\Controllers\PolicyController::class, 'preview'])->name('ajax.preview-policies');
+        Route::put('/pending', [\App\Http\Controllers\PolicyController::class, 'submit'])->name('ajax.save-pending-policies');
+    });
+});
 Route::middleware(['auth', NoStoreResponse::class])->prefix('nation/diplomacy')->group(function () {
     Route::get('/', [\App\Http\Controllers\DiplomacyController::class, 'inbox'])->name('ajax.get-diplomacy-inbox');
     Route::get('/conversations/{nationId}', [\App\Http\Controllers\DiplomacyController::class, 'conversation'])
@@ -131,12 +148,12 @@ Route::middleware('auth')->group(function () {
         ->name('ajax.get-nation-battle-logs');
     Route::get('/nation/defense-coverage', [NationController::class, 'defenseCoverage'])
         ->name('ajax.get-nation-defense-coverage');
-    Route::post('/nation/production-bids', [ProductionController::class, 'placeProductionBid'])
-        ->middleware(\App\Http\Middleware\EnsureClientCommandContext::class)
-        ->name('ajax.place-production-bid');
     Route::post('/nation/production-plan', [ProductionController::class, 'applyProductionPlan'])
         ->middleware([EnsureGameIsNotUpkeeping::class, \App\Http\Middleware\EnsureClientCommandContext::class])
         ->name('ajax.apply-production-plan');
+    Route::post('/nation/production-preview', [ProductionController::class, 'previewProductionPlan'])
+        ->middleware([EnsureGameIsNotUpkeeping::class, \App\Http\Middleware\EnsureClientCommandContext::class])
+        ->name('ajax.preview-production-plan');
     Route::middleware(EnsureGameIsNotUpkeeping::class)->group(function () {
         Route::post('/nation', [NationController::class, 'createNation'])
             ->name('ajax.create-nation');
@@ -222,13 +239,11 @@ Route::middleware('auth')->group(function () {
     Route::post('/client/map-generation', [MapGenerationController::class, 'start'])
         ->middleware(EnsureWhenRunningInDevelopmentOnly::class)->name('client.map-generation.start');
     Route::get('/client', [ClientController::class, 'index'])->name('client');
-    Route::get('/dashboard', fn () => redirect()->route('client', request()->only('game_id')));
     Route::post('/ready-for-next-turn', [UiController::class, 'readyForNextTurn'])
         ->middleware(\App\Http\Middleware\EnsureClientCommandContext::class)
         ->name('ajax.ready-for-next-turn');
-    Route::get('/create-nation', fn () => redirect()->route('client.entry', request()->only('game_id')));
     Route::middleware(EnsureGameIsNotUpkeeping::class)->group(function () {
-            Route::post('/create-nation', [UiController::class, 'storeNation'])->middleware(EntryLocale::class)
+            Route::post('/client/setup/nation', [UiController::class, 'storeNation'])->middleware(EntryLocale::class)
                 ->name('nation.store');
     });
 });

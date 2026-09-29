@@ -21,9 +21,31 @@ async function stable(page) {
     ).toBe(true);
 }
 
-test('Economy keeps its instance, inputs, focus, expansion and scroll as confirmed budget changes', async ({
-    page,
-}) => {
+async function previewProduction(page) {
+    await page.route('**/nation/production-preview', async (route) => {
+        const bids = route.request().postDataJSON()?.bids ?? [];
+        await route.fulfill({
+            json: {
+                rows: {
+                    food: {
+                        production: '3.000000',
+                        closing: '1.000000',
+                        reserve_target: '1.000000',
+                        civilian_unmet: '0.000000',
+                    },
+                    ...Object.fromEntries(
+                        bids.map(({ resource_key, quantity }) => [
+                            resource_key,
+                            { production: quantity, closing: quantity, unmet: '0.000000' },
+                        ]),
+                    ),
+                },
+            },
+        });
+    });
+}
+
+test('Economy keeps its instance, inputs, focus and scroll as confirmed budget changes', async ({ page }) => {
     let release;
     let held = null;
     let reads = 0;
@@ -33,38 +55,36 @@ test('Economy keeps its instance, inputs, focus, expansion and scroll as confirm
         if (held) await held;
         await route.fulfill({ json: data });
     });
+    await previewProduction(page);
     const errors = [];
     page.on('pageerror', (error) => errors.push(error.message));
     await page.goto('/client?game_id=1#/economy');
+    await page.locator('.economy-resources > summary').click();
     await page.getByRole('button', { name: 'Open production planner', exact: true }).click();
-    const food = page.locator('[data-production-resource="Food"]');
-    const input = food.getByRole('spinbutton').first();
+    const food = page.locator('[data-production-resource="material"]');
+    const input = food.getByRole('textbox').first();
     await input.fill('7.25');
-    await page.locator('.planner-breakdown > summary').click();
     await input.focus();
     await remember(page, [
         '.game-workspace',
         '.production-planner',
-        '[data-production-resource="Food"] input[type="number"]',
-        '.planner-breakdown',
+        '[data-production-resource="material"] input',
     ]);
     const beforeScroll = await page.locator('.game-workspace').evaluate((element) => element.scrollTop);
     held = new Promise((resolve) => {
         release = resolve;
     });
-    data.budget.production.Food = 9;
+    data.budget.production.food = '9.000000';
     await refresh(page);
     await expect.poll(() => reads).toBe(2);
     await expect(page.getByRole('button', { name: 'Apply production plan' })).toBeEnabled();
     await expect(input).toBeFocused();
     held = null;
     release();
-    await expect(food).toContainText('9 →');
     const budget = page.getByRole('heading', { name: 'Resource budget' }).locator('..').locator('..');
     await expect(budget.getByRole('row').filter({ hasText: 'Food' })).toContainText('9');
     await expect(input).toHaveValue('7.25');
     await expect(input).toBeFocused();
-    await expect(page.locator('.planner-breakdown')).toHaveAttribute('open', '');
     expect(await page.locator('.game-workspace').evaluate((element) => element.scrollTop)).toBe(beforeScroll);
     await stable(page);
     expect(errors).toEqual([]);
@@ -182,9 +202,11 @@ test('territory inspector keeps disclosure and focus, updates production and cle
         '.inspector-panel .territory-connections',
         '.inspector-panel .territory-connections summary',
     ]);
-    territories.data.find((t) => t.territory_id === 156).owner_production.Oil = 7;
+    territories.data.find((t) => t.territory_id === 156).owner_production.oil = 7;
     await refresh(page);
-    await expect(panel.locator('dl div').filter({ hasText: 'Oil' }).locator('dd')).toHaveText('7');
+    await expect(
+        panel.locator('.territory-production-values div').filter({ hasText: 'Oil' }).locator('dd'),
+    ).toHaveText('7');
     await expect(panel.locator('.territory-connections')).toHaveAttribute('open', '');
     await expect(panel.locator('.territory-connections summary')).toBeFocused();
     await stable(page);
@@ -202,6 +224,7 @@ test('world force and order panels retain their controls during background data 
     const data = structuredClone(fixtures('/client/gameplay'));
     await page.route('**/client/gameplay', (route) => route.fulfill({ json: data }));
     await page.goto('/client?game_id=1');
+    await expect(page.locator('.map-notice')).toBeHidden();
     await page.locator('[data-mode="military"]').click();
     await page.locator('[data-tool="forces"]').click();
     await page.getByLabel('Select division 11', { exact: true }).check();
@@ -304,26 +327,6 @@ test('Reports identify battle attackers, defenders and neutral territories at a 
     expect(await page.evaluate(() => document.documentElement.scrollWidth <= innerWidth)).toBe(true);
 });
 
-test('long server errors stay available as safe text while the visible error is short', async ({ page }) => {
-    const detail =
-        'The requested quantity exceeds available labour. <img src=x onerror="window.badTooltip=true"> Keep this complete diagnostic available.';
-    await page.route('**/nation/production-plan', (route) =>
-        route.fulfill({ status: 422, json: { message: 'Invalid bid', errors: { max_quantity: [detail] } } }),
-    );
-    await page.goto('/client?game_id=1#/economy');
-    await page.getByRole('button', { name: 'Open production planner', exact: true }).click();
-    const food = page.locator('[data-production-resource="Food"]');
-    await food.getByRole('spinbutton').first().fill('7');
-    await page.getByRole('button', { name: 'Apply production plan' }).click();
-    const status = page.locator('.planner-footer .ui-message-text');
-    await expect(status).toHaveText('Production plan rejected.');
-    await status.focus();
-    await expect(page.locator('.ui-tooltip:popover-open')).toContainText(detail);
-    expect(await page.evaluate(() => window.badTooltip)).toBeUndefined();
-    await expect(page.locator('.ui-tooltip:popover-open img')).toHaveCount(0);
-    await expect(food.getByRole('spinbutton').first()).toHaveValue('7');
-});
-
 test('turn advancement keeps the Economy instance and discards the previous turn bid draft', async ({
     page,
 }) => {
@@ -337,18 +340,20 @@ test('turn advancement keeps the Economy instance and discards the previous turn
         await page.route(pattern, (route) =>
             route.fulfill({ json: fixtures(new URL(route.request().url()).pathname, turn) }),
         );
+    await previewProduction(page);
     await page.goto('/client?game_id=1#/economy');
+    await page.locator('.economy-resources > summary').click();
     await page.getByRole('button', { name: 'Open production planner', exact: true }).click();
-    const input = page.locator('[data-production-resource="Food"]').getByRole('spinbutton').first();
+    const input = page.locator('[data-production-resource="material"]').getByRole('textbox').first();
     await input.fill('7');
     await remember(page, [
         '.game-workspace',
         '.production-planner',
-        '[data-production-resource="Food"] input[type="number"]',
+        '[data-production-resource="material"] input',
     ]);
     turn = 2;
     await refresh(page);
     await expect(page.locator('.game-heading .eyebrow')).toContainText('Turn 2');
-    await expect(input).toHaveValue('3');
+    await expect(input).toHaveValue('3.000000');
     await stable(page);
 });

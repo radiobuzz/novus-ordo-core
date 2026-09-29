@@ -1,5 +1,7 @@
 ## About Novus Ordo
 
+Production/development **Packages A–F** deliver the coordinated economy, player presentation and retirement of the old calculators/bids/facilities. See [the runtime contract](docs/game-design/production-lifecycle-contract.md), [player presentation](docs/game-design/production-presentation-contract.md) and [cleanup, verification and fresh-world rollout](docs/game-design/production-retirement-results.md).
+
 Novus Ordo is an online strategy game. This repository contains its continuous development history.
 
 The playable Version 7 checkpoint is preserved by the `v7.0.0` Git tag. Current development continues from that checkpoint toward Version 7.1, introducing the political system, microcell world model, revised economy and commerce incrementally.
@@ -64,7 +66,7 @@ php artisan migrate
 ```
 
 #### Commission the new server
-This will create an admin user with a random password and start a new game (you should ideally customize the admin user's name):
+This creates an admin user with a random password (you should ideally customize the admin user's name). Sign in and create the first generated world from the administration Map workspace:
 ```bash
 php artisan app:commission-server --admin-user=admin
 ```

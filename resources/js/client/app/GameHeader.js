@@ -2,7 +2,7 @@ import { el } from '../ui/dom.js';
 import { Button } from '../ui/Button.js';
 import { Disclosure } from '../ui/Disclosure.js';
 import { languageSelector } from '../ui/LanguageSelector.js';
-import { resourceIcon } from '../ui/resourceVisuals.js';
+import { resourceIcon, resourceName } from '../ui/resourceVisuals.js';
 import { resourceValues } from '../services/turnBriefing.js';
 import { TurnBriefing } from './TurnBriefing.js';
 import { Scope } from '../runtime/Scope.js';
@@ -260,7 +260,7 @@ export class GameHeader {
             : '';
         this.element.dataset.freshness = world.store.value.status;
         const types = data?.definitions.resources ?? [];
-        const keys = new Set(types.map((r) => r.resource_type));
+        const keys = new Set(types.map((r) => r.resource_key));
         for (const [key, node] of this.nodes)
             if (!keys.has(key)) {
                 node.release();
@@ -268,15 +268,17 @@ export class GameHeader {
                 this.nodes.delete(key);
             }
         for (const meta of types) {
-            const type = meta.resource_type,
-                name = i18n.t(`command.resource.${type}`);
+            const type = meta.resource_key,
+                name = resourceName(data, type, i18n);
             let node = this.nodes.get(type);
             if (!node) {
                 const owner = new Scope();
                 const release = this.scope.own(() => owner.dispose());
                 const disclosure = new Disclosure(owner, { className: 'hud-resource', group: 'game-hud' });
                 disclosure.element.dataset.resource = type;
-                const icon = resourceIcon(type, this.services.boot.baseUrl);
+                disclosure.element.dataset.resourceKind = meta.kind;
+                disclosure.element.dataset.resourceRole = meta.role ?? '';
+                const icon = resourceIcon(meta.icon_key);
                 const balance = el('strong'),
                     reserve = el('span', { class: 'hud-resource-reserve' });
                 const title = el('h2'),
@@ -287,7 +289,15 @@ export class GameHeader {
                 );
                 disclosure.content.append(title);
                 const list = el('dl');
-                for (const field of ['balance', 'reserve', 'production', 'upkeep', 'expenses', 'available']) {
+                for (const field of [
+                    'balance',
+                    'reserve',
+                    'production',
+                    'upkeep',
+                    'expenses',
+                    'available',
+                    ...(meta.kind === 'stock' ? ['lastOutput', 'closingStock'] : []),
+                ]) {
                     const label = el('dt'),
                         value = el('dd');
                     rows.set(field, { label, value });
@@ -308,7 +318,8 @@ export class GameHeader {
                           maximumFractionDigits: compact ? 1 : 6,
                           ...(signed ? { signDisplay: 'always' } : {}),
                       });
-            node.title.textContent = name;
+            const isMoney = meta.role === 'treasury' && data?.economy;
+            node.title.textContent = isMoney ? i18n.t('economy.treasury') : name;
             node.balance.replaceChildren(
                 el('span', { class: 'hud-resource-amount', text: format(values.balance, true, true) }),
                 el('span', { class: 'hud-resource-turn', text: `/${this.t('turnShort')}` }),
@@ -324,13 +335,71 @@ export class GameHeader {
             );
             node.disclosure.trigger.title = name;
             for (const [field, row] of node.rows) {
-                row.label.textContent = this.t(field);
+                row.label.textContent =
+                    isMoney && field === 'production'
+                        ? i18n.t('economy.tax_receipts')
+                        : isMoney && field === 'reserve'
+                          ? i18n.t('economy.availableCash')
+                          : this.t(field);
                 row.value.textContent =
                     field === 'reserve' && meta.can_be_stocked === false
                         ? this.t('notStocked')
                         : format(values[field], false, field === 'balance');
             }
-            node.note.textContent = this.t(world.current ? 'budgetHint' : 'staleNews');
+            node.note.textContent =
+                isMoney && world.current
+                    ? [
+                          i18n.t('economy.moneyHint'),
+                          ...(data.economy.forecast?.warnings ?? []).map((warning) =>
+                              i18n.t(`economy.${warning.type}`),
+                          ),
+                      ].join(' ')
+                    : this.t(world.current ? 'budgetHint' : 'staleNews');
+            if (meta.kind === 'stock') {
+                node.balance.replaceChildren(
+                    el('span', { class: 'hud-resource-amount', text: format(values.reserve, true) }),
+                );
+                node.balance.dataset.tone = '';
+                node.reserve.textContent = `≈ ${format(values.production, true)}/${this.t('turnShort')}`;
+                node.reserve.title = i18n.t('planner.forecastOutput');
+                node.rows.get('reserve').label.textContent = i18n.t('planner.governmentStock');
+                node.disclosure.trigger.setAttribute(
+                    'aria-label',
+                    `${name}: ${i18n.t('planner.forecastOutput')} ${format(values.production)}, ${i18n.t('planner.governmentStock')} ${format(values.reserve)}`,
+                );
+                node.rows.get('production').label.textContent = i18n.t('planner.forecastOutput');
+                const projection = data.production_planning;
+                const actual = projection?.last_resources?.[type];
+                node.rows.get('lastOutput').label.textContent = i18n.t('planner.lastOutput');
+                node.rows.get('lastOutput').value.textContent = actual
+                    ? format(Number(actual.production.government) + Number(actual.production.producer))
+                    : '—';
+                node.rows.get('closingStock').label.textContent = i18n.t('planner.closingStock');
+                node.rows.get('closingStock').value.textContent = format(
+                    Number(projection?.rows[type]?.closing),
+                );
+                node.note.textContent = i18n.t('planner.resourceHint');
+            }
+            if (isMoney) {
+                node.balance.dataset.tone = data.economy.forecast?.warnings.length ? 'danger' : 'ready';
+                node.disclosure.trigger.title = node.note.textContent;
+                node.balance.replaceChildren(
+                    el('span', {
+                        class: 'hud-resource-amount',
+                        text: `${data.economy.forecast?.warnings.length ? '⚠ ' : ''}${format(values.available, true)}`,
+                    }),
+                );
+                node.reserve.textContent = `${data.economy.forecast?.warnings.length ? '⚠ ' : ''}${format(values.balance, true, true)}/${this.t('turnShort')}`;
+                node.disclosure.trigger.setAttribute(
+                    'aria-label',
+                    `${i18n.t('economy.availableCash')}: ${format(values.available)}. ${i18n.t('economy.balance')}: ${format(values.balance)}`,
+                );
+                if (!node.economyLink) {
+                    node.economyLink = el('a', { href: '#/economy' });
+                    node.disclosure.content.append(node.economyLink);
+                }
+                node.economyLink.textContent = i18n.t('economy.title');
+            }
         }
         this.updateReadiness();
     }

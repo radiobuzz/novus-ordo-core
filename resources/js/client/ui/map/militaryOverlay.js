@@ -35,16 +35,12 @@ function shield(ctx, x, y, size) {
 /** Own-army markers only. No demo data or opponent-private units. */
 export function militaryOverlay(divisions, deployments, selected, draftOrders, presentation = {}) {
     return (ctx, renderer) => {
+        const opacity = ctx.globalAlpha;
         const { camera, context } = renderer;
         const territories = new Map(context.territories.map((t) => [t.territory_id, t]));
         const center = (id) => {
             const territory = territories.get(id);
-            return territory
-                ? (context.picker.center?.(territory) ?? {
-                      x: (territory.x + 0.5) * context.definition.tileWidth,
-                      y: (territory.y + 0.5) * context.definition.tileHeight,
-                  })
-                : null;
+            return territory ? context.picker.center(territory) : null;
         };
         const line = (ids, color, dashed) => {
             const points = ids.map(center);
@@ -146,9 +142,9 @@ export function militaryOverlay(divisions, deployments, selected, draftOrders, p
                     ctx.font = 'bold 9px system-ui';
                     const width = ctx.measureText(text).width + 10;
                     ctx.fillStyle = colors.surface;
-                    ctx.globalAlpha = 0.9;
+                    ctx.globalAlpha = opacity * 0.9;
                     ctx.fillRect(x - width / 2, detailY, width, 15);
-                    ctx.globalAlpha = 1;
+                    ctx.globalAlpha = opacity;
                     ctx.fillStyle = colors.text;
                     ctx.fillText(text, x, detailY + 7.5);
                     detailY += 17;
@@ -166,9 +162,9 @@ export function militaryOverlay(divisions, deployments, selected, draftOrders, p
                         const { type, count } = entries[index],
                             width = widths[index];
                         ctx.fillStyle = colors.surface;
-                        ctx.globalAlpha = 0.9;
+                        ctx.globalAlpha = opacity * 0.9;
                         ctx.fillRect(detailLeft, detailY, width, 15);
-                        ctx.globalAlpha = 1;
+                        ctx.globalAlpha = opacity;
                         ctx.fillStyle = colors.text;
                         ctx.fillText(
                             `${abbreviations[type] ?? '?'} ${count}`,
@@ -192,7 +188,7 @@ export function militaryOverlay(divisions, deployments, selected, draftOrders, p
                     ctx.fill();
                 }
                 ctx.fillStyle = colors.surface;
-                ctx.globalAlpha = ghost ? 0.45 : token.state === 'pending' ? 0.7 : 1;
+                ctx.globalAlpha = opacity * (ghost ? 0.45 : token.state === 'pending' ? 0.7 : 1);
                 if (image) ctx.drawImage(image, x - size / 2, y - size / 2 - (aircraft ? 4 : 0), size, size);
                 else {
                     ctx.fillRect(x - 19, y - 16, 38, 32);
@@ -201,7 +197,7 @@ export function militaryOverlay(divisions, deployments, selected, draftOrders, p
                     ctx.fillStyle = colors.text;
                     ctx.fillText(abbreviations[token.division_type] ?? '?', x, y);
                 }
-                ctx.globalAlpha = 1;
+                ctx.globalAlpha = opacity;
                 ctx.strokeRect(x - size / 2, y - size / 2, size, size);
                 const label = ghost ? '◇' : token.state === 'pending' ? '+' : `#${token.division_id}`;
                 ctx.fillStyle = colors.surface;

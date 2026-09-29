@@ -2,7 +2,6 @@
 
 namespace App\Models;
 
-use App\Domain\ResourceType;
 use App\Domain\StatUnit;
 use App\Domain\TerrainType;
 use App\Domain\TerritoryStat;
@@ -25,6 +24,7 @@ class NeutralOwnership {}
 class TerritoryDetail extends Model
 {
     use ReplicatesForTurns;
+    protected $casts = ['economy_state' => 'array'];
 
     public const string FIELD_OWNER_NATION_ID = 'owner_nation_id';
     public const string FIELD_POPULATION_SIZE = 'population_size';
@@ -162,6 +162,7 @@ class TerritoryDetail extends Model
 
     public function assignHomeToOwner(Nation $newOwner): void {
         $this->owner_nation_id = $newOwner->getId();
+        if ($newOwner->getGame()->economy_rules !== null) $this->economy_state = \App\Services\EconomyService::seed(true, $this->population_size);
         NationTerritoryLoyalty::setLoyaltyRatioIfNotSet($newOwner, $this->getTerritory(), $this->getTurn(), TerritoryDetail::HOME_TERRITORY_STARTING_LOYALTY_RATIO);
         $this->save();
     }
@@ -176,7 +177,9 @@ class TerritoryDetail extends Model
     public function export(): TerritoryTurnPublicInfo {
         $ownerOrNull = $this->getOwnerOrNull();
         $territory = $this->getTerritory();
-        $productionByResource = TerrainType::getResourceProductionByResource($this->getTerritory()->getTerrainType());
+        $catalogue = \App\Services\Resources\ResourceCatalogue::forGame($this->getTurn()->getGame());
+        $geography = json_decode($territory->geographic_potential, true, flags: JSON_THROW_ON_ERROR);
+        $productionByResource = $catalogue->territorialPotential($geography, $territory->getTerrainType());
         $loyalties = $this->allLoyalties()->get();
 
         $ownerLoyaltyRatio = $loyalties->mapWithKeys(fn (NationTerritoryLoyalty $l) => [$l->getNationId() => $l->getLoyaltyRatio()])->get($this->owner_nation_id) ?? 0;
@@ -186,10 +189,9 @@ class TerritoryDetail extends Model
             turn_number: $this->getTurn()->getNumber(),
             owner_nation_id: $ownerOrNull?->getId(),
             stats: [is_null($this->owner_nation_id) ? new DemographicStat('Population', 0, StatUnit::Unknown->name) : new DemographicStat('Population', $this->getPopulationSize(), StatUnit::WholeNumber->name)],
-            owner_production: is_null($this->owner_nation_id) ? null : collect(array_keys($productionByResource))
-                ->mapWithKeys(fn (int $resource) => [ResourceType::from($resource)->name => TerritoryDetail::calculateEffectiveProduction($productionByResource[$resource], $this->getPopulationSize(), $ownerLoyaltyRatio)])->all(),
+            owner_production: is_null($this->owner_nation_id) ? null : $catalogue->territorialPotential($geography, $territory->getTerrainType(), (int) floor($this->getPopulationSize() * $ownerLoyaltyRatio), true),
             loyalties: $loyalties->map(fn (NationTerritoryLoyalty $l) => $l->export())->all(),
-            base_productivity: collect($productionByResource)->mapWithKeys(fn ($rate, $resource) => [ResourceType::from($resource)->name => $rate])->all(),
+            base_productivity: collect($productionByResource)->mapWithKeys(fn ($rate, $resource) => [$resource => $rate])->all(),
             production_population_unit: self::UNIT_OF_POPULATION_SIZE,
         );
     }
@@ -226,10 +228,7 @@ class TerritoryDetail extends Model
             ->select('territories.id as territory_id', 'nation_territory_loyalties.nation_id', 'nation_territory_loyalties.' . NationTerritoryLoyalty::FIELD_LOYALTY . ' as raw_loyalty')
             ->get()
             ->groupBy('territory_id');
-        $productionByTerrainResource = collect(TerrainType::getResourceProductionByTerrainResource())
-            ->mapWithKeys(fn (array $productionByResource, int $terrain) => [$terrain => collect($productionByResource)
-                ->mapWithKeys(fn (float $production, int $resource) => [ResourceType::from($resource)->name => $production])
-            ]);
+        $catalogue = \App\Services\Resources\ResourceCatalogue::forGame($turn->getGame());
         $territories = DB::table('territory_details')
             ->where('territory_details.game_id', $turn->getGame()->getId())
             ->where('territory_details.turn_id', $turn->getId())
@@ -239,7 +238,7 @@ class TerritoryDetail extends Model
                 ->on('nation_territory_loyalties.turn_id', '=', 'territory_details.turn_id')
                 ->on('nation_territory_loyalties.nation_id', '=', 'territory_details.owner_nation_id')
             )
-            ->select('territory_details.*', Territory::FIELD_TERRAIN_TYPE . ' as terrain_type', NationTerritoryLoyalty::FIELD_LOYALTY . ' as raw_loyalty')
+            ->select('territory_details.*', 'territories.geographic_potential', Territory::FIELD_TERRAIN_TYPE . ' as terrain_type', NationTerritoryLoyalty::FIELD_LOYALTY . ' as raw_loyalty')
             ->get()
             ->all();
 
@@ -248,9 +247,9 @@ class TerritoryDetail extends Model
             'stats' => [
                 is_null($t->owner_nation_id) ? new DemographicStat(TerritoryStat::Population->name, 0, StatUnit::Unknown->name) : new DemographicStat(TerritoryStat::Population->name, $t->population_size, StatUnit::WholeNumber->name),
             ],
-            'base_productivity' => $productionByTerrainResource[$t->terrain_type]->all(),
+            'base_productivity' => $catalogue->territorialPotential(json_decode($t->geographic_potential,true), TerrainType::from($t->terrain_type)),
             'production_population_unit' => self::UNIT_OF_POPULATION_SIZE,
-            'owner_production' => is_null($t->owner_nation_id) ? null : $productionByTerrainResource[$t->terrain_type]->mapWithKeys(fn ($production, $resource) => [$resource => TerritoryDetail::calculateEffectiveProduction($production, $t->population_size, $t->raw_loyalty / 100)])->all(),
+            'owner_production' => is_null($t->owner_nation_id) ? null : $catalogue->territorialPotential(json_decode($t->geographic_potential,true), TerrainType::from($t->terrain_type), (int)floor($t->population_size * ($t->raw_loyalty??0) / 100), true),
             'loyalties' => $loyaltiesByTerritoryId->get($t->territory_id)?->map(fn (object $l) => ['nation_id' => $l->nation_id, 'loyalty_ratio' => $l->raw_loyalty / 100])?->all()??[]
         ]), $territories);
     }
@@ -271,7 +270,13 @@ class TerritoryDetail extends Model
     }
 
     public function onNextTurn(TerritoryDetail $current): void {
-        $this->setPopulationSize($this->getPopulationSize() * (1 + $current->getPopulationGrowthRate()));
+        $growth = 0;
+        if ($owner = $current->getOwnerOrNull()) {
+            $nextNation = $owner->getDetail($this->getTurn());
+            $food = $nextNation->resource_report[$nextNation->resources()->role('nutrition')];
+            $growth = self::BASE_POPULATION_GROWTH_RATE * \App\Domain\Resources\Agriculture::growthMultiplier($food, $this->getTurn()->getGame()->economy_rules);
+        }
+        $this->setPopulationSize(max(0, (int) floor($this->getPopulationSize() * (1 + $growth))));
         $this->save();
         $loyalties = $current->allLoyalties()->get();
         assert($loyalties instanceof Collection);

@@ -1,3 +1,4 @@
+import { resourceName } from '../../ui/resourceVisuals.js';
 import { Component } from '../../runtime/Component.js';
 import { el } from '../../ui/dom.js';
 import { Button } from '../../ui/Button.js';
@@ -39,13 +40,13 @@ export default class Diplomacy extends Component {
         this.send = new Button({ type: 'submit', variant: 'primary' });
         this.textForm = el('form', {}, this.textField.element, this.send.element);
         this.resource = el('select');
-        for (const value of ['Capital', 'Food', 'Material', 'Ore', 'Oil'])
-            this.resource.append(el('option', { value }));
+        for (const meta of this.services.world.snapshot.nation.definitions.resources.filter(r => r.grantable))
+            this.resource.append(el('option', { value: meta.resource_key }));
         this.amount = el('input', {
             type: 'number',
-            min: '0.0001',
+            min: '0.000001',
             max: '1000000000',
-            step: '0.0001',
+            step: '0.000001',
             inputmode: 'decimal',
         });
         this.resourceField = new FieldShell({ control: this.resource, label: '' });
@@ -135,7 +136,7 @@ export default class Diplomacy extends Component {
                     nation_id: id,
                     kind: 'ResourceGrant',
                     quantity,
-                    resource_type: resource,
+                    resource_key: resource,
                     request_key: this.key(['grant', id, resource, quantity]),
                 },
                 () => {
@@ -286,7 +287,7 @@ export default class Diplomacy extends Component {
         this.grantSummary.textContent = this.t('grant');
         this.messageList.setAttribute('aria-label', this.t('conversation'));
         for (const option of this.resource.options)
-            option.textContent = this.services.i18n.t(`command.resource.${option.value}`);
+            option.textContent = resourceName(this.services.world.snapshot.nation, option.value, this.services.i18n);
         const enabled = snapshot?.nation?.diplomacy?.enabled;
         this.layout.hidden = !enabled;
         this.status.textContent = !enabled
@@ -377,7 +378,7 @@ export default class Diplomacy extends Component {
                 const offer = message.offer;
                 const label =
                     offer.kind === 'ResourceGrant'
-                        ? `${offer.quantity} ${this.services.i18n.t(`command.resource.${offer.resource_type}`)}`
+                        ? `${offer.quantity} ${resourceName(this.services.world.snapshot.nation, offer.resource_key, this.services.i18n)}`
                         : this.t(`kind.${offer.kind}`);
                 content.push(
                     el('strong', { text: label }),

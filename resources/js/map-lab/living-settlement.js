@@ -1,4 +1,4 @@
-import { featureHash } from './cartography.js';
+import { featureHash } from '../map/cartography.js';
 
 export function segmentDistance(x, y, a, b) {
     const dx = b.x - a.x,

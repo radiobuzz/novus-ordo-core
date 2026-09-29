@@ -1,7 +1,7 @@
 import test from 'node:test';
 import assert from 'node:assert/strict';
-import { movementPath, productionBid } from '../../resources/js/client/services/movement.js';
-import { productionPreview, productionProductivity } from '../../resources/js/client/services/production.js';
+import { movementPath } from '../../resources/js/client/services/movement.js';
+import { acquisitionPlan } from '../../resources/js/client/services/production.js';
 import { reportText } from '../../resources/js/client/services/reportText.js';
 import { GameplayService } from '../../resources/js/client/services/GameplayService.js';
 
@@ -29,68 +29,18 @@ test('coastal transport and single-cell island regions keep current engine behav
     assert.deepEqual(movementPath(graph, 1, 2, { moves: 1 }, 1), []);
     assert.equal(movementPath(graph, 1, 1, { moves: 1 }, 1), null);
 });
-test('production uses existing labor units, cancellation, and safe numeric boundaries', () => {
-    const definitions = { labor_per_unit: 1000000, max_bid_labor: 2147483647, bid_resources: ['Ore'] };
-    assert.deepEqual(productionBid('Ore', '1.25', '4', definitions), {
-        resource_type: 'Ore',
-        max_quantity: 1250000,
-        max_labor_allocation_per_unit: 250000,
-    });
-    assert.equal(productionBid('Ore', 0, 0, definitions).max_labor_allocation_per_unit, 2147483647);
-    for (const value of [-1, Infinity, 'bad', 1e30])
-        assert.throws(() => productionBid('Ore', value, 1, definitions));
-    assert.throws(() => productionBid('Capital', 1, 1, definitions));
-});
-test('production presentation normalizes stored thresholds and previews territorial labor', () => {
-    const definitions = { labor_per_unit: 100, max_bid_labor: 2147483647 };
-    assert.equal(
-        productionProductivity(
-            { max_labor_allocation_per_unit: 333334 },
-            {
-                ...definitions,
-                labor_per_unit: 1000000,
-            },
-        ),
-        3,
-    );
-    assert.equal(productionProductivity({ max_labor_allocation_per_unit: 2147483647 }, definitions), 0);
+test('production payload preserves exact decimal strings for arbitrary catalogue keys', () => {
     const data = {
-        definitions,
-        budget: {
-            labor_pools: [
-                { territory_id: 1, size: 100, free_labor: 60 },
-                { territory_id: 2, size: 100, free_labor: 20 },
-            ],
-            labor_facility_allocations: [
-                {
-                    territory_id: 1,
-                    resource_type: 'Oil',
-                    capacity: 100,
-                    productivity: 2,
-                    allocation: 20,
-                },
-                {
-                    territory_id: 2,
-                    resource_type: 'Oil',
-                    capacity: 100,
-                    productivity: 1,
-                    allocation: 10,
-                },
-            ],
-        },
+        definitions: { acquisition_resources: ['test_good'] },
+        acquisitions: [
+            { resource_key: 'test_good', quantity: '0.123456', spending_limit: '2.000001', priority: 100 },
+        ],
     };
-    const filtered = productionPreview('Oil', 1.5, 1.5, data);
-    assert.equal(filtered.eligibleCount, 1);
-    assert.equal(filtered.facilityCeiling, 2);
-    assert.equal(filtered.freeLabor, 0.6);
-    assert.equal(filtered.allocatedLabor, 0.2);
-    assert.equal(filtered.laborDemand, 0.75);
-    assert.equal(filtered.facilities.find((facility) => facility.territory_id === 2).eligible, false);
-    const all = productionPreview('Oil', 3, 0, data);
-    assert.equal(all.eligibleCount, 2);
-    assert.equal(all.facilityCeiling, 3);
-    assert.equal(all.freeLabor, 0.8);
-    assert.ok(Math.abs(all.allocatedLabor - 0.3) < 1e-9);
+    assert.deepEqual(acquisitionPlan(data, {}), [
+        { resource_key: 'test_good', quantity: '0.123456', spending_limit: '2.000001', priority: 100 },
+    ]);
+    assert.throws(() => acquisitionPlan(data, { test_good: { quantity: '0.0000001' } }));
+    assert.throws(() => acquisitionPlan(data, { test_good: { quantity: '1e4' } }));
 });
 test('report tokens resolve as text without interpreting player HTML', () => {
     assert.equal(
@@ -102,7 +52,12 @@ test('report tokens resolve as text without interpreting player HTML', () => {
     );
 });
 function fixture(api = {}) {
-    const snapshot = { game_id: 4, turn_number: 2, setup: { nation_id: 8 } };
+    const snapshot = {
+        game_id: 4,
+        turn_number: 2,
+        setup: { nation_id: 8 },
+        nation: { definitions: { edit_counter: 1 } },
+    };
     const world = {
         snapshot,
         same: (a, b) => a.game_id === b.game_id && a.turn_number === b.turn_number,
@@ -149,7 +104,13 @@ test('commands carry identity, serialize, reconcile, and never retry uncertain o
     });
     await assert.rejects(service.command('deploy', { deployments: [] }, snapshot));
     assert.equal(attempts, 1);
-    assert.deepEqual(payload.client_context, { game_id: 4, turn_number: 2, nation_id: 8, user_id: 9 });
+    assert.deepEqual(payload.client_context, {
+        game_id: 4,
+        turn_number: 2,
+        nation_id: 8,
+        user_id: 9,
+        resource_edit_counter: 1,
+    });
     assert.equal(world.refreshes, 1);
     assert.equal(service.busy, false);
     assert.match(service.notice, /uncertain/);
@@ -163,8 +124,8 @@ test('stale client snapshot prevents sending a command; drafts do not cross turn
     world.snapshot = { ...snapshot, turn_number: 3 };
     await assert.rejects(service.command('deploy', {}, snapshot));
     assert.equal(calls, 0);
-    service.drafts(snapshot).Ore = { quantity: '2' };
-    assert.equal(service.drafts(snapshot).Ore.quantity, '2');
+    service.drafts(snapshot).ore = { quantity: '2' };
+    assert.equal(service.drafts(snapshot).ore.quantity, '2');
     assert.deepEqual(service.drafts(world.snapshot), {});
 });
 test('ranking history is context-fenced, shared for concurrent readers, and cached per turn', async () => {
@@ -193,4 +154,84 @@ test('ranking history is context-fenced, shared for concurrent readers, and cach
     await assert.rejects(service.rankingHistory(next), /ranking history changed/i);
     assert.equal(reads, 2);
     assert.deepEqual(requestedTurns, [2, 3]);
+});
+
+test('policy drafts survive same-context refresh and reset on rule edits or rollback revisions', () => {
+    const { service, snapshot } = fixture();
+    Object.assign(snapshot, {
+        turn_context_revision: 'first',
+        nation: { definitions: { edit_counter: 1 }, policies: { edit_counter: 1 } },
+    });
+    const draft = service.policyDraft(snapshot);
+    draft.changes = { tax: { option: 'standard', parameters: { rate: '.3' } } };
+    assert.equal(service.policyDraft(structuredClone(snapshot)), draft);
+    const revised = { ...snapshot, turn_context_revision: 'rollback' };
+    assert.equal(service.policyDraft(revised).changes, null);
+    service.policyDraft(revised).changes = {};
+    assert.equal(
+        service.policyDraft({
+            ...revised,
+            nation: { definitions: { edit_counter: 1 }, policies: { edit_counter: 2 } },
+        }).changes,
+        null,
+    );
+});
+
+test('policy save clears only the accepted submitted draft and preserves newer or rejected edits', async () => {
+    const { service, snapshot } = fixture({ savePendingPolicies: async () => {} });
+    Object.assign(snapshot, {
+        turn_context_revision: 'season',
+        nation: {
+            definitions: { edit_counter: 1, acquisition_resources: [] },
+            acquisitions: [],
+            policies: { turn_id: 5, edit_counter: 1, current: {}, pending: {} },
+        },
+    });
+    const changes = { income_tax: { option: 'standard', parameters: { rate: '0.3' } } };
+    const draft = service.policyDraft(snapshot);
+    draft.changes = changes;
+    draft.base = JSON.stringify([{}, {}]);
+    await service.command('savePendingPolicies', { changes: structuredClone(changes) }, snapshot);
+    assert.equal(draft.changes, null);
+    draft.changes = changes;
+    draft.base = JSON.stringify([{}, {}]);
+    service.api.savePendingPolicies = async () => {
+        draft.changes = { ...changes, newer: true };
+    };
+    await service.command('savePendingPolicies', { changes: structuredClone(changes) }, snapshot);
+    assert.equal(draft.changes.newer, true);
+    service.api.savePendingPolicies = async () => {
+        throw new Error('Rejected');
+    };
+    await assert.rejects(
+        service.command('savePendingPolicies', { changes: structuredClone(changes) }, snapshot),
+    );
+    assert.equal(draft.changes.newer, true);
+});
+
+test('policy preview is read-only and rejects a response from a replaced rules context', async () => {
+    let payload;
+    const { service, world, snapshot } = fixture({
+        previewPolicies: async (args) => {
+            payload = args.body;
+            world.snapshot = {
+                ...snapshot,
+                nation: { definitions: { edit_counter: 1 }, policies: { edit_counter: 2 } },
+            };
+            return { valid: true };
+        },
+    });
+    Object.assign(snapshot, {
+        turn_context_revision: 'season',
+        nation: {
+            definitions: { edit_counter: 1, acquisition_resources: [] },
+            acquisitions: [],
+            policies: { turn_id: 5, edit_counter: 1, current: {}, pending: {} },
+        },
+    });
+    await assert.rejects(service.previewPolicies(snapshot, {}), /plan changed/i);
+    assert.equal(payload.edit_counter, 1);
+    assert.equal(payload.client_context.turn_context_revision, 'season');
+    assert.equal(world.refreshes, 0);
+    assert.equal(service.outcome, null);
 });

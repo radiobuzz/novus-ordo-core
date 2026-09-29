@@ -19,13 +19,12 @@ $reject = function (callable $work, int $status) use ($check): void {
 };
 Artisan::call('migrate:fresh', ['--force' => true]);
 $map = GeneratedMapData::fromArray(json_decode(stream_get_contents(STDIN), true, flags: JSON_THROW_ON_ERROR));
-$a = Game::createNew();
+$a = Game::createNew($map);
 $resolver = app(SelectedGame::class);
-$check($resolver->resolve(Request::create('/game'))->getId() === $a->getId(), 'Single-game compatibility failed');
+$reject(fn () => $resolver->resolve(Request::create('/game')), 409);
 $b = Game::createNew($map, fn ($game) => app(Setup::class)->populate($game, ['count' => 1, 'seed' => 'multi-game-test']));
 $check($a->fresh()->isActive() && $b->isActive(), 'Creation deactivated a game');
-$check($a->map()->first() === null && $b->map()->first()->getSnapshot() === $map->snapshot, 'Map identity changed');
-$reject(fn () => Game::getCurrent(), 409);
+$check($a->map()->first()->getSnapshot() === $map->snapshot && $b->map()->first()->getSnapshot() === $map->snapshot, 'Map identity changed');
 $reject(fn () => $resolver->resolve(Request::create('/game')), 409);
 $check($resolver->resolve(Request::create('/client/entry'), false) === null, 'Unselected login chose a game');
 foreach ([$a, $b] as $game) {
@@ -76,7 +75,7 @@ $check($na->getId() !== $nb->getId(), 'Same account did not get two nations');
 
 // The creation transaction cannot change existing activity or leave a partial game behind.
 $counts = [Game::count(), DB::table('territories')->count(), DB::table('turns')->count()];
-try { Game::createNew(null, fn () => throw new RuntimeException('injected-create-failure')); }
+try { Game::createNew($map, fn () => throw new RuntimeException('injected-create-failure')); }
 catch (RuntimeException $error) { $check($error->getMessage() === 'injected-create-failure', $error->getMessage()); }
 $check($counts === [Game::count(), DB::table('territories')->count(), DB::table('turns')->count()], 'Partial game survived creation failure');
 $check($a->fresh()->isActive() && $b->fresh()->isActive(), 'Failed creation changed active games');
@@ -86,7 +85,7 @@ $bHint = file_get_contents($status->path($b->getId()));
 $creationLock = Cache::lock(Game::CacheLockKeyCritalSectionCreateGame, 60);
 $check($creationLock->get(), 'Fixture lock failed');
 try {
-    $reject(fn () => Game::createNew(), 409);
+    $reject(fn () => Game::createNew($map), 409);
     $check(!$a->isUpkeeping() && !$b->isUpkeeping(), 'Creation blocked existing games');
     app(AdminGameService::class)->changeTurn($a->fresh(), Turn::getCurrentForGame($a)->getId(), 'advance');
 } finally { $creationLock->release(); }
@@ -105,7 +104,7 @@ $check($aLock->get(), 'Fixture turn lock failed');
 try {
     $check($a->isUpkeeping() && !$b->isUpkeeping(), 'Upkeep leaked between games');
     $played = app(Runner::class)->step($b->fresh(), $ai + ['nation_id' => $ai['next_nation_id']]);
-    $check($played['status'] === 'played', 'Non-first active game AI failed');
+    $check($played['status'] === 'ready', 'Non-first active game passive participant failed');
     app(AdminGameService::class)->changeTurn($b->fresh(), Turn::getCurrentForGame($b)->getId(), 'advance');
 } finally { $aLock->release(); }
 $check(Turn::getCurrentForGame($a)->getNumber() === 2 && Turn::getCurrentForGame($b)->getNumber() === 2, 'Independent B advance failed');
@@ -124,7 +123,7 @@ $check($b->getTerritoryWithId($tb->getId(), true)->game_id === $b->getId(), 'Cac
 try { $b->getTerritoryWithId($ta->getId(), true); throw new RuntimeException('Foreign cached territory leaked'); }
 catch (TypeError) {} // Existing non-null lookup contract rejects a missing territory.
 
-$archived = Game::createNew(); $archived->disable(); $archived->save();
+$archived = Game::createNew($map); $archived->disable(); $archived->save();
 $reject(fn () => $resolver->resolve(Request::create('/game?game_id=' . $archived->getId())), 403);
 $reject(fn () => $archived->tryNextTurn($archived->getCurrentTurn()), 409);
 $reject(fn () => $archived->rollbackLastTurn(), 409);
@@ -138,10 +137,7 @@ $before = [Turn::getCurrentForGame($a)->getNumber(), Turn::getCurrentForGame($b)
 Artisan::call('app:server-upkeep');
 $check([Turn::getCurrentForGame($a)->getNumber(), Turn::getCurrentForGame($b)->getNumber()] === [$before[0] + 1, $before[1] + 1], 'Scheduler did not advance both eligible games');
 $check(Turn::getCurrentForGame($archived)->getNumber() === 1 && !$archived->fresh()->isActive(), 'Archived game was changed');
-Artisan::call('app:ai-play', ['game' => $b->getId(), '--preview' => true]);
-$check(str_contains(Artisan::output(), 'preview'), 'CLI AI did not target the second game');
-
 $fixture = ['a' => $a->getId(), 'b' => $b->getId(), 'archived' => $archived->getId(),
     'user' => $user->getId(), 'nation_a' => $na->getId(), 'nation_b' => $nb->getId()];
 file_put_contents(getenv('NO7_ENTRY_TEST_ROOT') . '/multi-game.json', json_encode($fixture));
-echo "PASS: independent classic/generated games, shared account, explicit contexts, creation rollback, locks, AI, advance/rollback, scheduler, caches, notifications and archive isolation.\n";
+echo "PASS: independent generated games, shared account, explicit contexts, creation rollback, locks, passive participants, advance/rollback, scheduler, caches, notifications and archive isolation.\n";

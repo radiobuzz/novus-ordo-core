@@ -83,7 +83,6 @@ final class DiplomacyService {
             $territories = DB::table('territory_details')->where('turn_id', $turn->getId())->where('owner_nation_id', $target)->pluck('territory_id');
             Order::where('nation_id', $actor)->where('turn_id', $turn->getId())->whereIn('type', OrderType::getEngagingTypes())
                 ->whereIn('target_territory_id', $territories)->delete();
-            Nation::findOrFail($actor)->getDetail($turn)->onDeployment();
         }
     }
 

@@ -131,7 +131,7 @@ test('separate game transports pin reads, JSON commands and uploads without sess
         a({ path: '/game' }),
         b({ path: '/game' }),
         a({ path: '/ready-for-next-turn', method: 'POST', body: { turn_number: 3 } }),
-        b({ path: '/create-nation', method: 'POST', body: upload }),
+        b({ path: '/client/setup/nation', method: 'POST', body: upload }),
     ]);
     assert.deepEqual(
         calls.map(({ options }) => options.headers['X-Game-Id']),

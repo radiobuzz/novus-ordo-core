@@ -2,7 +2,9 @@
 
 Status: interactive experiment; not a production gameplay contract
 
-The generator and terrain renderer now also support an opt-in [generated-map beta](map-beta.md) in the new interface. Lab simulation stays separate. These experiments do not establish a fixed future design.
+Shared geography and rendering have been extracted into `resources/js/map/` for the [persistent microcell world implementation](map-v2-implementation-results.md). The lab still owns its illustrative nations, population, development, economy and military fixtures; they are excluded from production snapshots. Live rollout remains pending. Historical experiment entries below describe when each feature was introduced.
+
+The generator and terrain renderer provide the mandatory [generated world](map-beta.md) used by the current interface. Lab simulation stays separate. These experiments do not establish a fixed future design.
 
 ## Purpose
 
@@ -14,6 +16,32 @@ The original laboratory tested two simultaneous geographic layers:
 It generates experimental geography with fixture-only politics and army rules. It does not read or mutate the game database. In a development environment, authenticated users can open it at `/dev-panel/map-lab`.
 
 The optional administration experiment below now tests a different political subdivision: microcell country ownership, exclusive provinces, and overlapping development zones. It does not silently replace the original fixtures or establish production sovereignty rules.
+
+## Coastal terrain detail — 2026-09-28
+
+The default-on **Coastal terrain detail** checkbox in Coasts & bays adds close-up landscape cues independently of **Shoreline analysis**. Use the existing Shore example / Find shore example controls, then turn analysis off to judge the artwork. Gentle slopes get softer sandy/shingle-coloured margins; increasing shore rise introduces shaded, striated rock faces and lighter crests. Difficult inland approaches receive subtle rough ground behind the shore instead of falsely turning every low-access shore into a cliff. Exposure influences broken static foam, attenuated for lakes and map-edge-limited estimates; ice suppresses foam/beach colour and snow covers rock.
+
+`coastal-landscape.js` spatially indexes the existing individual shore segments, retaining different conditions on different sides of a cell and blending neighbouring styles at joins. The raster bands follow Terrain V2's continuous, perturbed land/water boundary, not diagnostic hex outlines. With terrain transitions off they follow the corresponding straight shoreline instead. Decorative vegetation is thinned only at the margin. The independent toggle is included in natural/decorated chunk cache keys, within the existing pixel budget; geography, generation settings, drainage, shore measurements and gameplay rules are unchanged.
+
+These are **artistic interpretations of provisional measurements**, not measured sediment, surveyed cliffs, current surf, bathymetry, port suitability or landing odds. Overview rendering is unchanged; the existing coloured analysis and textual per-edge reasons remain the precise inspection tools. No generated bitmap, dependency, live-game renderer or database change. Unit/browser verification and reviewed screenshots are recorded in the client progress journal.
+
+## Desert biome study — 2026-09-28
+
+**Find desert**, beside Find landscape detail, focuses a coherent dry patch on the current map, favouring sandy plains for the initial view. The selected-cell inspector identifies **Biome** separately from **Landform / cover**, and the normal overview and Terrain V2 both show arid colours. Existing Wetness controls coverage; sufficiently wet maps legitimately have no desert and the Find action reports that without moving the camera or changing settings.
+
+`map-lab/biomes.js` derives a continuous `desertStrength` from existing moisture and temperature, with a desert label at strength ≥ 0.5 and a semi-arid transition below it. Warmer cells need more moisture to avoid aridity. Water, snow and tundra are excluded; the existing forest moisture threshold remains above the aridity transition. Rivers/lakes already raise local moisture, so their existing influence can interrupt dry patches without new hydrology or guaranteed oases. These are provisional normalized thresholds, not a physical climate classification; no new wind, rain-shadow or precipitation model is claimed.
+
+Desert is a cover/biome over **plains, hills and mountains**, not a replacement landform. Close-up plains use subtle wind-like sand patterns; rugged ground uses warmer exposed-rock tones while preserving relief. The transition is continuous across cells. The interpretation is applied only after creating a lab model: original terrain/vegetation IDs, elevation, precipitation, moisture, drainage, movement and simulation/resource rules are retained. `biome` supplies the new identity and inspector cover description; it is not yet an authoritative ecological or economic field. The shared generator and live game do not acquire this experiment, including through Use these settings for a game.
+
+Source: `biomes.js`, `model.js`, `terrain-v2-field.js` and the existing main controls/inspector. No bitmap generation, dependency, saved setting or game database change. Model checks compare lab and shared physical fields, protect cold/wet terrain, test 7/19/37 resolution, repeatability and wetness extremes. Browser execution and screenshot evidence are recorded in the client progress journal.
+
+## Water detail continuity — 2026-09-28
+
+The lab's close-up Terrain V2 now retains the overview's depth information. `water-visuals.js` supplies the same shallow turquoise/deep blue endpoints at 550 m ocean depth and 140 m lake depth, with further darker stops for deeper water. A continuous water-only depth field in `terrain-v2-field.js` avoids letting adjacent high land manufacture a bright shallow shelf. Lake depth is measured below the lake surface, not sea level. Subtle procedural ripples, the thin shore treatment and ice remain; this does not add bathymetry or alter geography.
+
+Detailed rivers use each edge's accumulated flow rather than the maximum flow of its entire named/course segment. Their nominal width follows the overview's scale, with finer width buckets and the same small screen-space readability floor. Rounded half-corners meet continuously; confluences retain their original endpoints. All banks are painted before water, preventing one tributary's bank from covering another channel. Cached paths are reset with the model. Banks follow water width; scale-study placement clearance now covers the wider maximum bank envelope. Exact original development checkpoints remain unchanged.
+
+Use **Find named feature** for a river/lake, or **Try naval demo** for a coastal view, then zoom in/out. Existing Rivers, Illustrated terrain, transitions, relief and diagnostic views remain independent. The overview/shared live-game renderer is unchanged; the refined renderer stays in the lab for evaluation and later extraction. Width is an illustrative drainage mapping, not measured metres or a navigation rule; underlying grid resolution still bounds seabed detail. No generator, seed, resource, military/economic rule or new dependency.
 
 ## Development visuals — second interpretation test, 2026-09-26
 
@@ -215,7 +243,7 @@ Verification: model tests cover lake connectivity, exact river-edge geometry and
 
 ### Permanent lab-only Terrain V2
 
-Terrain V2 is the permanent close-up renderer; its old comparison checkbox is removed. **Find landscape detail** focuses a forest/river scene without regenerating geography or resetting simulations. This is deliberately **only in the Map Lab**, not the live-game/beta map or standalone map studio. The existing full-world overview and diagnostic colours remain in use, and illustrated terrain can still be hidden independently. The lab never falls back to old bitmap tiles while procedural detail is preparing; simplified geographic colours remain underneath it.
+Terrain V2 is the permanent close-up renderer; its old comparison checkbox is removed. **Find landscape detail** focuses a forest/river scene without regenerating geography or resetting simulations. This is deliberately **only in the Map Lab**, not the live generated world or standalone map studio. The existing full-world overview and diagnostic colours remain in use, and illustrated terrain can still be hidden independently. The lab never falls back to old bitmap tiles while procedural detail is preparing; simplified geographic colours remain underneath it.
 
 `resources/js/map-lab/terrain-v2-field.js` samples read-only land/water, elevation, vegetation, moisture, snow/ice, lighting and temperature fields from the existing micro-cells. Smooth normalized barycentric weights blend adjacent centres. Exact cell centres retain their terrain identity; shoreline and biome transitions are cosmetic interpolation between them. The optional grid and inspector still expose the authoritative cells. No new gameplay cells, erosion, coast generation, resource changes, or movement rules are introduced.
 

@@ -32,7 +32,12 @@ const api = createEndpointClient(
     }),
 );
 session.api = api;
-const audio = new AudioService(boot.assets.soundtrack, preferences);
+const audio = new AudioService(
+    boot.assets.soundtrack,
+    preferences,
+    undefined,
+    boot.assets.slideshow?.audio?.loop ?? true,
+);
 const services = { boot, i18n, session, audio, setup: new NationSetupService(api) };
 const entry = new EntryProcess(services);
 services.entry = entry;

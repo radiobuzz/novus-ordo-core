@@ -4,6 +4,7 @@ import { addWater, isWater } from './water.js';
 import { createGeography } from './geography.js';
 import { geographyStats } from './geography-stats.js';
 import { prepareRelief } from './relief.js';
+import { applyBiomes } from '../map/biomes.js';
 
 export const RESOLUTIONS = new Map([
     [7, 1],
@@ -107,6 +108,7 @@ export function createMapLabModel(cellCount = 19, scale = 'scenario', options = 
     const start = adjacent.find((cell) => cell.controllerId === 'sable') ?? adjacent[0] ?? city;
     model.army.cellId = start.id;
     start.controllerId = 'sable';
+    applyBiomes(model);
     prepareRelief(model);
     model.generation = {
         version: 'landscape-v4',

@@ -6,7 +6,16 @@ export function segmentDistance(x, y, a, b) {
     return Math.hypot(x - a.x - t * dx, y - a.y - t * dy);
 }
 
-export function regionalFeatures(cores, random, baseCoast, seaLevel, islandAbundance, noise) {
+export function regionalFeatures(
+    cores,
+    random,
+    baseCoast,
+    seaLevel,
+    islandAbundance,
+    noise,
+    width = 30,
+    height = (20 * Math.sqrt(3)) / 2,
+) {
     const coasts = [],
         islands = [],
         ranges = [],
@@ -18,11 +27,14 @@ export function regionalFeatures(cores, random, baseCoast, seaLevel, islandAbund
             const dx = Math.cos(angle),
                 dy = Math.sin(angle);
             let distance = 0.5;
-            while (distance < 18 && baseCoast(core.x + dx * distance, core.y + dy * distance) > seaLevel)
+            while (
+                distance < 18 * Math.max(width / 30, height / (20 * Math.sqrt(3) / 2)) &&
+                baseCoast(core.x + dx * distance, core.y + dy * distance) > seaLevel
+            )
                 distance += 0.35;
             const x = core.x + dx * distance,
                 y = core.y + dy * distance;
-            if (x < 1 || x > 29 || y < 0.7 || y > 16) continue;
+            if (x < 1 || x > width - 1 || y < 0.7 || y > height * (16 / (20 * Math.sqrt(3) / 2))) continue;
             if (i % 3 === 2) {
                 const threshold = 1 + noise(x, y, 140) * 49;
                 for (let j = 0; j < 4; j++) {
@@ -99,14 +111,18 @@ export function regionalFeatures(cores, random, baseCoast, seaLevel, islandAbund
             const dx = Math.cos(angle),
                 dy = Math.sin(angle);
             let distance = 0.5;
-            while (distance < 18 && baseCoast(core.x + dx * distance, core.y + dy * distance) > seaLevel)
+            while (
+                distance < 18 * Math.max(width / 30, height / (20 * Math.sqrt(3) / 2)) &&
+                baseCoast(core.x + dx * distance, core.y + dy * distance) > seaLevel
+            )
                 distance += 0.35;
             for (let j = 0; j < 4; j++) {
                 const offset = distance + 1.1 + j * 1.1;
                 const bend = Math.sin(j * 0.9 + phase) * 0.7;
                 const x = core.x + dx * offset - dy * bend;
                 const y = core.y + dy * offset + dx * bend;
-                if (x < 0.7 || x > 29.3 || y < 0.5 || y > 16 || baseCoast(x, y) > seaLevel) continue;
+                if (x < 0.7 || x > width - 0.7 || y < 0.5 || y > height * (16 / (20 * Math.sqrt(3) / 2)) || baseCoast(x, y) > seaLevel)
+                    continue;
                 islands.push({ x, y, radius: 0.32 + noise(x, y, 143) * 0.38, threshold });
             }
         }

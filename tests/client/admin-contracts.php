@@ -1,6 +1,7 @@
 <?php
 // Database contracts run ONLY through the explicit isolated test bootstrap.
 $app = require __DIR__ . '/isolated-app.php';
+require_once __DIR__ . '/generated-map-fixture.php';
 
 use App\Http\Controllers\AdminController;
 use App\Models\{Deployment, Division, Game, Turn};
@@ -15,7 +16,7 @@ $reject = function (callable $operation, int $status) use ($check): void {
     catch (HttpException $error) { $check($error->getStatusCode() === $status, 'Unexpected rejection status'); }
 };
 $controller = app(AdminController::class);
-$active = Game::getCurrent();
+$active = Game::where('is_active', true)->firstOrFail();
 $turn = Turn::getCurrentForGame($active);
 $before = [$active->getId(), $turn->getId(), Game::count()];
 foreach (['division' => Division::whereHas('details')->first(), 'deployment' => Deployment::first()] as $kind => $object) {
@@ -34,9 +35,9 @@ $reject(fn () => $active->rollbackLastTurn($turn->getId() + 1000000), 409);
 $lock = Cache::lock(Game::CacheLockKeyCritalSectionCreateGame, 20);
 $check($lock->get(), 'Could not acquire fixture creation lock');
 try {
-    $reject(fn () => Game::createNew(), 409);
+    $reject(fn () => Game::createNew(generatedMapFixture()), 409);
     $check(!$active->isUpkeeping(), 'Game creation blocked an existing game');
 }
 finally { $lock->release(); }
-$check([Game::getCurrent()->getId(), Turn::getCurrentForGame($active)->getId(), Game::count()] === $before, 'Rejected operations changed game data');
+$check([Game::where('is_active', true)->firstOrFail()->getId(), Turn::getCurrentForGame($active)->getId(), Game::count()] === $before, 'Rejected operations changed game data');
 echo "PASS: division/deployment inspection, cross-game rejection, stale turn/rollback, creation contention and independent upkeep (isolated DB).\n";

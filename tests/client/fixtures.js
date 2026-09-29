@@ -1,3 +1,43 @@
+import { createMapModel } from '../../resources/js/map/model.js';
+import { exportMap, restoreMap } from '../../resources/js/map/snapshot.js';
+
+let generatedModel, generatedMap;
+export function generatedMapFixture() {
+    if (!generatedModel) {
+        const snapshot = exportMap(createMapModel());
+        generatedModel = restoreMap(snapshot, baseTerritories);
+        generatedModel.generation = { version: snapshot.generator };
+        // The shared browser journeys exercise the player's home territories.
+        // Keep those regions traversable in the generated fixture instead of
+        // relying on coordinates from the retired rectangular map.
+        for (const region of generatedModel.regions.filter((item) =>
+            [155, 156, 157, 158].includes(item.territoryId),
+        ))
+            for (const id of region.cellIds) {
+                const cell = generatedModel.cellById.get(id);
+                cell.terrain = 'plains';
+                cell.terrainColor = '#79864b';
+            }
+        generatedMap = exportMap(generatedModel);
+    }
+    return generatedMap;
+}
+
+export function generatedRegionFixture(territoryId) {
+    generatedMapFixture();
+    const region = generatedModel.regions.find((item) => item.territoryId === territoryId);
+    if (!region) throw new Error(`Generated fixture has no territory ${territoryId}.`);
+    const cells = region.cellIds
+        .map((id) => generatedModel.cellById.get(id))
+        .sort(
+            (a, b) =>
+                Math.hypot(a.x - region.x, a.y - region.y) - Math.hypot(b.x - region.x, b.y - region.y) ||
+                a.x - b.x ||
+                a.y - b.y,
+        );
+    return { x: region.x, y: region.y, cells: cells.map(({ x, y }) => ({ x, y })) };
+}
+
 export const baseTerritories = Array.from({ length: 600 }, (_, i) => ({
     territory_id: i + 1,
     x: i % 30,
@@ -15,7 +55,7 @@ export const baseTerritories = Array.from({ length: 600 }, (_, i) => ({
     has_sea_access: i % 3 === 0,
     connected_land_territory_ids: [i === 155 ? 157 : Math.max(1, i)],
     connected_territory_ids: [i === 155 ? 157 : Math.max(1, i)],
-    stats: [{ title: 'Area', value: 15000, unit: 'Km2' }],
+    stats: [{ title: 'Land area', value: 15000, unit: 'Km2' }],
 }));
 export function fixtures(path, turn = 1) {
     const current = baseTerritories.map((t) => ({
@@ -32,7 +72,7 @@ export function fixtures(path, turn = 1) {
         ],
         owner_production:
             t.territory_id >= 155 && t.territory_id <= 158
-                ? { Capital: 42, Food: 168, Material: 42, Oil: 42 }
+                ? { money: 0, food: 168, material: 42, oil: 42 }
                 : null,
         loyalties:
             t.territory_id >= 155 && t.territory_id <= 158 ? [{ nation_id: 7, loyalty_ratio: 0.85 }] : [],
@@ -139,7 +179,7 @@ export function fixtures(path, turn = 1) {
                 labor_facility_allocations: [
                     {
                         territory_id: 156,
-                        resource_type: 'Food',
+                        resource_key: 'food',
                         capacity: 10000000,
                         productivity: 1.5,
                         allocation: 2000000,
@@ -147,7 +187,7 @@ export function fixtures(path, turn = 1) {
                     },
                     {
                         territory_id: 156,
-                        resource_type: 'Oil',
+                        resource_key: 'oil',
                         capacity: 42000000,
                         productivity: 1,
                         allocation: 42000000,
@@ -156,52 +196,52 @@ export function fixtures(path, turn = 1) {
                 ],
                 turn_number: turn,
                 balances: {
-                    Capital: 10,
-                    RecruitmentPool: 10,
-                    Food: -2,
-                    Material: 5,
-                    Ore: 0,
-                    Oil: 0,
+                    money: 10,
+                    recruitment: 10,
+                    food: -2,
+                    material: 5,
+                    ore: 0,
+                    oil: 0,
                 },
                 stockpiles: {
-                    Capital: 20,
-                    RecruitmentPool: 0,
-                    Food: 42,
-                    Material: 15,
-                    Ore: 10,
-                    Oil: 10,
+                    money: 20,
+                    recruitment: 0,
+                    food: 42,
+                    material: 15,
+                    ore: 10,
+                    oil: 10,
                 },
                 production: {
-                    Capital: 12,
-                    RecruitmentPool: 12,
-                    Food: 3,
-                    Material: 5,
-                    Ore: 0,
-                    Oil: 0,
+                    money: 0,
+                    recruitment: 12,
+                    food: 3,
+                    material: 5,
+                    ore: 0,
+                    oil: 0,
                 },
                 upkeep: {
-                    Capital: 2,
-                    RecruitmentPool: 2,
-                    Food: 5,
-                    Material: 0,
-                    Ore: 0,
-                    Oil: 0,
+                    money: 2,
+                    recruitment: 2,
+                    food: 5,
+                    material: 0,
+                    ore: 0,
+                    oil: 0,
                 },
                 expenses: {
-                    Capital: 0,
-                    RecruitmentPool: 0,
-                    Food: 0,
-                    Material: 0,
-                    Ore: 0,
-                    Oil: 0,
+                    money: 0,
+                    recruitment: 0,
+                    food: 0,
+                    material: 0,
+                    ore: 0,
+                    oil: 0,
                 },
                 available_production: {
-                    Capital: 30,
-                    RecruitmentPool: 10,
-                    Food: 40,
-                    Material: 20,
-                    Ore: 10,
-                    Oil: 10,
+                    money: 30,
+                    recruitment: 10,
+                    food: 40,
+                    material: 20,
+                    ore: 10,
+                    oil: 10,
                 },
             },
             deployment_limits: {
@@ -212,28 +252,15 @@ export function fixtures(path, turn = 1) {
                 Bomber: 2,
             },
             production_planning: {
-                resources: Object.fromEntries(
-                    ['Capital', 'RecruitmentPool', 'Food', 'Material', 'Ore', 'Oil'].map((name) => [
-                        name,
-                        {
-                            upkeep: (name === 'Food' ? 5 : name === 'Capital' ? 2 : 0) * 1000000,
-                            expenses: 0,
-                            stock: (name === 'Capital' ? 20 : name === 'Food' ? 42 : 0) * 1000000,
-                            produced_by_labor: name !== 'RecruitmentPool',
-                            reserve_labor: name === 'Capital',
-                            upkeep_priority: name === 'Food' ? 0 : name === 'Capital' ? 2147483647 : 32767,
-                        },
-                    ]),
-                ),
-                bid_order: [{ resource_type: 'Food', upkeep: false, priority: 65536 }],
-                facilities: ['Capital', 'Food', 'Material', 'Ore', 'Oil'].map((resource_type) => ({
-                    territory_id: 156,
-                    resource_type,
-                    capacity: 10000000,
-                    productivity: resource_type === 'Food' ? 1.5 : 1,
-                })),
-                command_priority: 65536,
-                capital_priority: 2147483645,
+                rows: {
+                    recruitment: {
+                        kind: 'capacity',
+                        capacity: '12.000000',
+                        occupied: '2.000000',
+                        commands: '0.000000',
+                        available: '10.000000',
+                    },
+                },
             },
             divisions: [
                 {
@@ -250,32 +277,50 @@ export function fixtures(path, turn = 1) {
                 },
             ],
             deployments: [],
-            bids: [
+            policies: { enabled: false, turn_id: turn, edit_counter: 1, current: {}, pending: {} },
+            acquisitions: [
                 {
-                    resource_type: 'Food',
-                    max_quantity: 3000000,
-                    max_labor_allocation_per_unit: 1000000,
+                    resource_key: 'material',
+                    quantity: '3.000000',
+                    spending_limit: '6.000000',
+                    priority: 100,
                 },
             ],
             definitions: {
-                labor_per_unit: 1000000,
-                max_bid_labor: 2147483647,
-                bid_resources: ['Food', 'Material', 'Ore', 'Oil'],
-                resources: ['Capital', 'RecruitmentPool', 'Food', 'Material', 'Ore', 'Oil'].map(
-                    (resource_type) => ({
-                        resource_type,
-                        can_be_stocked: resource_type !== 'RecruitmentPool',
-                    }),
-                ),
+                id: 1,
+                edit_counter: 1,
+                roles: { treasury: 'money', nutrition: 'food', recruitment: 'recruitment' },
+                acquisition_resources: ['food', 'material', 'ore', 'oil'],
+                resources: [
+                    ['money', 'currency', 'treasury', 'Treasury', 'Capital'],
+                    ['recruitment', 'capacity', 'recruitment', 'Recruitment', 'RecruitmentPool'],
+                    ['food', 'stock', 'nutrition', 'Food', 'Food'],
+                    ['material', 'stock', null, 'Raw materials', 'Material'],
+                    ['ore', 'stock', null, 'Ore', 'Ore'],
+                    ['oil', 'stock', null, 'Oil', 'Oil'],
+                ].map(([resource_key, kind, role, label, icon_key]) => ({
+                    resource_key,
+                    kind,
+                    role,
+                    labels: { en: label, fr: label },
+                    description: label,
+                    unit_labels: { en: 'units', fr: 'unités' },
+                    icon_key,
+                    display_decimals: 2,
+                    can_be_stocked: kind !== 'capacity',
+                    grantable: kind !== 'capacity',
+                    can_produce: kind === 'stock',
+                    base_production_by_terrain_type: {},
+                })),
                 divisions: ['Infantry', 'Armored', 'Artillery', 'Fighter', 'Bomber'].map(
                     (division_type, i) => ({
                         division_type,
                         deployment_costs: {
-                            Capital: [3, 5, 4, 10, 15][i],
-                            RecruitmentPool: 1,
-                            ...(i ? { Ore: [0, 5, 1, 1, 1][i] } : {}),
+                            money: [3, 5, 4, 10, 15][i],
+                            recruitment: 1,
+                            ...(i ? { ore: [0, 5, 1, 1, 1][i] } : {}),
                         },
-                        upkeep_costs: { Capital: 1, RecruitmentPool: 1 },
+                        upkeep_costs: { money: 1 },
                         attack_costs: {},
                         moves: [1, 2, 1, 6, 8][i],
                         attack_power: 30,
@@ -395,7 +440,8 @@ export function fixtures(path, turn = 1) {
             ],
             leaders: [],
         };
-    if (path === '/game/map') return { game_id: 1, fingerprint: null, map: null };
+    if (path === '/game/map')
+        return { game_id: 1, fingerprint: 'generated-fixture', map: generatedMapFixture() };
     if (path === '/game/ready-status')
         return {
             turn_number: turn,

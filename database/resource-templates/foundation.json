@@ -1,0 +1,335 @@
+{
+  "name": "Production economy foundation",
+  "description": "Current goods and costs; game-owned definitions.",
+  "resources": [
+    {
+      "key": "money",
+      "kind": "currency",
+      "role": "treasury",
+      "labels": {
+        "en": "Treasury",
+        "fr": "Trésorerie"
+      },
+      "descriptions": {},
+      "unit_labels": {
+        "en": "credits",
+        "fr": "crédits"
+      },
+      "icon_key": "Capital",
+      "sort_order": 0,
+      "display_decimals": 2,
+      "starting_quantity": "20",
+      "grantable": true,
+      "rules": {
+        "finance.civilian_founding": {
+          "household_cash_per_million": "10",
+          "producer_cash_per_million": "10"
+        }
+      }
+    },
+    {
+      "key": "recruitment",
+      "kind": "capacity",
+      "role": "recruitment",
+      "labels": {
+        "en": "Recruitment",
+        "fr": "Recrutement"
+      },
+      "descriptions": {},
+      "unit_labels": {
+        "en": "units",
+        "fr": "unités"
+      },
+      "icon_key": "RecruitmentPool",
+      "sort_order": 1,
+      "display_decimals": 2,
+      "starting_quantity": "0",
+      "grantable": false,
+      "rules": {
+        "capacity.loyal_population": {
+          "per_million": "1"
+        }
+      }
+    },
+    {
+      "key": "food",
+      "kind": "stock",
+      "role": "nutrition",
+      "labels": {
+        "en": "Food",
+        "fr": "Nourriture"
+      },
+      "descriptions": {},
+      "unit_labels": {
+        "en": "units",
+        "fr": "unités"
+      },
+      "icon_key": "Food",
+      "sort_order": 2,
+      "display_decimals": 2,
+      "starting_quantity": "0",
+      "grantable": true,
+      "rules": {
+        "production.territorial_labor": {
+          "yields": {
+            "Water": "0",
+            "Plain": "4",
+            "River": "4",
+            "Desert": "2",
+            "Tundra": "2",
+            "Mountain": "2",
+            "Forest": "2"
+          },
+          "geographic": true
+        },
+        "demand.population": {
+          "per_million": "1",
+          "priority": 0
+        },
+        "production.operating": {
+          "wage_per_unit": "1"
+        },
+        "exchange.reference_price": {
+          "price": "2"
+        },
+        "development.capacity": {
+          "capital_cost": "10",
+          "construction_workers": "1",
+          "max_growth_fraction": "0.1"
+        },
+        "production.founding": {
+          "core_developed_fraction": "0.6",
+          "neutral_developed_fraction": "0.1",
+          "public_share": "0.25",
+          "private_inventory_per_million": "0",
+          "private_inventory_unit_cost": "0"
+        }
+      }
+    },
+    {
+      "key": "material",
+      "kind": "stock",
+      "role": null,
+      "labels": {
+        "en": "Raw materials",
+        "fr": "Matières premières"
+      },
+      "descriptions": {},
+      "unit_labels": {
+        "en": "units",
+        "fr": "unités"
+      },
+      "icon_key": "Material",
+      "sort_order": 3,
+      "display_decimals": 2,
+      "starting_quantity": "0",
+      "grantable": true,
+      "rules": {
+        "production.territorial_labor": {
+          "yields": {
+            "Water": "0",
+            "Plain": "1",
+            "River": "1",
+            "Desert": "1",
+            "Tundra": "1",
+            "Mountain": "1",
+            "Forest": "4"
+          },
+          "geographic": true
+        },
+        "production.operating": {
+          "wage_per_unit": "1"
+        },
+        "exchange.reference_price": {
+          "price": "2"
+        },
+        "development.capacity": {
+          "capital_cost": "10",
+          "construction_workers": "1",
+          "max_growth_fraction": "0.1"
+        },
+        "production.founding": {
+          "core_developed_fraction": "0.6",
+          "neutral_developed_fraction": "0.1",
+          "public_share": "0.25",
+          "private_inventory_per_million": "0",
+          "private_inventory_unit_cost": "0"
+        }
+      }
+    },
+    {
+      "key": "ore",
+      "kind": "stock",
+      "role": null,
+      "labels": {
+        "en": "Ore",
+        "fr": "Minerai"
+      },
+      "descriptions": {},
+      "unit_labels": {
+        "en": "units",
+        "fr": "unités"
+      },
+      "icon_key": "Ore",
+      "sort_order": 4,
+      "display_decimals": 2,
+      "starting_quantity": "10",
+      "grantable": true,
+      "rules": {
+        "production.territorial_labor": {
+          "yields": {
+            "Water": "0",
+            "Plain": "1",
+            "River": "1",
+            "Desert": "1",
+            "Tundra": "1",
+            "Mountain": "4",
+            "Forest": "1"
+          },
+          "geographic": true
+        },
+        "production.operating": {
+          "wage_per_unit": "1"
+        },
+        "exchange.reference_price": {
+          "price": "2"
+        },
+        "development.capacity": {
+          "capital_cost": "10",
+          "construction_workers": "1",
+          "max_growth_fraction": "0.1"
+        },
+        "production.founding": {
+          "core_developed_fraction": "0.6",
+          "neutral_developed_fraction": "0.1",
+          "public_share": "0.25",
+          "private_inventory_per_million": "0",
+          "private_inventory_unit_cost": "0"
+        }
+      }
+    },
+    {
+      "key": "oil",
+      "kind": "stock",
+      "role": null,
+      "labels": {
+        "en": "Oil",
+        "fr": "Pétrole"
+      },
+      "descriptions": {},
+      "unit_labels": {
+        "en": "units",
+        "fr": "unités"
+      },
+      "icon_key": "Oil",
+      "sort_order": 5,
+      "display_decimals": 2,
+      "starting_quantity": "10",
+      "grantable": true,
+      "rules": {
+        "production.territorial_labor": {
+          "yields": {
+            "Water": "0",
+            "Plain": "1",
+            "River": "1",
+            "Desert": "4",
+            "Tundra": "4",
+            "Mountain": "1",
+            "Forest": "1"
+          },
+          "geographic": true
+        },
+        "production.operating": {
+          "wage_per_unit": "1"
+        },
+        "exchange.reference_price": {
+          "price": "2"
+        },
+        "development.capacity": {
+          "capital_cost": "10",
+          "construction_workers": "1",
+          "max_growth_fraction": "0.1"
+        },
+        "production.founding": {
+          "core_developed_fraction": "0.6",
+          "neutral_developed_fraction": "0.1",
+          "public_share": "0.25",
+          "private_inventory_per_million": "0",
+          "private_inventory_unit_cost": "0"
+        }
+      }
+    }
+  ],
+  "units": {
+    "Infantry": {
+      "deployment": {
+        "money": "3"
+      },
+      "season": {
+        "money": "1"
+      },
+      "active_capacity": {
+        "recruitment": "1"
+      },
+      "operation": {}
+    },
+    "Armored": {
+      "deployment": {
+        "money": "5",
+        "ore": "5"
+      },
+      "season": {
+        "money": "1"
+      },
+      "active_capacity": {
+        "recruitment": "1"
+      },
+      "operation": {
+        "oil": "1"
+      }
+    },
+    "Artillery": {
+      "deployment": {
+        "money": "4",
+        "ore": "1"
+      },
+      "season": {
+        "money": "1"
+      },
+      "active_capacity": {
+        "recruitment": "1"
+      },
+      "operation": {}
+    },
+    "Fighter": {
+      "deployment": {
+        "money": "10",
+        "ore": "1"
+      },
+      "season": {
+        "money": "1"
+      },
+      "active_capacity": {
+        "recruitment": "1"
+      },
+      "operation": {
+        "oil": "1"
+      }
+    },
+    "Bomber": {
+      "deployment": {
+        "money": "15",
+        "ore": "1"
+      },
+      "season": {
+        "money": "1"
+      },
+      "active_capacity": {
+        "recruitment": "1"
+      },
+      "operation": {
+        "oil": "1"
+      }
+    }
+  }
+}

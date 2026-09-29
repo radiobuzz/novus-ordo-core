@@ -31,7 +31,7 @@ export async function maps(app, scope) {
         download.control.setDisabled(!studio.snapshot);
         start.control.setDisabled(!selected || studio.snapshot !== selectedSnapshot);
     };
-    studio = new MapStudio({ scope, onChange: update });
+    studio = new MapStudio({ scope, limits: app.boot.mapLimits, onChange: update });
     const renderLibrary = () => {
         library.replaceChildren(
             response.maps.length
@@ -127,7 +127,7 @@ export async function maps(app, scope) {
         el('div', { class: 'admin-actions' }, save, start, download),
     );
     app.lockForm(scope, actions);
-    app.busyChanged.subscribe(scope, () => studio.setBusy(app.busy));
+    app.busyChanged.subscribe(scope, () => studio.setCommandBusy(app.busy));
     renderLibrary();
     update();
     const previous = app.mapWorkspaceDraft;
@@ -149,7 +149,12 @@ export async function maps(app, scope) {
         el('p', {
             text: 'Global map preparation. Generate → save an exact map → optionally create a game. These are separate actions. Running-game geography stays immutable.',
         }),
-        panel({ title: 'Saved map library', tone: 'accent' }, library),
+        el(
+            'details',
+            { class: 'map-library' },
+            el('summary', { text: 'Saved map library' }),
+            panel({ title: 'Saved map library', tone: 'accent' }, library),
+        ),
         studio.element,
         panel({ title: 'Keep this landscape' }, actions),
     );

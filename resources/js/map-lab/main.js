@@ -18,9 +18,10 @@ import { initializeExperiments, renderExperiments, installExperiments } from './
 import { recomputeEconomy, recordOilUse } from './economy.js';
 import { atlasControls, atlasInspector, renderAtlas, installAtlas } from './atlas-controls.js';
 import { coastControls, coastInspector, renderCoasts, installCoasts } from './coast-controls.js';
-import { coastActive } from './coasts.js';
+import { coastActive } from '../map/coasts.js';
 import { developmentActive, builtPlots } from './development.js';
 import { studyCells } from './development-scale.js';
+import { biomeLabel, findDesertCell } from '../map/biomes.js';
 import { developmentControls, developmentInspector, installDevelopment } from './development-controls.js';
 import { administrationActive, administrativeMembership } from './administration.js';
 import {
@@ -57,8 +58,16 @@ root.innerHTML = html`
                 </button>
                 <p class="hint">
                     Continuous ground, tree clusters, shorelines and softer rivers are now the lab baseline.
-                    World overview and gameplay geography stay unchanged. Terrain, relief, transition and grid
-                    controls still apply. Development clears vegetation before buildings are drawn.
+                    Biome colours are lab-only; gameplay geography stays unchanged. Terrain, relief,
+                    transition and grid controls still apply. Development clears vegetation before buildings
+                    are drawn.
+                </p>
+                <button type="button" class="secondary-button" data-action="desert-detail">
+                    Find desert
+                </button>
+                <p class="hint">
+                    Desert is a lab-only biome over plains, hills or mountains. Existing wetness and
+                    temperature determine its extent; this adds no economic or movement rule.
                 </p>
                 <p class="hint" data-field="terrain-v2-status">Terrain V2 ready.</p>
             </section>
@@ -266,7 +275,7 @@ root.innerHTML = html`
             <section class="experiment-panel" data-field="economy-panel" hidden></section>
             <section class="experiment-panel" data-field="naval-panel" hidden></section>
             ${atlasInspector} ${administrationInspector} ${coastInspector} ${developmentInspector}
-            <div data-legacy-inspector>
+            <div data-base-inspector>
                 <section class="military-panel" data-field="military-panel" hidden></section>
                 <div class="faction-key" data-field="faction-key" hidden>
                     ${Object.values(nations)
@@ -303,10 +312,16 @@ root.innerHTML = html`
 const canvas = root.querySelector('canvas');
 const useSettings = document.createElement('a');
 useSettings.href = '/client/map-generation';
-useSettings.textContent = 'Use these settings for a game (beta)';
+useSettings.textContent = 'Use these settings for a game';
 useSettings.addEventListener('click', () => {
     try {
-        localStorage.setItem('no7:map-beta:settings', JSON.stringify(state.model.geography.settings));
+        localStorage.setItem(
+            'no7:map:v2:settings',
+            JSON.stringify({
+                ...state.model.geography.settings,
+                cellCount: state.model.cellCount,
+            }),
+        );
     } catch {}
 });
 root.querySelector('.lab-header-actions').append(useSettings);
@@ -339,6 +354,7 @@ const state = {
         lakeNames: false,
         bayNames: false,
         coasts: false,
+        coastalDetail: true,
         development: false,
         developmentNames: true,
         developmentCells: false,
@@ -485,7 +501,9 @@ function updateInspector() {
                     .find((feature) => feature.type === 'lake')?.name ?? 'Lake')
               : cell.frozen
                 ? 'Sea ice (ocean underneath)'
-                : `${terrainLabel[cell.terrain]} cell`;
+                : cell.biome === 'desert'
+                  ? `Desert · ${cell.landform}`
+                  : `${terrainLabel[cell.terrain]} cell`;
         details.innerHTML = html`
             <div>
                 <dt>Coordinates</dt>
@@ -513,7 +531,11 @@ function updateInspector() {
             </div>
             <div>
                 <dt>Landform / cover</dt>
-                <dd>${cell.landform} / ${cell.vegetation}</dd>
+                <dd>${cell.landform} / ${cell.biome === 'desert' ? 'sparse vegetation' : cell.vegetation}</dd>
+            </div>
+            <div>
+                <dt>Biome</dt>
+                <dd>${biomeLabel[cell.biome] ?? cell.biome}</dd>
             </div>
             <div>
                 <dt>${isWater(cell) ? 'Bed elevation' : 'Elevation'}</dt>
@@ -730,6 +752,26 @@ function focusCell(cell) {
     state.armySelected = false;
     selectCell(cell);
 }
+root.querySelector('[data-action="desert-detail"]').addEventListener('click', () => {
+    const cell = findDesertCell(state.model);
+    if (!cell) {
+        state.message =
+            'No desert biome on this map. Try lower Wetness; the seed and landforms can stay the same.';
+        updateInspector();
+        renderer.invalidate();
+        return;
+    }
+    state.labFocus = 'geography';
+    state.commandMode = null;
+    state.orderPreview = null;
+    state.selectingBeach = false;
+    root.querySelector('#geography-view').value = 'terrain';
+    updateView();
+    focusCell(cell);
+    state.message = `Desert over ${cell.landform}. A climate-derived lab biome; geography and seed are unchanged.`;
+    updateInspector();
+    renderer.invalidate();
+});
 root.querySelector('[data-action="lake"]').addEventListener('click', () => {
     const lake = state.model.lakes[0];
     if (lake) focusCell(state.model.cellById.get(lake.cellIds[Math.floor(lake.cellIds.length / 2)]));
@@ -1416,6 +1458,8 @@ Object.defineProperty(window, 'mapLabDiagnostics', {
                           flow: cell.flow,
                           landform: cell.landform,
                           vegetation: cell.vegetation,
+                          biome: cell.biome,
+                          desertStrength: cell.desertStrength,
                           latitude: cell.latitude,
                           temperature: cell.temperature,
                           frozen: Boolean(cell.frozen),
@@ -1423,6 +1467,7 @@ Object.defineProperty(window, 'mapLabDiagnostics', {
                       }
                     : null;
             })(),
+            desertCells: state.model.cells.filter((cell) => cell.biome === 'desert').length,
             landRegions: state.model.regions.filter((region) => region.isLand).length,
             waterRegions: state.model.regions.filter((region) => !region.isLand).length,
             selectedRegionId: state.selectedRegionId,

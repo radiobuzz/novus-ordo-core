@@ -38,7 +38,7 @@ test('shared generation preserves lab geography and stores a self-contained map 
     assert.equal(restored.regions[1].name, 'Live 1');
     assert(restored.regions[1].cellIds.every((id) => restored.cellById.get(id).politicalOwnerId === 97));
     assert.throws(() => restoreMap(snapshot, territories.slice(1)), /does not match/);
-    assert.throws(() => exportMap(createMapModel(7)), /19 cells/);
+    assert.equal(restoreMap(exportMap(createMapModel(7))).cellCount, 7);
 });
 
 test('small claimable islands do not become impossible homeland choices', () => {
@@ -63,11 +63,12 @@ test('world caches immutable geography for a game and rejects a foreign map', as
     await world.refresh();
     await world.refresh();
     assert.equal(calls, 1);
-    assert.equal(world.snapshot.map, null);
+    assert.equal(world.snapshot.map.format, 'microcell-world-2');
+    assert.equal(world.snapshot.mapFingerprint, 'generated-fixture');
     await world.dispose();
     const foreign = new WorldService(
         createEndpointClient(endpoints, async ({ path }) =>
-            path === '/game/map' ? { game_id: 999, map: null } : fixtures(path),
+            path === '/game/map' ? { game_id: 999, fingerprint: 'foreign', map: fixtures(path).map } : fixtures(path),
         ),
         { userName: 'fixture-player' },
     );

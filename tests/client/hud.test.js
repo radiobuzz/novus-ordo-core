@@ -7,13 +7,14 @@ import { Scope } from '../../resources/js/client/runtime/Scope.js';
 test('resource values retain engine meanings, negative balances, zero and missing data', () => {
     const data = {
         budget: {
-            balances: { Food: -2 },
-            stockpiles: { Food: 42 },
-            expenses: { Food: 0 },
-            available_production: { Food: 40 },
+            balances: { food: -2 },
+            stockpiles: { food: 42 },
+            expenses: { food: 0 },
+            available_production: { food: 40 },
         },
+        definitions: { resources: [{ resource_key: 'food', kind: 'stock' }] },
     };
-    assert.deepEqual(resourceValues(data, 'Food'), {
+    assert.deepEqual(resourceValues(data, 'food'), {
         balance: -2,
         reserve: 42,
         production: null,
@@ -21,7 +22,7 @@ test('resource values retain engine meanings, negative balances, zero and missin
         expenses: 0,
         available: 40,
     });
-    assert.equal(resourceValues(data, 'Oil').reserve, null);
+    assert.equal(resourceValues(data, 'oil').reserve, null);
     assert.equal(turnKey({ game_id: 1, turn_number: 2, setup: { nation_id: 3 } }), '1:3:2');
     assert.equal(turnKey({ setup: {} }), null);
 });

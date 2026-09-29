@@ -8,7 +8,7 @@ use Illuminate\Database\Eloquent\Model;
 class GameMap extends Model
 {
     public function getSnapshot(): array {
-        return json_decode($this->snapshot, true, flags: JSON_THROW_ON_ERROR);
+        return MapDefinition::findOrFail($this->map_definition_id)->getSnapshot();
     }
 
     public function getFingerprint(): string {
@@ -18,8 +18,9 @@ class GameMap extends Model
     public static function create(Game $game, GeneratedMapData $mapData): GameMap {
         $map = new GameMap();
         $map->game_id = $game->getId();
-        $map->snapshot = json_encode($mapData->snapshot, JSON_THROW_ON_ERROR);
-        $map->fingerprint = hash('sha256', $map->snapshot);
+        $definition = MapDefinition::store($mapData);
+        $map->map_definition_id = $definition->id;
+        $map->fingerprint = $definition->fingerprint;
         $map->save();
         return $map;
     }

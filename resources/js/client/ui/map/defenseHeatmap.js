@@ -71,33 +71,3 @@ export function projectDefenseHeatmap(snapshot, coverage) {
     });
     return Object.freeze({ entries: Object.freeze(entries), scale });
 }
-
-/** Filled territory underlay; ownership borders and unit markers remain readable above it. */
-export function heatmapOverlay(entries) {
-    return (ctx, renderer) => {
-        const territories = new Map(
-            renderer.context.territories.map((territory) => [territory.territory_id, territory]),
-        );
-        for (const entry of entries) {
-            if (renderer.highlight) {
-                renderer.highlight(ctx, entry.territoryId, entry.color, 0.72);
-                continue;
-            }
-            const territory = territories.get(entry.territoryId);
-            if (!territory) continue;
-            const definition = renderer.context.definition;
-            ctx.save();
-            ctx.globalAlpha = 0.72;
-            ctx.fillStyle = entry.color;
-            ctx.fillRect(
-                territory.x * definition.tileWidth,
-                territory.y * definition.tileHeight,
-                definition.tileWidth,
-                definition.tileHeight,
-            );
-            ctx.restore();
-        }
-    };
-}
-
-export const defenseHeatmapOverlay = heatmapOverlay;

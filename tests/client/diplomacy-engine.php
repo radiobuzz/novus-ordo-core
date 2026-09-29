@@ -1,8 +1,9 @@
 <?php
 // All destructive setup and gameplay mutations use the guarded temporary database.
 $app = require __DIR__ . '/isolated-app.php';
+require_once __DIR__ . '/generated-map-fixture.php';
 
-use App\Domain\{NationOfferKind, NationOfferStatus, RelationState, ResourceType};
+use App\Domain\{NationOfferKind, NationOfferStatus, RelationState};
 use App\Models\{Game, Nation, NationMessage, NationOffer, NationOfferDetail, NationResourceStockpile, NewNation, Territory, Turn, User};
 use App\Services\{DiplomacyService, GameMutation, NationCommunicationService, NationGrantService};
 use Illuminate\Support\Facades\{Artisan, DB, Hash};
@@ -16,8 +17,8 @@ $reject = function (callable $work, int $status) use ($check) {
     catch (Illuminate\Database\Eloquent\ModelNotFoundException $error) { $check($status === 404, $error->getMessage()); }
 };
 Artisan::call('migrate:fresh', ['--force' => true]);
-$game = Game::createNew();
-$otherGame = Game::createNew();
+$game = Game::createNew(generatedMapFixture());
+$otherGame = Game::createNew(generatedMapFixture());
 $home = function (Game $game): array {
     $eligible = $game->freeSuitableTerritoriesInTurn()->get()->keyBy('id');
     $edges = Territory::getTerritoryConnections($game);
@@ -38,9 +39,10 @@ foreach (['diplomat-a', 'diplomat-b', 'diplomat-c', 'diplomat-foreign'] as $i =>
     $user->password = Hash::make('fixture-password'); $user->is_admin = false; $user->save();
     $nation = NewNation::create($g->fresh(), $user, $name)->finishSetup($home($g->fresh()), $name . ' leader');
     $nations[] = $nation;
-    foreach ([ResourceType::Capital, ResourceType::Food, ResourceType::Material, ResourceType::Ore, ResourceType::Oil] as $type) {
-        $stock = NationResourceStockpile::where('nation_id', $nation->getId())->where('turn_id', $g->getCurrentTurn()->getId())->where('resource_type', $type->value)->first();
-        if (!$stock) $stock = NationResourceStockpile::create($nation, $g->getCurrentTurn(), $type, 0);
+    foreach (['money', 'food', 'material', 'ore', 'oil'] as $key) {
+        $resourceId = $nation->getDetail()->resources()->get($key)['id'];
+        $stock = NationResourceStockpile::where('nation_id', $nation->getId())->where('turn_id', $g->getCurrentTurn()->getId())->where('resource_id', $resourceId)->first();
+        if (!$stock) $stock = NationResourceStockpile::create($nation, $g->getCurrentTurn(), $key, '0');
         $stock->available_quantity = 1000; $stock->save();
     }
     $nation->getDetail()->onDeployment();
@@ -48,7 +50,7 @@ foreach (['diplomat-a', 'diplomat-b', 'diplomat-c', 'diplomat-foreign'] as $i =>
 [$a, $b, $c, $foreign] = $nations;
 $messages = app(NationCommunicationService::class); $diplomacy = app(DiplomacyService::class);
 $key = fn () => (string) Str::uuid();
-$balance = fn ($nation, $resource = ResourceType::Capital) => $nation->fresh()->getDetail()->getStockpiledQuantity($resource);
+$balance = fn ($nation, $resource = 'money') => $nation->fresh()->getDetail()->getStockpiledQuantity($resource);
 $check($game->fresh()->diplomacy_enabled && $game->fresh()->turn_context_revision, 'New game missing diplomacy/context');
 $textKey = $key(); $first = $messages->send($a, $b->getId(), 'Meet at the border <script>no execution</script>', $textKey);
 $check($messages->send($a, $b->getId(), 'Meet at the border <script>no execution</script>', $textKey) === $first, 'Text request duplicated');
@@ -60,9 +62,9 @@ $check($messages->inbox($b)['conversations'][0]['unread'] === 1, 'Incoming messa
 $messages->markRead($b, $a->getId(), $first['message_id']);
 $check($messages->inbox($b)['conversations'][0]['unread'] === 0, 'Read position failed');
 $offerKey = $key();
-$offer = $messages->propose($a, $b->getId(), NationOfferKind::ResourceGrant, $offerKey, ResourceType::Capital, '12.3456');
-$check($messages->propose($a, $b->getId(), NationOfferKind::ResourceGrant, $offerKey, ResourceType::Capital, '12.3456') === $offer, 'Offer request duplicated');
-$reject(fn () => $messages->propose($a, $b->getId(), NationOfferKind::ResourceGrant, $offerKey, ResourceType::Capital, '13'), 409);
+$offer = $messages->propose($a, $b->getId(), NationOfferKind::ResourceGrant, $offerKey, 'money', '12.3456');
+$check($messages->propose($a, $b->getId(), NationOfferKind::ResourceGrant, $offerKey, 'money', '12.3456') === $offer, 'Offer request duplicated');
+$reject(fn () => $messages->propose($a, $b->getId(), NationOfferKind::ResourceGrant, $offerKey, 'money', '13'), 409);
 $before = [$balance($a), $balance($b)];
 $reject(fn () => $messages->respond($a, $offer['offer_id'], 'accept'), 403);
 $reject(fn () => $messages->respond($c, $offer['offer_id'], 'accept'), 404);
@@ -73,22 +75,23 @@ $check(abs($after[0] - $before[0] + 12.3456) < 0.000001 && abs(array_sum($after)
 $messages->respond($b, $offer['offer_id'], 'accept');
 $check([$balance($a), $balance($b)] === $after, 'Repeated acceptance debited again');
 $reject(fn () => $messages->respond($a, $offer['offer_id'], 'cancel'), 409);
-foreach ([ResourceType::Food, ResourceType::Material, ResourceType::Ore, ResourceType::Oil] as $resource) {
+foreach (['food', 'material', 'ore', 'oil'] as $resource) {
     $o = $messages->propose($a, $b->getId(), NationOfferKind::ResourceGrant, $key(), $resource, '0.0001');
     $before = $balance($a, $resource) + $balance($b, $resource);
     $check($messages->respond($b, $o['offer_id'], 'accept')['status'] === 'Accepted', 'Resource grant rejected');
     $check(abs($balance($a, $resource) + $balance($b, $resource) - $before) < 0.000001, 'Resource conservation failed');
 }
-$reject(fn () => $messages->propose($a, $b->getId(), NationOfferKind::ResourceGrant, $key(), ResourceType::RecruitmentPool, 1), 422);
-foreach (['0', '-1', '0.00001', '1e3', [], true, '1000000001'] as $invalid) {
-    try { NationGrantService::quantityUnits($invalid); throw new RuntimeException('Invalid amount accepted'); }
+$reject(fn () => $messages->propose($a, $b->getId(), NationOfferKind::ResourceGrant, $key(), 'recruitment', 1), 422);
+foreach (['0', '-1', '0.0000001', '1e3', [], true, '1000000000000000'] as $invalid) {
+    try { NationGrantService::quantity($invalid); throw new RuntimeException('Invalid amount accepted'); }
+    catch (HttpExceptionInterface $error) { $check($error->getStatusCode() === 422, $error->getMessage()); }
     catch (Illuminate\Validation\ValidationException) {}
 }
-$huge = $messages->propose($a, $b->getId(), NationOfferKind::ResourceGrant, $key(), ResourceType::Capital, '1000000');
+$huge = $messages->propose($a, $b->getId(), NationOfferKind::ResourceGrant, $key(), 'money', '1000000');
 $before = [$balance($a), $balance($b)];
 $check($messages->respond($b, $huge['offer_id'], 'accept')['status'] === 'Invalid', 'Unavailable stock not rejected');
 $check($before === [$balance($a), $balance($b)], 'Invalid grant moved resources');
-$failing = $messages->propose($a, $b->getId(), NationOfferKind::ResourceGrant, $key(), ResourceType::Capital, '1');
+$failing = $messages->propose($a, $b->getId(), NationOfferKind::ResourceGrant, $key(), 'money', '1');
 NationOfferDetail::updating(fn () => throw new RuntimeException('injected-offer-failure'));
 try { $messages->respond($b, $failing['offer_id'], 'accept'); throw new RuntimeException('Failure not injected'); }
 catch (RuntimeException $error) { $check($error->getMessage() === 'injected-offer-failure', $error->getMessage()); }
@@ -113,14 +116,14 @@ $check($game->fresh()->turn_context_revision !== $oldRevision, 'Advance did not 
 $turn2 = Turn::getCurrentForGame($game);
 $prior = [$balance($a), $balance($b)];
 $text2 = $messages->send($a, $b->getId(), 'Text survives rollback', $key());
-$gift2 = $messages->propose($a, $b->getId(), NationOfferKind::ResourceGrant, $key(), ResourceType::Capital, '2');
+$gift2 = $messages->propose($a, $b->getId(), NationOfferKind::ResourceGrant, $key(), 'money', '2');
 $messages->respond($b, $gift2['offer_id'], 'accept');
 $game->fresh()->rollbackLastTurn($turn2->getId());
 $check($game->fresh()->turn_context_revision !== $oldRevision, 'Rollback reused old context');
 $check(NationMessage::find($text2['message_id'])->body === 'Text survives rollback', 'Rollback removed human text');
 $check(NationOffer::find($gift2['offer_id']) === null, 'Rolled-back offer remains actionable');
 $check(NationOfferDetail::where('offer_id', $offer['offer_id'])->first()->status === NationOfferStatus::Accepted, 'Rollback reverted an earlier planning-turn gift');
-$check(abs($balance($a) - $after[0]) < 0.000001, 'Rollback did not restore prior Capital');
+$check(abs($balance($a) - $after[0]) < 0.000001, 'Rollback did not restore prior treasury');
 
 file_put_contents(getenv('NO7_ENTRY_TEST_ROOT') . '/diplomacy-fixture.json', json_encode(['game_id' => $game->id,
     'other_game_id' => $otherGame->id, 'nations' => array_map(fn ($n) => $n->id, $nations)], JSON_THROW_ON_ERROR));

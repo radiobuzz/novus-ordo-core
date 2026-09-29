@@ -65,53 +65,6 @@ test('map laboratory compares resolutions and advances through an operational ce
     expect(errors).toEqual([]);
 });
 
-test('terrain image failure retains usable water geography and cell selection', async ({ page }) => {
-    await page.route('**/terrain-atlas-*.png', (route) => route.abort());
-    await page.goto('/map-lab');
-    await expect(page.locator('[data-field="tile-status"]')).toContainText('Artwork unavailable');
-    await page.getByRole('button', { name: 'Find a lake' }).click();
-    await expect(page.locator('[data-field="cell-title"]')).toHaveText(/ Lake$/);
-    await page.getByRole('button', { name: 'Find army' }).click();
-    await expect(page.locator('.map-status')).toContainText('Army selected');
-});
-
-test('terrain transitions blend the rendered map without changing cells or movement', async ({ page }) => {
-    const errors = [];
-    page.on('pageerror', (error) => errors.push(error.message));
-    await page.goto('/map-lab');
-    await page.getByRole('button', { name: 'Find a lake' }).click();
-    await expect.poll(() => page.evaluate(() => window.mapLabDiagnostics().metrics.transitions)).toBe(true);
-    await page.getByRole('checkbox', { name: 'Micro-cell grid' }).uncheck();
-    await page.getByRole('checkbox', { name: 'Political ownership' }).uncheck();
-    const canvas = page.locator('canvas');
-    const pixels = () =>
-        canvas.evaluate((el) => {
-            const data = el.getContext('2d').getImageData(0, 0, el.width, el.height).data;
-            let hash = 2166136261;
-            for (const value of data) hash = Math.imul(hash ^ value, 16777619);
-            return hash;
-        });
-    await expect
-        .poll(() => page.evaluate(() => window.mapLabDiagnostics().metrics.transitionsPending))
-        .toBe(0);
-    const beforeState = await page.evaluate(() => window.mapLabDiagnostics());
-    await page.screenshot({ path: 'test-results/client/map-lab-transitions.png' });
-    const blended = await pixels();
-    await page.getByRole('checkbox', { name: 'Terrain transitions' }).uncheck();
-    await expect.poll(() => page.evaluate(() => window.mapLabDiagnostics().metrics.transitions)).toBe(false);
-    const hard = await pixels();
-    expect(blended).not.toBe(hard);
-    const afterState = await page.evaluate(() => window.mapLabDiagnostics());
-    expect(afterState.armyCellId).toBe(beforeState.armyCellId);
-    expect(afterState.totalCells).toBe(beforeState.totalCells);
-    expect(afterState.reachableTargets).toEqual(beforeState.reachableTargets);
-    await page.getByRole('checkbox', { name: 'Terrain transitions' }).check();
-    await expect.poll(() => page.evaluate(() => window.mapLabDiagnostics().metrics.transitions)).toBe(true);
-    expect(await pixels()).toBe(blended);
-    expect(afterState.metrics.transitionTilesCached).toBeLessThanOrEqual(1024);
-    expect(errors).toEqual([]);
-});
-
 test('seeded geography controls and diagnostic views rebuild safely at full scale', async ({ page }) => {
     // Several 11,400/22,200-cell rebuilds plus screenshots; this is a correctness
     // journey, not a 30-second whole-test performance budget.

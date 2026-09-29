@@ -23,9 +23,7 @@ export class NationSetupService {
             ...after,
             territories,
             map: map.map,
-            suitable_ids: map.map
-                ? connectedHomelands(territories, after.suitable_ids, after.required_territories)
-                : after.suitable_ids,
+            suitable_ids: connectedHomelands(territories, after.suitable_ids, after.required_territories),
         };
     }
     async submit(draft, signal) {

@@ -13,6 +13,7 @@ class MapGenerationController extends Controller
     public function index(Request $request): Response {
         if (!$request->user()->isAdmin()) abort(403);
         return response()->view('client-map-generation', ['boot' => [
+            'mapLimits' => ['maxCells' => (int) config('maps.max_cells')],
             'csrfToken' => csrf_token(),
             'startUrl' => route('client.map-generation.start'),
             'worldUrl' => route('client'),

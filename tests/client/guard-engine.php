@@ -56,9 +56,9 @@ try {
             $defender, $hub, $strong, $unit, $check, $reject
         ) {
             $division = $unit($defender, $hub, DivisionType::Armored);
-            $before = $defender->getDetail()->exportBudget()->expenses['Oil'];
+            $before = $defender->getDetail()->exportBudget()->expenses['oil'];
             $order = app(NationCommands::class)->guard($defender, [$division->id])[0];
-            $after = $defender->getDetail()->exportBudget()->expenses['Oil'];
+            $after = $defender->getDetail()->exportBudget()->expenses['oil'];
             $check($order->getType() === OrderType::Guard && abs(($after - $before) - 0.25) < 0.00001, 'Guard cost is not 25%');
             $reject(fn () => app(NationCommands::class)->move($defender, [[
                 'division_id' => $division->id, 'destination_territory_id' => $strong->id, 'path_territory_ids' => [],
@@ -74,16 +74,16 @@ try {
             $guarded = $unit($defender, $hub, DivisionType::Armored);
             $idle = $unit($defender, $hub, DivisionType::Armored);
             $existing = Order::createGuardOrder($guarded);
-            $before = $defender->getDetail()->exportBudget()->expenses['Oil'];
+            $before = $defender->getDetail()->exportBudget()->expenses['oil'];
             $orders = app(NationCommands::class)->guard($defender, [$guarded->id, $idle->id]);
-            $after = $defender->getDetail()->exportBudget()->expenses['Oil'];
+            $after = $defender->getDetail()->exportBudget()->expenses['oil'];
             $check($orders[0]->id === $existing->id, 'Existing Guard order was replaced');
             $check($orders[1]->division_id === $idle->id, 'Idle unit did not receive Guard');
             $check(abs(($after - $before) - 0.25) < 0.00001, 'Existing Guard was charged twice');
             $again = app(NationCommands::class)->guard($defender, [$guarded->id, $idle->id]);
             $check($again[0]->id === $orders[0]->id && $again[1]->id === $orders[1]->id,
                 'Repeated Guard assignment was not a no-op');
-            $check(abs($defender->getDetail()->exportBudget()->expenses['Oil'] - $after) < 0.00001,
+            $check(abs($defender->getDetail()->exportBudget()->expenses['oil'] - $after) < 0.00001,
                 'Repeated Guard assignment added cost');
         });
 
@@ -135,12 +135,12 @@ try {
             DivisionDetail::where('game_id', $game->id)->where('turn_id', $turn->id)
                 ->where('territory_id', $strong->id)->update(['is_active' => false]);
             DB::table('nation_resource_stockpiles')->where('nation_id', $defender->id)->where('turn_id', $turn->id)
-                ->where('resource_type', \App\Domain\ResourceType::Oil->value)->update(['available_quantity' => 1]);
+                ->where('resource_id', \App\Services\Resources\ResourceCatalogue::forGame($defender->getGame())->get('oil')['id'])->update(['available_quantity' => 1]);
             $guard = $unit($defender, $hub, DivisionType::Armored); Order::createGuardOrder($guard);
             $enemy = $unit($attacker, $hub, DivisionType::Armored); Order::createRaidOrder($enemy, $strong);
             $responses = app(GuardAllocator::class)->allocate($game, $turn, $turn, collect([collect([$enemy])]));
             $oil = (float) DB::table('nation_resource_stockpiles')->where('nation_id', $defender->id)
-                ->where('turn_id', $turn->id)->where('resource_type', \App\Domain\ResourceType::Oil->value)
+                ->where('turn_id', $turn->id)->where('resource_id', \App\Services\Resources\ResourceCatalogue::forGame($defender->getGame())->get('oil')['id'])
                 ->value('available_quantity');
             $check($responses->get($strong->id)?->first()['division']->id === $guard->id, 'Funded Guard did not respond');
             $check(abs($oil - 0.25) < 0.00001, 'Guard response did not charge the remaining 75%');
@@ -187,7 +187,7 @@ try {
             DivisionDetail::where('game_id', $game->id)->where('turn_id', $turn->id)
                 ->where('territory_id', $strong->id)->update(['is_active' => false]);
             DB::table('nation_resource_stockpiles')->where('nation_id', $defender->id)->where('turn_id', $turn->id)
-                ->where('resource_type', \App\Domain\ResourceType::Oil->value)->update(['available_quantity' => 0]);
+                ->where('resource_id', \App\Services\Resources\ResourceCatalogue::forGame($defender->getGame())->get('oil')['id'])->update(['available_quantity' => 0]);
             $armored = $unit($defender, $hub, DivisionType::Armored); Order::createGuardOrder($armored);
             $infantry = $unit($defender, $hub, DivisionType::Infantry); Order::createGuardOrder($infantry);
             $enemy = $unit($attacker, $hub, DivisionType::Armored); Order::createRaidOrder($enemy, $strong);

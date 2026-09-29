@@ -62,7 +62,7 @@ readonly class Ranking {
             new Ranking('territories', 'Number of territories', fn (NationDetail $d) => $d->territories()->count(), SORT_DESC, StatUnit::WholeNumber),
             new Ranking('population', 'Population', fn (NationDetail $d) => $d->getPopulationSize(), SORT_DESC, StatUnit::WholeNumber),
             new Ranking('army_size', 'Army size (number of divisions)', fn (NationDetail $d) => $d->activeDivisions()->count(), SORT_DESC, StatUnit::ApproximateNumber, valuePostProcessing: fn (int $count) => Division::approximateNumberOfDivisions($count)),
-            new Ranking('wealth', 'Wealth (capital reserves)', fn (NationDetail $d) => $d->getStockpiledQuantity(ResourceType::Capital), SORT_DESC, StatUnit::ApproximateNumber, valuePostProcessing: fn (float $reserves) => Ranking::guessScaleAndApproximate($reserves)),
+            new Ranking('wealth', 'Wealth (capital reserves)', fn (NationDetail $d) => (float) $d->getStockpiledQuantity($d->resources()->role('treasury')), SORT_DESC, StatUnit::ApproximateNumber, valuePostProcessing: fn (float $reserves) => Ranking::guessScaleAndApproximate($reserves)),
         ];
     }
 }

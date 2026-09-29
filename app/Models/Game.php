@@ -3,7 +3,6 @@
 namespace App\Models;
 
 use App\Domain\SharedAssetType;
-use App\Domain\GenerationData;
 use App\Domain\GeneratedMapData;
 use App\Domain\Ranking;
 use App\Domain\TerritoryConnectionData;
@@ -167,6 +166,7 @@ class Game extends Model
             turn_context_revision: $this->fresh()->turn_context_revision,
             diplomacy_enabled: (bool) $this->diplomacy_enabled,
             guard_enabled: (bool) ($this->guard_enabled ?? false),
+            resource_definitions: \App\Services\Resources\ResourceCatalogue::forGame($this)->mapDefinitions(),
         );
     }
 
@@ -196,6 +196,7 @@ class Game extends Model
             'is_active' => 'boolean',
             'diplomacy_enabled' => 'boolean',
             'guard_enabled' => 'boolean',
+            'economy_rules' => 'array',
         ];
     }
 
@@ -248,19 +249,23 @@ class Game extends Model
                     $currentTurn->end();
 
                     $nextTurn = $currentTurn->createNext();
+                    $policyContexts = app(\App\Services\Policies\PolicyService::class)->prepareTurn($this, $currentTurn, $nextTurn);
                     app(\App\Services\DiplomacyService::class)->copyTurn($this, $currentTurn, $nextTurn);
 
+                    app(\App\Services\Resources\ProductionStateStore::class)->copySeason($this, $currentTurn, $nextTurn);
+
                     // Upkeep.
-                    $this->nations()->get()->each(fn (Nation $n) => $n->onNextTurn($currentTurn, $nextTurn));
+                    $this->nations()->get()->each(fn (Nation $n) => $n->onNextTurn($currentTurn, $nextTurn, $policyContexts[$n->id] ?? null));
                     $this->territories()->get()->each(fn (Territory $t) => $t->onNextTurn($currentTurn, $nextTurn));
                     $this->activeDivisionsInTurn($currentTurn)->get()->each(fn (Division $d) => $d->onNextTurn($currentTurn, $nextTurn));
+                    app(\App\Services\EconomyService::class)->afterUpkeep($this, $currentTurn, $nextTurn);
 
                     // Move divisions.
                     $this->activeDivisionsInTurn($currentTurn)->get()->each(fn (Division $d) => $d->onMovePhase($currentTurn, $nextTurn));
 
                     // Attacks.
                     $divisionsByOwnerAndDestinationTerritory = $this->activeDivisionsInTurn($currentTurn)->get()
-                        ->filter(fn (Division $d) => $d->getDetail($currentTurn)->isEngaging())
+                        ->filter(fn (Division $d) => $d->getDetail($currentTurn)->isEngaging() && $d->getDetail($nextTurn)->isActive())
                         ->groupBy([
                             fn (Division $d) => $d->getNation()->getId() . '-' . $d->getDetail($currentTurn)->getOrder()->getTargetTerritory()->getId()
                         ]);
@@ -298,7 +303,6 @@ class Game extends Model
 
                     app(\App\Services\DiplomacyService::class)->finishTurn($this, $nextTurn);
 
-                    $this->nations()->get()->each(fn (Nation $n) => $n->onTurnUpkeepEnding($currentTurn, $nextTurn));
 
                     $this->updateVictoryStatus($nextTurn);
 
@@ -335,6 +339,9 @@ class Game extends Model
                 $currentTurn = Turn::getCurrentForGame($this);
 
                 $currentTurn->reset();
+
+                // Definitions survive rollback; newly added test inputs need defaults on the reopened turn.
+                app(\App\Services\Policies\PolicyService::class)->initializeGame($this, $currentTurn);
 
                 app(\App\Services\GameParticipants::class)->reset($this, $currentTurn);
 
@@ -446,24 +453,23 @@ class Game extends Model
         return new GameHasEnoughFreeTerritories();
     }
 
-    /** Compatibility only: callers must supply a game once multiple games are active. */
-    public static function getCurrentOrNull(): ?Game {
-        $games = app(\App\Services\GameAccess::class)->availableGames()->limit(2)->get();
-        if ($games->count() > 1) abort(409, 'Multiple games are active. Supply an explicit game ID.');
-        return $games->first();
-    }
-
-    public static function getCurrent(): Game {
-        return self::getCurrentOrNull() ?? abort(409, 'No active game is available.');
-    }
-
     // Serializes creation only; existing games never acquire this lock.
     public const CacheLockKeyCritalSectionCreateGame = "critical_section:create_game";
 
-    public static function createNew(?GeneratedMapData $generatedMap = null, ?\Closure $prepare = null): Game {
+    public static function createNew(GeneratedMapData $generatedMap, ?\Closure $prepare = null, ?int $policyTemplateId = null, ?int $resourceTemplateId = null): Game {
         $result = Cache::lock(self::CacheLockKeyCritalSectionCreateGame, RuntimeInfo::maxExectutionTimeSeconds() * 0.8)
-            ->get(fn () => DB::transaction(function () use ($generatedMap, $prepare) {
+            ->get(fn () => DB::transaction(function () use ($generatedMap, $prepare, $policyTemplateId, $resourceTemplateId) {
                 $game = Game::create($generatedMap);
+                \App\Services\Resources\ResourceCatalogue::initialize($game, $resourceTemplateId);
+                $profiles = array_column($generatedMap->snapshot['resourceProfiles'], null, 'key');
+                foreach (\App\Services\Resources\ResourceCatalogue::forGame($game)->producers() as $key => $resource) {
+                    if (!($resource['rules']['production.territorial_labor']['geographic'] ?? false)) continue;
+                    if (!isset($profiles[$key]) || $profiles[$key]['unit'] !== $resource['unit_labels']['en']) {
+                        throw \Illuminate\Validation\ValidationException::withMessages(['map' => "Map resource profile missing or incompatible: {$key}."]);
+                    }
+                }
+                if ($policyTemplateId !== null) app(\App\Services\Policies\PolicyCatalogue::class)->cloneSet($policyTemplateId, $game);
+                app(\App\Services\EconomyService::class)->initializeGame($game);
                 if ($prepare) $prepare($game);
                 return $game;
             }));
@@ -471,7 +477,7 @@ class Game extends Model
         return $result;
     }
 
-    private static function create(?GeneratedMapData $generatedMap = null) {
+    private static function create(GeneratedMapData $generatedMap) {
         $game = new Game();
         $game->is_active = true;
         $game->victory_status = VictoryStatus::HasNotBeenWon->value;
@@ -486,8 +492,8 @@ class Game extends Model
 
         $turn = Turn::createFirst($game);
 
-        $mapData = $generatedMap?->mapData ?? GenerationData::getMapData();
-        if ($generatedMap !== null) GameMap::create($game, $generatedMap);
+        $mapData = $generatedMap->mapData;
+        GameMap::create($game, $generatedMap);
 
         $territoriesByCoords = [];
 

@@ -1,9 +1,11 @@
-import { coastActive, ACCESS_LABELS, EXPOSURE_LABELS } from './coasts.js';
+import { coastActive, ACCESS_LABELS, EXPOSURE_LABELS } from '../map/coasts.js';
 
 export const coastControls = `<section class="atlas-controls">
 <p class="eyebrow">Geographic interpretation · first test</p><h2>Coasts &amp; bays</h2>
 <button type="button" class="secondary-button" data-coast-start>Try coasts &amp; bays</button>
 <div class="layer-controls"><label><input type="checkbox" data-layer="coasts" /> Shoreline analysis</label></div>
+<div class="layer-controls"><label><input type="checkbox" data-layer="coastalDetail" checked /> Coastal terrain detail</label></div>
+<p class="hint">Close-up artwork: soft margins, rocky faces, rough approaches and exposure-inspired foam. Turn analysis off to see the landscape clearly. Artistic cues, not surveyed beaches or current weather.</p>
 <label>Shoreline view<select aria-label="Shoreline view" data-coast-lens><option value="exposure">Potential exposure</option><option value="access">Land access</option></select></label>
 <p class="hint" data-coast-legend></p>
 <label>Bay candidate<select aria-label="Bay candidate" data-coast-bay></select></label>
@@ -40,7 +42,7 @@ export function renderCoasts(root, state) {
     const { coasts, bays } = state.cartography;
     const active = coastActive(state);
     root.querySelector('[data-coast-inspector]').hidden = !active;
-    if (active) root.querySelector('[data-legacy-inspector]').hidden = true;
+    if (active) root.querySelector('[data-base-inspector]').hidden = true;
     root.querySelector('[data-coast-lens]').value = state.coastLens;
     root.querySelector('[data-coast-legend]').textContent =
         state.coastLens === 'access'

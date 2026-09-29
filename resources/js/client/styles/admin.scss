@@ -171,6 +171,192 @@
         display: grid;
         gap: var(--space-3);
     }
+    .slideshow-save-status {
+        color: var(--status-ready);
+        font-size: 0.78rem;
+    }
+    .slideshow-save-status[data-dirty='true'] {
+        color: var(--status-warning);
+    }
+    .slideshow-workspace,
+    .slideshow-edit-grid {
+        display: grid;
+        grid-template-columns: minmax(0, 1.7fr) minmax(320px, 0.8fr);
+        gap: var(--space-5);
+        align-items: start;
+    }
+    .slideshow-edit-grid {
+        grid-template-columns: minmax(280px, 0.75fr) minmax(0, 1.25fr);
+    }
+    .slideshow-preview {
+        position: relative;
+        overflow: hidden;
+        aspect-ratio: 16 / 8;
+        min-height: 280px;
+        background: #030608;
+        border: 1px solid var(--border-default);
+        border-radius: var(--radius);
+    }
+    .slideshow-preview > img {
+        position: absolute;
+        inset: 0;
+        width: 100%;
+        height: 100%;
+        object-fit: cover;
+        will-change: transform, opacity;
+    }
+    .slideshow-preview-shade {
+        position: absolute;
+        inset: 0;
+        background: linear-gradient(180deg, #070d1518, #05090ca8);
+    }
+    .slideshow-preview-caption {
+        position: absolute;
+        left: var(--space-3);
+        bottom: var(--space-3);
+        padding: var(--space-2) var(--space-3);
+        color: #fff4db;
+        background: #071019d9;
+        border: 1px solid #e3c58a55;
+        border-radius: var(--radius);
+        font-size: 0.78rem;
+    }
+    .slideshow-transport {
+        display: grid;
+        grid-template-columns: auto minmax(120px, 1fr) auto minmax(80px, 130px);
+        align-items: center;
+        gap: var(--space-3);
+        margin-top: var(--space-4);
+    }
+    .slideshow-transport input[type='range'],
+    .slideshow-field-grid input[type='range'] {
+        width: 100%;
+    }
+    .slideshow-clock {
+        color: var(--text-muted);
+        font-variant-numeric: tabular-nums;
+        white-space: nowrap;
+    }
+    .slideshow-duration-note {
+        min-height: 1.5em;
+        margin-bottom: 0;
+    }
+    .slideshow-timeline {
+        display: flex;
+        min-height: 58px;
+        margin-top: var(--space-3);
+        overflow: hidden;
+        border: 1px solid var(--border-default);
+        border-radius: var(--radius);
+        background: var(--surface-recessed, #0b1217);
+    }
+    .slideshow-timeline-segment {
+        position: relative;
+        flex-basis: 24px;
+        min-width: 24px;
+        padding: 0;
+        border: 0;
+        border-right: 1px solid #e3c58a66;
+        background: #101a22;
+        overflow: hidden;
+        cursor: pointer;
+    }
+    .slideshow-timeline-segment:last-child {
+        border-right: 0;
+    }
+    .slideshow-timeline-segment img {
+        display: block;
+        width: 100%;
+        height: 58px;
+        object-fit: cover;
+        opacity: 0.7;
+    }
+    .slideshow-timeline-segment span {
+        position: absolute;
+        left: 4px;
+        bottom: 3px;
+        display: grid;
+        place-items: center;
+        min-width: 18px;
+        height: 18px;
+        padding: 0 4px;
+        border-radius: 9px;
+        background: #071019e8;
+        color: #fff4db;
+        font-size: 0.68rem;
+    }
+    .slideshow-slide-list {
+        display: grid;
+        gap: var(--space-2);
+        max-height: 650px;
+        overflow: auto;
+        padding-right: var(--space-1);
+    }
+    .slideshow-slide-card {
+        display: grid;
+        grid-template-columns: 88px minmax(0, 1fr);
+        align-items: center;
+        gap: var(--space-3);
+        width: 100%;
+        padding: var(--space-2);
+        color: var(--text-primary);
+        text-align: left;
+        border: 1px solid var(--border-default);
+        border-radius: var(--radius);
+        background: var(--surface-panel);
+        cursor: pointer;
+    }
+    .slideshow-slide-card.is-selected {
+        border-color: var(--accent-command);
+        box-shadow: inset 3px 0 var(--accent-command);
+    }
+    .slideshow-slide-card img {
+        display: block;
+        width: 88px;
+        aspect-ratio: 16 / 9;
+        object-fit: cover;
+        border-radius: calc(var(--radius) / 2);
+    }
+    .slideshow-slide-card span {
+        display: grid;
+        min-width: 0;
+    }
+    .slideshow-slide-card strong,
+    .slideshow-slide-card small {
+        overflow: hidden;
+        text-overflow: ellipsis;
+        white-space: nowrap;
+    }
+    .slideshow-slide-card small {
+        color: var(--text-muted);
+    }
+    .slideshow-inspector {
+        display: grid;
+        gap: var(--space-4);
+    }
+    .slideshow-selected-image {
+        overflow: hidden;
+        max-height: 220px;
+        border-radius: var(--radius);
+        background: #05090c;
+    }
+    .slideshow-selected-image img {
+        display: block;
+        width: 100%;
+        height: 220px;
+        object-fit: cover;
+    }
+    .slideshow-field-grid {
+        display: grid;
+        grid-template-columns: repeat(2, minmax(0, 1fr));
+        gap: var(--space-3) var(--space-4);
+    }
+    .slideshow-check {
+        display: flex;
+        gap: var(--space-2);
+        align-items: center;
+        margin: var(--space-3) 0;
+    }
     .admin-footer {
         display: flex;
         justify-content: space-between;
@@ -216,6 +402,10 @@
         .admin-overview-grid {
             grid-template-columns: 1fr;
         }
+        .slideshow-workspace,
+        .slideshow-edit-grid {
+            grid-template-columns: 1fr;
+        }
     }
     @media (max-width: 650px) {
         .admin-header {
@@ -233,6 +423,18 @@
             gap: var(--space-4);
         }
         .admin-two-columns {
+            grid-template-columns: 1fr;
+        }
+        .slideshow-preview {
+            min-height: 0;
+        }
+        .slideshow-transport {
+            grid-template-columns: auto 1fr auto;
+        }
+        .slideshow-transport input[aria-label='Preview volume'] {
+            grid-column: 2 / -1;
+        }
+        .slideshow-field-grid {
             grid-template-columns: 1fr;
         }
         .admin-scope-bar .ui-field {

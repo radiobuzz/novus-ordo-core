@@ -7,6 +7,16 @@ const root = process.cwd();
 const server = http.createServer(async (req, res) => {
     try {
         const url = new URL(req.url, 'http://127.0.0.1:8791');
+        if (url.pathname === '/client/map-generation') {
+            const manifest = JSON.parse(await readFile(path.join(root, 'public/build/manifest.json'), 'utf8'));
+            const entry = manifest['resources/js/client/map-generation.js'];
+            const css = new Set();
+            const collect = (part) => { for(const file of part.css??[])css.add(file);for(const key of part.imports??[])collect(manifest[key]); };collect(entry);
+            const boot = { csrfToken:'fixture-only', startUrl:'/fixture-no-mutations', worldUrl:'/client', mapLimits:{maxCells:80000} };
+            res.setHeader('Content-Type','text/html');
+            res.end(`<!doctype html><html lang="${url.searchParams.get('lang')==='fr'?'fr':'en'}"><head><meta name="viewport" content="width=device-width,initial-scale=1">${[...css].map((file)=>`<link rel="stylesheet" href="/build/${file}">`).join('')}</head><body class="map-generation-page"><main id="map-generation-root"></main><script id="map-generation-boot" type="application/json">${JSON.stringify(boot)}</script><script type="module" src="/build/${entry.file}"></script></body></html>`);
+            return;
+        }
         if (url.pathname === '/client/entry') {
             const manifest = JSON.parse(
                 await readFile(path.join(root, 'public/build/manifest.json'), 'utf8'),
@@ -37,14 +47,36 @@ const server = http.createServer(async (req, res) => {
                     ].map((file) => `/res/bundled/entry/${file}`),
                     soundtrack: '/res/bundled/entry/intro.mp3',
                 },
-                mapImages: {
-                    terrain: '/res/bundled/map/map_layer_0.png',
-                    detail: '/res/bundled/map/map_layer_2.png',
-                },
             };
             res.setHeader('Content-Type', 'text/html');
             res.end(
                 `<!doctype html><html><head><meta name="viewport" content="width=device-width,initial-scale=1">${entry.css.map((file) => `<link rel="stylesheet" href="/build/${file}">`).join('')}</head><body class="no-entry"><div id="entry-root"></div><script id="entry-boot" type="application/json">${JSON.stringify(boot)}</script><script type="module" src="/build/${entry.file}"></script></body></html>`,
+            );
+            return;
+        }
+        if (url.pathname === '/client/admin') {
+            const manifest = JSON.parse(
+                await readFile(path.join(root, 'public/build/manifest.json'), 'utf8'),
+            );
+            const entry = manifest['resources/js/client/admin.js'];
+            const boot = {
+                destinations: [
+                    { id: 'games', url: '/client' },
+                    { id: 'admin', url: '/client/admin' },
+                    { id: 'tools', url: '/client/tools' },
+                ],
+                baseUrl: 'http://127.0.0.1:8791',
+                csrfToken: 'fixture-only',
+                userId: 1,
+                userName: 'fixture-admin',
+                canCreateMaps: true,
+                apiUrl: '/client/admin/api/games',
+                canMaintainWorlds: true,
+                urls: { logout: '/logout', tools: '/client/tools', client: '/client', lab: '/map-lab' },
+            };
+            res.setHeader('Content-Type', 'text/html');
+            res.end(
+                `<!doctype html><html><head><meta name="viewport" content="width=device-width,initial-scale=1">${entry.css.map((file) => `<link rel="stylesheet" href="/build/${file}">`).join('')}</head><body class="no-admin"><main id="admin-root"></main><script id="admin-boot" type="application/json">${JSON.stringify(boot)}</script><script type="module" src="/build/${entry.file}"></script></body></html>`,
             );
             return;
         }
@@ -129,10 +161,6 @@ const server = http.createServer(async (req, res) => {
                     setup: '/client/entry',
                     login: '/client/entry',
                     logout: '/logout',
-                },
-                mapImages: {
-                    terrain: '/res/bundled/map/map_layer_0.png',
-                    detail: '/res/bundled/map/map_layer_2.png',
                 },
             };
             res.setHeader('Content-Type', 'text/html');

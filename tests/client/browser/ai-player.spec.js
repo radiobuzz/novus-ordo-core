@@ -31,7 +31,6 @@ for (const bots of [true, false]) {
                     turn_id: 1,
                     generation: '00000000-0000-4000-8000-000000000001',
                     enabled: true,
-                    next_enabled: true,
                     next_nation_id: otherReady ? null : 8,
                     players: [{ nation_id: 8, name: 'Bot 8', ready: otherReady }],
                 };
@@ -49,7 +48,7 @@ for (const bots of [true, false]) {
             botWrites++;
             await botHold;
             otherReady = true;
-            await route.fulfill({ json: { status: 'played' } });
+            await route.fulfill({ json: { status: 'ready' } });
         });
         await page.route('**/ready-for-next-turn', (route) => {
             ownWrites++;
@@ -129,8 +128,6 @@ test('sequential bot ticks, spectator Ready, no modal interruption and unchanged
                     generation: '00000000-0000-4000-8000-000000000001',
                     enabled: true,
                     paused: false,
-                    protect_humans: true,
-                    next_enabled: true,
                     next_nation_id: [8, 9].find((id) => !completed.includes(id)) ?? null,
                     players: [8, 9].map((id) => ({
                         nation_id: id,
@@ -146,7 +143,7 @@ test('sequential bot ticks, spectator Ready, no modal interruption and unchanged
         const body = route.request().postDataJSON();
         writes.push(body.nation_id);
         completed.push(body.nation_id);
-        return route.fulfill({ json: { status: 'played' } });
+        return route.fulfill({ json: { status: 'ready' } });
     });
     await page.route('**/ready-for-next-turn', (route) => {
         writes.push('ready');

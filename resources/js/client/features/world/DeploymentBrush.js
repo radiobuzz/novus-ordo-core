@@ -1,3 +1,4 @@
+import { resourceName } from '../../ui/resourceVisuals.js';
 import { el } from '../../ui/dom.js';
 import { Button } from '../../ui/Button.js';
 import { ImageChoice } from '../../ui/ImageChoice.js';
@@ -149,8 +150,8 @@ export function renderDeploymentBrush(owner, body) {
                     'span',
                     {},
                     el('img', {
-                        src: resourceIcon(resource),
-                        alt: t(`resource.${resource}`),
+                        src: resourceIcon(owner.data.definitions.resources.find(r => r.resource_key === resource)?.icon_key),
+                        alt: resourceName(owner.data, resource, owner.services.i18n),
                         width: 18,
                         height: 18,
                     }),
@@ -178,7 +179,7 @@ export function renderDeploymentBrush(owner, body) {
             )
             .map(([resource, needed]) =>
                 t('resourceShortage', {
-                    resource: t(`resource.${resource}`),
+                    resource: resourceName(owner.data, resource, owner.services.i18n),
                     needed,
                     available: draft.remaining[resource],
                 }),

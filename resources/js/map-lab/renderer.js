@@ -7,7 +7,7 @@ import { AtlasOverlay } from './atlas-renderer.js';
 import { TerrainV2 } from './terrain-v2.js';
 import { administrationActive } from './administration.js';
 import { AdministrationOverlay } from './administration-renderer.js';
-import { coastActive } from './coasts.js';
+import { coastActive } from '../map/coasts.js';
 import { CoastOverlay } from './coast-renderer.js';
 import { developmentActive } from './development.js';
 import { DevelopmentOverlay } from './development-renderer.js';

@@ -1,49 +1,9 @@
-import { MapRenderer } from '../../../map/renderer.js';
-import { restoreMap } from '../../../map/snapshot.js';
-import { axialKey, neighborCoordinates, pixelToAxial, traceHex, hexCorners } from '../../../map/hex.js';
+import { drawAnalysis, drawShores } from './analysis/render.js';
+import { GeographicRenderer as MapRenderer } from '../../../map/geographic-renderer.js';
+import { axialKey, neighborCoordinates, traceHex, hexCorners } from '../../../map/hex.js';
 import { isWater } from '../../../map/water.js';
-import { mapDefinition } from '../../api/generated.js';
 import { mapNationColors } from '../../services/nationColors.js';
-
-export function mapDefinitionFor(snapshot, territories) {
-    if (!snapshot) return mapDefinition;
-    const model = restoreMap(snapshot, territories);
-    return { width: model.width, height: model.height, model };
-}
-
-export class HexMapPicker {
-    constructor(territories, definition) {
-        this.model = definition.model;
-        this.update(territories);
-    }
-    update(territories) {
-        this.territories = new Map(territories.map((t) => [t.territory_id, t]));
-        for (const region of this.model.regions) {
-            const territory = this.territories.get(region.territoryId);
-            region.name = territory?.name ?? region.name;
-            region.ownerId = territory?.owner_nation_id ?? null;
-            for (const id of region.cellIds) {
-                const cell = this.model.cellById.get(id);
-                cell.politicalOwnerId = region.ownerId;
-                cell.controllerId = region.ownerId;
-            }
-        }
-    }
-    atWorld(x, y) {
-        const model = this.model;
-        const p = pixelToAxial(x - model.offsetX, y - model.offsetY, model.cellSize);
-        const cell = model.cellById.get(axialKey(p.q, p.r));
-        if (!cell) return null;
-        return this.territories.get(model.regionById.get(cell.regionId).territoryId) ?? null;
-    }
-    atScreen(camera, x, y) {
-        const p = camera.screenToWorld(x, y);
-        return this.atWorld(p.x, p.y);
-    }
-    center(territory) {
-        return this.model.regions.find((r) => r.territoryId === territory.territory_id);
-    }
-}
+export { mapDefinitionFor, HexMapPicker } from './GeneratedMap.js';
 
 /** Shared terrain renderer; selection semantics and overlays belong to callers. */
 export class HexMapRenderer extends MapRenderer {
@@ -54,19 +14,36 @@ export class HexMapRenderer extends MapRenderer {
             canvas,
             camera,
             () => {
-                const visible = (id) => context.layers.some((l) => l.id === id && l.visible);
+                const menu = context.mapLayers;
+                const visible = (id) =>
+                    menu
+                        ? Boolean(menu.appearance[id])
+                        : context.layers.some((l) => l.id === id && l.visible);
                 return {
                     model: context.definition.model,
                     nations: context.nations,
                     view: 'terrain',
+                    detailThreshold: menu?.appearance.detailThreshold,
+                    labelStyle: menu
+                        ? {
+                              opacity: menu.appearance.namesOpacity,
+                              size: menu.appearance.nameSize,
+                              spacing: menu.appearance.nameSpacing,
+                              types: {
+                                  ...menu.nameTypes,
+                                  ...(!menu.appearance.ocean ? { ocean: false, sea: false } : {}),
+                              },
+                          }
+                        : undefined,
                     layers: {
                         terrain: visible('terrain'),
                         tiles: visible('detail'),
                         transitions: true,
                         relief: visible('detail'),
                         rivers: visible('rivers'),
-                        political: visible('ownership'),
-                        borders: visible('borders'),
+                        political: !menu && visible('ownership'),
+                        microGrid: visible('microGrid'),
+                        borders: visible('borders') || (menu?.appearance.nationalBorders ?? false),
                         names: visible('names'),
                     },
                 };
@@ -80,9 +57,6 @@ export class HexMapRenderer extends MapRenderer {
         this.context.nations = mapNationColors(this.context);
         this.nationalPaths = null;
         this.updateOwnership(this.context.definition.model);
-    }
-    async loadImages() {
-        return true;
     }
     territoryPaths(id) {
         if (this.paths.has(id)) return this.paths.get(id);
@@ -131,18 +105,57 @@ export class HexMapRenderer extends MapRenderer {
         }
         ctx.restore();
     }
-    drawUnderlay(ctx) {
+    drawUnderlay(ctx, state) {
+        super.drawUnderlay(ctx, state);
         if (!this.context) return;
+        if (this.context.mapLayers) drawAnalysis(ctx, this, state, this.context.mapLayers);
+        for (const overlay of this.context.underlays ?? []) overlay(ctx, this);
         const selection = this.context.homeland?.();
         if (selection) {
             for (const id of selection.available) this.highlight(ctx, id, '#8edbc0', 0.18);
             for (const id of selection.selected) this.highlight(ctx, id, '#f4d18a', 0.55, true);
         }
         if (this.context.selectedId) this.highlight(ctx, this.context.selectedId, '#ffe4b0', 0.28, true);
-        for (const overlay of this.context.underlays ?? []) overlay(ctx, this);
     }
-    drawWorldOverlays(ctx) {
+    drawWorldOverlays(ctx, state) {
+        if (this.context?.mapLayers) drawShores(ctx, this, state, this.context.mapLayers);
         for (const overlay of this.context?.overlays ?? []) overlay(ctx, this);
+    }
+    drawWater(ctx, state, blended) {
+        if (!this.context?.mapLayers) return super.drawWater(ctx, state, blended);
+        ctx.save();
+        ctx.globalAlpha = this.context.mapLayers.appearance.riversOpacity;
+        super.drawWater(ctx, { ...state, layers: { ...state.layers, terrain: false } }, blended);
+        ctx.restore();
+    }
+    drawMicroGrid(ctx, state, cells) {
+        ctx.save();
+        ctx.globalAlpha = this.context.mapLayers?.appearance.microGridOpacity ?? 1;
+        super.drawMicroGrid(
+            ctx,
+            state,
+            cells.filter((c) => this.context.mapLayers?.appearance.ocean !== false || c.terrain !== 'ocean'),
+            false,
+        );
+        ctx.restore();
+    }
+    drawRegionNames(ctx, state) {
+        const menu = this.context?.mapLayers;
+        if (menu && !menu.appearance.territoryNames) return;
+        ctx.save();
+        ctx.globalAlpha = menu?.appearance.namesOpacity ?? 1;
+        const regions = state.model.regions.filter(
+            (r) =>
+                menu?.appearance.ocean !== false ||
+                r.cellIds.some((id) => state.model.cellById.get(id).terrain !== 'ocean'),
+        );
+        super.drawRegionNames(ctx, { ...state, model: { ...state.model, regions } });
+        ctx.restore();
+    }
+    drawFeatures(ctx, state, cells) {
+        super.drawFeatures(ctx, state, cells);
+        if (!state.layers.names && this.context?.mapLayers?.appearance.territoryNames)
+            this.drawRegionNames(ctx, state);
     }
     drawRegionBorders(ctx, { model }) {
         if (!this.nationalPaths) {
@@ -182,8 +195,12 @@ export class HexMapRenderer extends MapRenderer {
         ctx.save();
         ctx.strokeStyle = 'rgba(236,235,227,.25)';
         ctx.lineWidth = 0.8 / this.camera.zoom;
-        ctx.stroke(this.nationalPaths.territories);
+        ctx.globalAlpha = this.context.mapLayers?.appearance.bordersOpacity ?? 1;
+        if (!this.context.mapLayers || this.context.mapLayers.appearance.borders)
+            ctx.stroke(this.nationalPaths.territories);
+        ctx.globalAlpha = this.context.mapLayers?.appearance.nationalBordersOpacity ?? 1;
         for (const [id, paths] of this.nationalPaths.nations) {
+            if (this.context.mapLayers && !this.context.mapLayers.appearance.nationalBorders) continue;
             ctx.save();
             ctx.clip(paths.fill);
             ctx.lineCap = ctx.lineJoin = 'round';

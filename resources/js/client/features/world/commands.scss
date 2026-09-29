@@ -469,57 +469,6 @@
         max-width: calc(100% - var(--space-3) * 2);
         flex-wrap: wrap;
     }
-    .defense-heatmap-legend {
-        position: absolute;
-        z-index: 3;
-        top: var(--space-3);
-        left: 76px;
-        display: grid;
-        gap: var(--space-2);
-        width: min(230px, calc(100% - 420px));
-        min-width: 200px;
-        padding: var(--space-3);
-        border: 1px solid var(--border-default);
-        border-radius: var(--radius);
-        background: color-mix(in srgb, var(--surface-panel) 92%, transparent);
-        color: var(--text-primary);
-        pointer-events: none;
-        box-shadow: var(--shadow-soft);
-        &[hidden] {
-            display: none;
-        }
-        > strong {
-            font-size: 0.78rem;
-        }
-        > small {
-            color: var(--text-muted);
-            line-height: 1.35;
-        }
-    }
-    .defense-heatmap-gradient {
-        display: block;
-        height: 10px;
-        border: 1px solid rgb(255 255 255 / 30%);
-        border-radius: 999px;
-        background: var(--defense-gradient);
-    }
-    .defense-heatmap-range {
-        display: flex;
-        justify-content: space-between;
-        gap: var(--space-2);
-        color: var(--text-muted);
-        font-size: var(--font-tiny);
-        font-variant-numeric: tabular-nums;
-        span:last-child {
-            text-align: right;
-        }
-    }
-    .defense-heatmap-selected {
-        padding-top: var(--space-2);
-        border-top: 1px solid var(--border-default);
-        color: var(--text-primary) !important;
-        font-variant-numeric: tabular-nums;
-    }
     .map-orientation {
         display: flex;
         align-items: center;
@@ -530,9 +479,6 @@
     .map-orientation-value {
         min-width: 48px;
         font-variant-numeric: tabular-nums;
-    }
-    .world-workspace .map-beta-badge {
-        right: 326px;
     }
     @media (max-width: 760px) {
         .world-workspace {
@@ -623,21 +569,6 @@
             z-index: 15;
             bottom: calc(min(48dvh, 500px) + var(--space-2));
             max-height: 20dvh;
-        }
-        .world-workspace .map-beta-badge {
-            right: var(--space-2);
-            bottom: var(--space-2);
-            font-size: var(--font-tiny);
-        }
-        .defense-heatmap-legend {
-            top: var(--space-2);
-            left: 62px;
-            width: min(210px, calc(100% - 190px));
-            min-width: 0;
-            padding: var(--space-2);
-            > small {
-                display: none;
-            }
         }
     }
 }

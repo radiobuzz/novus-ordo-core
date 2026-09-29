@@ -5,7 +5,6 @@ namespace App\Models;
 use App\Domain\DeploymentCommand;
 use App\Domain\DivisionType;
 use App\Domain\OrderType;
-use App\Domain\ResourceType;
 use App\ReadModels\DeploymentInfo;
 use App\Utils\GuardsForAssertions;
 use Closure;
@@ -61,15 +60,6 @@ class Deployment extends Model
 
     public function getDivisionType(): DivisionType {
         return DivisionType::from($this->division_type);
-    }
-
-    public static function getTotalCostsByResourceType(Nation $nation, Turn $turn): array {
-        $deployedTypes = Deployment::where('nation_id', $nation->getId())
-            ->where('turn_id', $turn->getId())
-            ->pluck('division_type')
-            ->map(fn (int $type) => DivisionType::from($type));
-
-        return DivisionType::calculateTotalDeploymentCostsByResourceType(...$deployedTypes);
     }
 
     public static function createRuleValidDeployment(Nation $nation): Exists {

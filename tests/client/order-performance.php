@@ -1,7 +1,7 @@
 <?php
 // Only the explicit temporary database; every fixture mutation below is rolled back.
 require __DIR__ . '/isolated-app.php';
-use App\Domain\{DivisionType, OrderType, RelationState, ResourceType};
+use App\Domain\{DivisionType, OrderType, RelationState};
 use App\Models\{Division, DivisionDetail, Game, Nation, Order, Territory, TerritoryDetail};
 use App\Services\{DiplomacyService, NationCommands, PlayerWorkspace};
 use Illuminate\Support\Facades\DB;
@@ -81,8 +81,9 @@ try {
     });
     $run('unaffordable attacks do not replace orders', function () use ($nation, $origin, $middle, $target, $turn, $unit, $batch, $check, $reject) {
         $target->getDetail($turn)->forceFill(['owner_nation_id' => null])->save();
-        DB::table('nation_resource_stockpiles')->where('nation_id', $nation->id)->where('turn_id', $turn->id)->where('resource_type', ResourceType::Oil->value)->update(['available_quantity' => 0]);
-        $available = $nation->getDetail()->exportBudget()->available_production['Oil'];
+        $oilId = $nation->getDetail()->resources()->get('oil')['id'];
+        DB::table('nation_resource_stockpiles')->where('nation_id', $nation->id)->where('turn_id', $turn->id)->where('resource_id', $oilId)->update(['available_quantity' => 0]);
+        $available = $nation->getDetail()->exportBudget()->available_production['oil'];
         $orders = []; $old = [];
         foreach (range(0, (int) floor($available)) as $_) {
             $a = $unit($nation, $origin, DivisionType::Armored); $old[] = Order::createMoveOrder($a, $middle);

@@ -56,3 +56,95 @@
         grid-row: 1;
     }
 }
+
+// Independent category instances share one persistent preview and draft.
+.map-studio {
+    grid-template-columns: minmax(250px, 320px) minmax(0, 1fr) minmax(180px, 230px);
+}
+.map-studio-sidebar {
+    display: grid;
+    grid-template-columns: 42px minmax(0, 1fr);
+    gap: var(--space-2);
+    min-width: 0;
+}
+.map-studio-tabs {
+    display: flex;
+    flex-direction: column;
+    gap: var(--space-2);
+}
+.map-studio-tabs [role='tab'] {
+    width: 38px;
+    height: 38px;
+    padding: 8px;
+    overflow: hidden;
+    font-size: 0;
+}
+.map-studio-tabs [role='tab'][aria-selected='true'] {
+    border-color: var(--accent);
+    background: var(--surface-raised);
+}
+.map-settings-panel {
+    max-height: 65vh;
+    overflow: auto;
+    padding: var(--space-2);
+}
+.map-settings-panel[hidden],
+.map-studio [hidden] {
+    display: none;
+}
+.map-studio-sidebar form {
+    min-width: 0;
+}
+.map-studio-inspector {
+    min-width: 0;
+    overflow-wrap: anywhere;
+}
+.map-studio--inspector-collapsed {
+    grid-template-columns: minmax(250px, 320px) minmax(0, 1fr) auto;
+}
+.map-studio-inspector .geography-detail {
+    white-space: pre-line;
+}
+.map-studio-actions {
+    margin-top: var(--space-3);
+}
+.map-resource-reason {
+    font-size: 0.85rem;
+    color: var(--text-muted);
+}
+@media (max-width: 1150px) {
+    .map-studio,
+    .map-studio--inspector-collapsed {
+        grid-template-columns: minmax(220px, 280px) minmax(0, 1fr);
+    }
+    .map-studio-inspector {
+        grid-column: 2;
+    }
+}
+@media (max-width: 700px) {
+    .map-studio,
+    .map-studio--inspector-collapsed {
+        grid-template-columns: 1fr;
+    }
+    .map-studio-sidebar {
+        grid-template-columns: 1fr;
+    }
+    .map-studio-tabs {
+        flex-direction: row;
+        flex-wrap: wrap;
+    }
+    .map-studio-inspector {
+        grid-column: 1;
+    }
+    .map-studio-fields {
+        grid-template-columns: 1fr;
+    }
+    .map-settings-panel {
+        max-height: 40vh;
+    }
+}
+.map-studio-tabs [role='tab']::before {
+    width: 20px;
+    height: 20px;
+    min-width: 20px;
+}

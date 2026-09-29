@@ -1,8 +1,10 @@
 <?php
 
 namespace App\Services;
+use App\Services\Resources\ResourceCatalogue;
+use App\Domain\Resources\Quantity as Q;
 
-use App\Domain\{DivisionType, OrderType, ResourceType};
+use App\Domain\{DivisionType, OrderType};
 use App\Models\{Division, DivisionDetail, Nation, Order, Territory, TerritoryDetail, Turn};
 use App\ReadModels\{DefenseCoverageInfo, DefenseCoverageTerritoryInfo};
 
@@ -13,6 +15,7 @@ final class DefenseCoverageService
     {
         $game = $nation->getGame();
         $nationId = $nation->getId();
+        $catalogue = ResourceCatalogue::forGame($game);
         $ownedIds = TerritoryDetail::where('game_id', $game->id)->where('turn_id', $turn->id)
             ->where('owner_nation_id', $nationId)->pluck('territory_id')->sort()->values();
         if ($ownedIds->isEmpty() || !(bool) ($game->guard_enabled ?? false)) {
@@ -29,15 +32,15 @@ final class DefenseCoverageService
         $guardIds = $orders->filter(fn (Order $order) => $order->getType() === OrderType::Guard)->keys();
         $details = DivisionDetail::where('nation_id', $nationId)->where('turn_id', $turn->id)
             ->whereIn('division_id', $guardIds)->get()->keyBy('division_id');
-        $guards = $active->only($guardIds->all())->map(function (Division $division) use ($details) {
+        $guards = $active->only($guardIds->all())->map(function (Division $division) use ($details, $catalogue) {
             $meta = DivisionType::getMeta($division->getDivisionType());
             return [
                 'division_id' => $division->id,
                 'origin_id' => (int) $details[$division->id]->territory_id,
                 'meta' => $meta,
-                'response_costs' => collect($meta->attackCosts)
-                    ->map(fn ($cost) => (int) round($cost * Order::GUARD_RESPONSE_COST_FACTOR * 10000))
-                    ->filter()->all(),
+                'response_costs' => collect($catalogue->costs('operation', $division->getDivisionType()))
+                    ->map(fn ($cost) => Q::mul($cost, (string) Order::GUARD_RESPONSE_COST_FACTOR))
+                    ->filter(fn ($cost) => Q::cmp($cost, '0') > 0)->all(),
             ];
         })->values();
         $territories = $game->territories()->get()->keyBy('id');
@@ -47,9 +50,7 @@ final class DefenseCoverageService
         $detail = $nation->getDetail($turn);
         $resourceIds = $guards->flatMap(fn ($guard) => array_keys($guard['response_costs']))->unique();
         $available = $resourceIds->mapWithKeys(fn ($resource) => [
-            $resource => (int) round(
-                $detail->getAvailableProductionQuantity(ResourceType::from((int) $resource)) * 10000,
-            ),
+            $resource => $detail->getAvailableProductionQuantity($resource),
         ])->all();
         $routing = app(GuardRouteFinder::class);
         $candidatesByTerritory = $ownedIds->mapWithKeys(fn ($id) => [$id => []])->all();
@@ -75,7 +76,7 @@ final class DefenseCoverageService
             $count = 0;
             foreach ($candidates as $candidate) {
                 if (!$this->canAfford($candidate['response_costs'], $remaining)) continue;
-                foreach ($candidate['response_costs'] as $resource => $cost) $remaining[$resource] -= $cost;
+                foreach ($candidate['response_costs'] as $resource => $cost) $remaining[$resource] = Q::sub($remaining[$resource], $cost);
                 $defense += $candidate['meta']->defensePower;
                 $count++;
             }
@@ -87,7 +88,7 @@ final class DefenseCoverageService
 
     private function canAfford(array $costs, array $remaining): bool
     {
-        foreach ($costs as $resource => $cost) if (($remaining[$resource] ?? 0) < $cost) return false;
+        foreach ($costs as $resource => $cost) if (Q::cmp($remaining[$resource] ?? '0', $cost) < 0) return false;
         return true;
     }
 }

@@ -49,10 +49,6 @@ class ClientController extends Controller
                 'mapGeneration' => $request->user()?->isAdmin() && config('app.env') === 'development'
                     ? route('client.map-generation') : null,
             ],
-            'mapImages' => [
-                'terrain' => asset('res/bundled/map/map_layer_0.png'),
-                'detail' => asset('res/bundled/map/map_layer_2.png'),
-            ],
         ]])->header('Cache-Control', 'private, no-store');
     }
 }

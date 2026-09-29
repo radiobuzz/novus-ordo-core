@@ -5,7 +5,7 @@ namespace App\Domain;
 use Illuminate\Support\Facades\Validator;
 use Illuminate\Validation\ValidationException;
 
-/** Experimental import boundary; gameplay still uses ordinary territories. */
+/** Authoritative geographic import boundary; gameplay still uses ordinary territories. */
 readonly class GeneratedMapData {
     public function __construct(
         public array $snapshot,
@@ -13,10 +13,17 @@ readonly class GeneratedMapData {
     ) {}
 
     public static function fromArray(array $data): GeneratedMapData {
+        $maxCells = (int) config('maps.max_cells', 50000);
         $data = Validator::make($data, [
-            'format' => 'required|in:hex-beta-1',
-            'generator' => 'required|in:landscape-v4',
-            'settings' => 'required|array:seed,continents,land,coastComplexity,islandAbundance,lakeAbundance,polarExtent,snowline,mountains,scale,wetness',
+            'format' => 'required|in:microcell-world-2',
+            'generator' => 'required|in:landscape-v5',
+            'settings' => 'required|array:regionColumns,regionRows,seed,continents,land,coastComplexity,islandAbundance,lakeAbundance,polarExtent,snowline,mountains,scale,wetness',
+            'regionColumns' => 'required|integer|min:1|max:'.$maxCells,
+            'regionRows' => 'required|integer|min:1|max:'.$maxCells,
+            'cellCount' => 'required|integer|in:7,19,37',
+            'regionArea' => 'required|numeric|in:1',
+            'settings.regionColumns' => 'required|integer|same:regionColumns',
+            'settings.regionRows' => 'required|integer|same:regionRows',
             'settings.seed' => 'required|string|max:64',
             'settings.continents' => 'required|integer|between:2,5',
             'settings.land' => 'required|numeric|between:25,80',
@@ -28,30 +35,42 @@ readonly class GeneratedMapData {
             'settings.mountains' => 'required|numeric|between:0,100',
             'settings.scale' => 'required|numeric|between:50,180',
             'settings.wetness' => 'required|numeric|between:0,100',
-            'width' => 'required|numeric|between:1,20000',
-            'height' => 'required|numeric|between:1,20000',
-            'offsetX' => 'required|numeric|between:0,20000',
-            'offsetY' => 'required|numeric|between:0,20000',
-            'cells' => 'required|array|size:11400',
-            'rivers' => 'present|array|max:70000',
-            'shores' => 'present|array|max:70000',
+            'width' => 'required|numeric|between:1,100000000',
+            'height' => 'required|numeric|between:1,100000000',
+            'offsetX' => 'required|numeric|between:0,100000000',
+            'offsetY' => 'required|numeric|between:0,100000000',
+            'cells' => 'required|array|max:'.$maxCells,
+            'vertices' => 'required|array|max:'.($maxCells * 6),
+            'edges' => 'required|array|max:'.($maxCells * 6),
+            'drainage' => 'required|array',
+            'lakes' => 'present|array',
+            'features' => 'present|array',
+            'coasts' => 'present|array',
+            'naming' => 'present|nullable|array',
+            'resourceProfiles' => 'present|array',
+            'resources' => 'present|array',
         ])->validate();
 
         $fail = fn () => throw ValidationException::withMessages(['map' => 'The generated map is incomplete or invalid. Generate it again.']);
         $finite = fn ($value) => (is_int($value) || is_float($value)) && is_finite((float) $value);
         $water = fn (array $cell) => in_array($cell[3], ['ocean', 'lake'], true);
         $directions = [[1, 0], [1, -1], [0, -1], [-1, 0], [-1, 1], [0, 1]];
+        $columns = (int) $data['regionColumns'];
+        $rows = (int) $data['regionRows'];
+        $count = (int) $data['cellCount'];
+        $radius = [7 => 1, 19 => 2, 37 => 3][$count];
+        if ($columns * $rows * $count > $maxCells || count($data['cells']) !== $columns * $rows * $count) $fail();
         $cells = [];
-        $regions = array_fill(0, MapData::WIDTH * MapData::HEIGHT, []);
+        $regions = array_fill(0, $columns * $rows, []);
         foreach ($data['cells'] as $cell) {
-            if (!is_array($cell) || !array_is_list($cell) || count($cell) !== 14) $fail();
+            if (!is_array($cell) || !array_is_list($cell) || count($cell) !== 29) $fail();
             [$q, $r, $region] = $cell;
-            if (!is_int($q) || !is_int($r) || !is_int($region) || $region < 0 || $region >= 600) $fail();
-            $row = intdiv($region, 30);
-            $regionQ = $region % 30 - intdiv($row, 2);
-            $dq = $q - (3 * $regionQ - 2 * $row);
-            $dr = $r - (2 * $regionQ + 5 * $row);
-            if (max(abs($dq), abs($dr), abs($dq + $dr)) > 2 || isset($cells["$q,$r"])) $fail();
+            if (!is_int($q) || !is_int($r) || !is_int($region) || $region < 0 || $region >= $columns * $rows) $fail();
+            $row = intdiv($region, $columns);
+            $regionQ = $region % $columns - intdiv($row, 2);
+            $dq = $q - (($radius + 1) * $regionQ - $radius * $row);
+            $dr = $r - ($radius * $regionQ + (2 * $radius + 1) * $row);
+            if (max(abs($dq), abs($dr), abs($dq + $dr)) > $radius || isset($cells["$q,$r"])) $fail();
             if (!in_array($cell[3], ['ocean', 'lake', 'plains', 'forest', 'hills', 'mountain', 'snow', 'tundra'], true)) $fail();
             if (!in_array($cell[4], [null, 'water', 'plains', 'hills', 'mountain'], true) || !in_array($cell[5], [null, 'none', 'tundra', 'grass', 'forest'], true)) $fail();
             if (!is_bool($cell[6]) || !is_bool($cell[7])) $fail();
@@ -60,11 +79,9 @@ readonly class GeneratedMapData {
             $cells["$q,$r"] = $cell;
             $regions[$region]["$q,$r"] = $cell;
         }
-        foreach ($regions as $regionCells) if (count($regionCells) !== 19) $fail();
-        foreach (['rivers', 'shores'] as $field) foreach ($data[$field] as $segment) {
-            if (!is_array($segment) || !array_is_list($segment) || count($segment) !== 5) $fail();
-            foreach ($segment as $value) if (!$finite($value) || abs($value) > 100000) $fail();
-        }
+        foreach ($regions as $regionCells) if (count($regionCells) !== $count) $fail();
+        MapGeographyValidator::validate($data, $cells);
+        $potentials = MapResourcePotential::aggregate($data, $cells);
 
         // One connected land component represents each regional army position.
         // Detached islands still contribute land and remain part of the region.
@@ -117,13 +134,14 @@ readonly class GeneratedMapData {
             }
             arsort($types);
             $territories[] = new TerritoryData(
-                x: $index % 30,
-                y: intdiv($index, 30),
+                x: $index % $columns,
+                y: intdiv($index, $columns),
                 terrainType: $dryCount ? TerrainType::from(array_key_first($types)) : TerrainType::Water,
-                usableLandRatio: round($dryCount / 19, 2),
+                usableLandRatio: $dryCount / $count,
                 hasSeaAccess: $hasSeaAccess,
+                geographicPotential: $potentials[$index],
                 connections: array_map(fn ($neighbor, $land) => new TerritoryConnectionData(
-                    x: $neighbor % 30, y: intdiv($neighbor, 30), isConnectedByLand: $land,
+                    x: $neighbor % $columns, y: intdiv($neighbor, $columns), isConnectedByLand: $land,
                 ), array_keys($connections), array_values($connections)),
             );
         }
@@ -136,7 +154,7 @@ readonly class GeneratedMapData {
             unset($remaining[$queue[0]]);
             for ($cursor = 0; $cursor < count($queue); $cursor++) {
                 foreach ($territories[$queue[$cursor]]->connections as $connection) {
-                    $neighbor = $connection->y * MapData::WIDTH + $connection->x;
+                    $neighbor = $connection->y * $columns + $connection->x;
                     if (!$connection->isConnectedByLand || !isset($remaining[$neighbor])) continue;
                     $queue[] = $neighbor;
                     unset($remaining[$neighbor]);
@@ -145,6 +163,6 @@ readonly class GeneratedMapData {
             $hasHomeland = count($queue) >= \App\Models\Game::NUMBER_OF_STARTING_TERRITORIES;
         }
         if (!$hasHomeland) throw ValidationException::withMessages(['map' => 'This map needs a connected group of five land regions for a starting homeland. Try another landscape.']);
-        return new GeneratedMapData(snapshot: $data, mapData: new MapData($territories));
+        return new GeneratedMapData(snapshot: $data, mapData: new MapData($territories, $columns, $rows, $count));
     }
 }

@@ -9,7 +9,7 @@ use Symfony\Component\Process\Process;
 // Share real file-backed locks between two independent processes, never live cache files.
 config(['cache.default' => 'file', 'cache.stores.file.path' => getenv('NO7_ENTRY_TEST_ROOT') . '/ai-cache',
     'cache.stores.file.lock_path' => getenv('NO7_ENTRY_TEST_ROOT') . '/ai-locks']);
-$game = Game::getCurrent();
+$game = Game::where('is_active', true)->firstOrFail();
 if (isset($argv[1])) {
     $result = app(Runner::class)->step($game, json_decode($argv[1], true, flags: JSON_THROW_ON_ERROR));
     echo json_encode($result); exit;
@@ -31,8 +31,8 @@ foreach ($processes as $process) {
     $results[] = $result['status'];
 }
 sort($results);
-if ($results !== ['already_processed', 'played'] || $game->nationsReadyForNextTurn()->count() !== $before + 1)
+if ($results !== ['already_processed', 'ready'] || $game->nationsReadyForNextTurn()->count() !== $before + 1)
     throw new RuntimeException('Concurrent requests did not commit exactly once: ' . json_encode($results));
 if (DB::table('ai_player_turns')->where('nation_id', $context['nation_id'])->where('turn_id', $context['turn_id'])
     ->where('generation', $context['generation'])->where('status', 'complete')->count() !== 1) throw new RuntimeException('Duplicate completion records');
-echo "PASS two processes, shared game locks, exactly one committed AI turn\n";
+echo "PASS two processes, shared game locks, exactly one committed passive turn\n";

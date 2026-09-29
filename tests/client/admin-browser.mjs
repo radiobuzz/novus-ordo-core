@@ -206,14 +206,6 @@ try {
     await page.setViewportSize({ width: 390, height: 844 });
     assert.equal(await page.evaluate(() => document.documentElement.scrollWidth <= innerWidth), true);
     await page.screenshot({ path: '/tmp/no7-admin-mobile.png', fullPage: true });
-    await page.getByRole('button', { name: 'Start classic-map game', exact: true }).click();
-    await page.getByRole('button', { name: 'Create and activate game', exact: true }).click();
-    await expect(page.locator('.admin-notice')).toContainText('created and activated');
-    const classic = await read('/games');
-    const classicId = classic.active_game_ids.find((id) => !after.active_game_ids.includes(id));
-    assert.ok(classicId);
-    assert.ok(after.active_game_ids.every((id) => classic.active_game_ids.includes(id)));
-    assert.equal((await read(`/games/${classicId}/map`)).map, null);
     assert.deepEqual((await read(`/games/${created}/map`)).map, snapshot.map);
     // Session switching is explicit and replaces the session (not a scoped game read).
     await page.getByRole('link', { name: 'Accounts', exact: true }).click();

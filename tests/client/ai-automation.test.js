@@ -19,7 +19,6 @@ function fixture() {
                 turn_id: 1,
                 generation: 'epoch',
                 enabled: true,
-                next_enabled: true,
                 next_nation_id: 8,
             },
         },
@@ -124,7 +123,7 @@ test('drafts and manual commands pause Auto-ready without switching off AI turns
     const f = fixture();
     try {
         f.driver.setAutoReady(true);
-        f.services.gameplay.drafts = () => ({ Food: { quantity: 2 } });
+        f.services.gameplay.drafts = () => ({ food: { quantity: '2' } });
         await f.driver.tick();
         assert.equal(f.driver.autoReady, false);
         assert.equal(f.calls.length, 1);

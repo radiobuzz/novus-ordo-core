@@ -14,6 +14,7 @@ const paths = {
     orders: 'M7 3h13v18H4V6h3zm1 5h8m-8 5h8m-8 5h5',
     ready: 'm4 12 5 5L20 5',
     close: 'm5 5 14 14M5 19 19 5',
+    eraser: 'm3 14 11-11 7 7-11 11H7zM8 9l7 7M10 21h11',
     refresh: 'M20 7a9 9 0 1 0 1 8M20 2v6h-6',
     diplomacy: 'M4 4h16v12H9l-5 4zM8 8h8m-8 4h5',
     news: 'M4 4h16v17H4zm3 4h5v5H7zm8 0h2m-2 4h2M7 17h10',

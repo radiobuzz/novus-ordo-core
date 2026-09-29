@@ -1,5 +1,241 @@
 # Client planning progress
 
+## 2026-09-29 — Budget readability and stable economic editing
+
+Removed acquisition forecast teardown on every keystroke and budget report replacement during previews. Both views retain keyed comparison tables; estimates stay visible with a pending notice and saving still requires a current valid result. Added semantic budget colours, signed treasury movements and the net treasury change. Gameplay/production scrollbar gutters and stable table columns reduce shifts. Existing world data, policy drafts and economic formulas are unchanged; no application database changes.
+
+Verification: 135 isolated production lifecycle checks (including 43 passive-player checks), focused gameplay/production client tests and the production build passed. Real Chromium checks retain table/input identity, focus and scroll through lower-policy edits and invalid/valid acquisition typing; combined submission, refresh, stale-counter rejection, French and narrow layout remain covered. No application database changes or Git publication.
+
+
+## Production cleanup — Package F (2026-09-29)
+
+The superseded economic calculators, bid/facility models and placeholder effects are retired. Generic acquisitions, funded production, owned stocks and the Package E UI remain the active path. Useful catalogue/policy/accounting checks now target that path; passive seasons and rollback remain covered. No application database changes or Git publication. See [results and rollout](../game-design/production-retirement-results.md).
+
+## 2026-09-29 — Production presentation (Package E)
+
+Delivered stock-first resource bar, dated actual/saved/draft acquisition comparisons, editable priority, separate treasury/financing/national activity sections and source-aware owned territory inspection. No application database changes. Pure/lifecycle checks, focused client suites, build and real EN/FR/browser interactions verified. [Details and limits](../game-design/production-presentation-contract.md).
+
+## 2026-09-29 — Production/development Package D delivered
+
+Connected the generic production resolver to fresh-game founding and seasonal settlement. One result now owns public/private inventories with cost basis, civilian cash, capacity growth, actual consumption, earned income/tax and persisted finite financing. Immediate actions require opening government stock. Grants preserve carried basis; reactive Guard payments use shared wage/tax accounting. Territorial capture does not reseed assets. Old physical/fiscal live settlement and allocation invalidation hooks are disconnected.
+
+The shared workspace derives forecasts from the same result. Policy and acquisition drafts are submitted atomically with existing context/counter gates, late-preview invalidation and newer-edit preservation. Existing controls now accept acquisition quantities/budgets and show real production/financial distinctions; the fuller presentation remains Package E. Unsupported territorial income layers are hidden until earned income has a defined geographic attribution.
+
+Verification: 264 pure accounting checks; 349 resolver checks; 3,687 generic state checks; 85 live lifecycle checks including passive seasons, exact preview/settlement, combined-save rollback, grants, capture, replay, accepted military commitments and reactive Guard reconciliation. Real Chromium passed the combined policy/acquisition journey, exact decimals, refresh/input identity, stale-counter rejection, invalid input, French and narrow layout. All 274 client regression tests, generated client/route contracts and the production build pass. Shared draft tests now exercise acquisitions; the unrelated flag parser's PHP children required execution outside the sandbox after timeout there.
+
+No application DB reset/migration, save conversion, compatibility bridge, commit or push was performed. Fresh games use this runtime; Package B's migration is sufficient. [Contract, behavior choices and remaining work](../game-design/production-lifecycle-contract.md).
+
+## 2026-09-29 — Production/development Package C coordinated calculation
+
+- Added the pure seasonal resolver and Package B snapshot adapter: generic public/private production, funded acquisitions, civilian demand, residual activity, actual income/tax, common development, infrastructure and fiscal closure. No live turn or UI cutover yet.
+- Verification: 349 coordinated-engine checks, 264 accounting regressions and 3,687 isolated persistence/forecast checks. Renamed and additional resources use the same engine; forecasts do not write; money, workers, inventory and acquisition limits reconcile. [Contract and next package](../game-design/production-resolver-contract.md).
+
+## 2026-09-29 — Production/development Package B state foundation
+
+- Extended the resource catalogue with validated production costs, reference prices, development and explicit founding seeds. Added public/private capacity and inventory ownership/cost basis, household/producer cash and government acquisition intent.
+- Bound generic production policy effects to the game resource catalogue; resource initialization now precedes policy attachment. Government stock readers exclude private inventory.
+- Applied the fresh-world migration to the local application database after explicit approval to delete game #21 through its lifecycle. Saved maps/accounts were preserved; generated-file cleanup completed and maintenance mode is off.
+- Added explicit world/nation seeding, changing-state copying and lifecycle cleanup. Verification passed: 3,684 state assertions, 264 accounting assertions, 41 resource/38 agriculture/42 fiscal/43 passive-player checks, isolated reset, syntax and whitespace checks. Coordinated live production and UI remain Packages C–E. [Contract and results](../game-design/production-state-contract.md).
+
+## 2026-09-29 — Production/development Package A accounting foundation
+
+- Added pure `ProductionAccounts` domain primitives and executable fixtures. Resource identity is configuration; public/private stock and cash, production wages, paid exchange, nutrition purchases/reserve releases, realized earnings, residual civilian activity, construction, debt and capture reconcile without adding money or counting the same income twice.
+- Selected bounded seasonal phases: existing operating funds before wages, household spending after wages, no production restart after sales/development, opening-owned military commitments, next-season new capacity. The four-season circulation fixture preserves all account balances; a no-support/no-distribution fixture exposes household shortages instead of replenishing funds.
+- Verification: 264 pure PHP checks, including fractional/tax/funding variations, partial fulfillment, protected reserves, synthetic additional-resource accounting and replay; syntax checks. [Contract, examples and remaining work](../game-design/production-accounting-contract.md). No DB, migrations, server, real-game history, client data or UI were changed or exercised. Packages B–F remain planned.
+
+## 2026-09-29 — Generic production, ownership and development plan
+
+- Recorded the reviewed [resource ownership UI sketch](../game-design/production-development-ui-sketch.md) and a source-backed [implementation plan](../game-design/production-development-implementation-plan.md). The plan starts with executable accounting contracts, then generic definitions/state, coordinated resolution, lifecycle integration, existing UI adaptation and retirement of superseded paths.
+- Explicitly requires food and other produced resources to use one pipeline; keeps nutrition consequences role-bound and money/recruitment kind-specific. Identifies household settlement, ownership transfers, pricing and immediate-versus-future military availability as remaining semantic contracts. Synthetic additional-resource acceptance prevents named-resource implementation forks.
+- Source review only for this plan; no runtime, database, migration, reset or deployment changes. The preceding isolated sketch passed Chromium interaction/arithmetic and responsive checks, which do not validate a real economic engine.
+
+## 2026-09-29 — Admin maintenance and logout
+
+- Added an administrator-only Maintenance panel to Overview, including the empty-game state: confirmed all-world reset with temporary maintenance handling, and targeted orphan turn-status cleanup. The CLI shares the same service. Accounts/site data are preserved; cleanup failures are explicit.
+- Added Sign out to the admin header and fixed the logout controller's redirect return type, which caused the reported 500.
+- Verification: 14 isolated maintenance checks, three fixture browser journeys, real reset/logout/session/auth/CSRF checks, build and client contracts. [Behavior, limits and results](admin-maintenance.md). No live reset or permissions changes.
+
+## 2026-09-29 — Agriculture and food-security policy family
+
+- Delivered agricultural development funding, allocation priority and food reserve choices through the existing policy catalogue and seasonal workflow. Territorial developed capacity bounds food production; reserves drive the existing shared-labor planner. Replaced stockpile-boosted growth with fulfilled-consumption effects on population and unrest.
+- Budget & Policies shows food and agricultural spending comparisons; the planner shows automatic food with manual controls retained for other goods. Fixed nation/game initialization ordering so policies and territorial state exist before food allocation.
+- Verification: 38 agriculture + 42 economy + 41 resource + 43 passive-player checks; real PHP/Chromium editing, preview, refresh, save and EN/FR desktop/narrow workflow; three panel persistence regressions; build, contracts, focused Node and geographic-production checks. [Rules, limitations and results](../game-design/agriculture-and-food-security-first-pass.md).
+- Fresh games use the new default catalogue; no migration, compatibility conversion, live-game mutation or reset. Balance testing remains open.
+
+## 2026-09-29 — Data-backed World and Homeland map layers
+
+- Delivered [the map layer integration](map-layer-integration-results.md): shared bottom dock/legend, real geography and territorial economic views, resource semantics/filtering, independent display controls and distinct palettes. Retired the old World header menu, projection module, styles and translations.
+- Added minimal public resource metadata for pre-founding use; corrected population density to `Land area`. Preserved current territorial precision, historical income denominators, saved-plan production and existing military information boundaries.
+- Initial verification: Vite build and client-contract checks; four focused Node files; nine focused Chromium journeys plus rotation/mobile-command checks; 42 isolated economy and 43 passive-player engine checks including seasons and rollback. No live games or database touched.
+- Three targeted follow-up Chromium checks pass for same-turn revision refresh, delayed Guard/French mobile layout and retained military analysis. Large-world performance certification and real-device/live-server playtesting remain outside this fixture-based verification.
+
+## 2026-09-28 — Game map layer integration audit and plan
+
+- Added [the implementation plan](map-layer-integration-plan.md) with a source-backed layer inventory, World/Homeland scope, resource semantics, shared presentation/data boundaries, ordered work packages and acceptance checks.
+- Confirmed current territorial infrastructure/capacity/unrest/informal data, historical income rows, planned output and labor pools can replace corresponding lab samples. Kept future spatial economy systems out of scope and raw drainage diagnostics in the lab/editor.
+- Found the existing density projection's `Area` lookup does not match the current `Land area` export. Recorded that repair and the minimal public resource metadata needed by homeland selection as integration work.
+- Documentation-only source review. No runtime code, database, game state or compatibility paths changed; no runtime tests claimed.
+
+## 2026-09-28 — Compact clear-analysis action
+
+- Replaced the lab's text-heavy Clear analysis action with a shared outline eraser icon, using existing icon-only sizing on desktop and mobile. Localized accessible name and tooltip remain.
+- Confirmed Food is a real catalogue resource whose map profile models agricultural potential; semantic palette changes remain a discussion proposal.
+- Verification: production build passes. No simulation changes or live-game menu changes.
+
+## 2026-09-28 — Legend width proportional to content
+
+- Corrected the full-width experiment: gradients and up to four categories use a compact panel; larger category lists grow to their content width within the viewport and wrap. Existing keyboard scrolling and responsive clearance remain.
+- Recorded the distinction between diagnostic outlet/runoff data and layers that help a player make decisions. Basin names alone do not provide gameplay utility; agricultural suitability can be communicated meaningfully without exposing raw scores. Lab diagnostics remain available.
+- Extended the existing browser journey to check compact runoff gradients, a two-category snow legend and a wide basin list. Final results recorded after verification.
+- Verification: all three focused Chromium journeys pass (compact/wide legends, readable units, French/mobile lifecycle), production build and whitespace checks pass. Reviewed the compact-gradient screenshot.
+
+## 2026-09-28 — Horizontal legends and basin explanation
+
+- Expanded the legend across the map, with swatches wrapping left-to-right and a single bounded scrolling entry list. Header/help remain visible; picker clearance follows actual legend height.
+- Verified drainage semantics from the generator: catchments share terminal outlet vertices, including many small coastal/map-edge outlets, rather than one category per named river. Added explanatory EN/FR copy and labelled the existing IDs as outlet identifiers. No simulation or basin data changes.
+- Added browser checks for row wrapping, width, bounded scrolling, keyboard access, French/mobile overflow and returning to numeric legends. Runtime outcomes are recorded after verification.
+- Verification: all four focused Chromium journeys pass, including the wide legend and existing unit/mobile controls; production build and whitespace checks pass. Reviewed desktop and French mobile screenshots. No basin data, generation or saved-game format changed.
+
+## 2026-09-28 — Readable layer units
+
+- Unified legend and selected-cell formatting: °C, metres, population counts, actual percentages, labelled 0–100 scores and profile-defined resource units per season. Relative runoff/relief remain explicitly relative; no invented physical calibration. Corrected the sample after-tax income label to match its existing per-million-residents unit.
+- Raw data, adaptive heatmap calculations and game rules are unchanged. Added focused formatter checks and an EN/FR browser journey comparing legend and inspector, plus narrow legend overflow coverage. Runtime results recorded after verification.
+- Verification passed: both targeted Node files, three Chromium journeys (layer selection, French/mobile lifecycle, and readable units/inspection), production build and whitespace checks. Reviewed the narrow French screenshot; lab-only changes require no migration.
+
+## 2026-09-28 — Fullscreen layer workspace and working distant detail
+
+- Replaced the embedded experiment card with a viewport-filling native dialog, compact header, local language selector and exit/focus restoration. The map uses the remaining viewport height.
+- Found a hidden 96-chunk eligibility gate that overrode the detail threshold. Shared `terrain-detail-plan.js` now clips chunk counts to map extents and chooses smaller distant rasters within the unchanged 8-megapixel budget; bookkeeping is capped at 1,024 chunks. Expanded the slider to 8–192px and added actual state/loading feedback.
+- Actual detail-rendering tests exposed missing river courses in restored maps. Extracted `riverCourses` for generation/restore reuse; detailed stroke geometry is preserved exactly without new saved fields or compatibility paths.
+- Verification includes full-world budget calculations, restored stroke equality, existing terrain checks and a browser test that lowers the threshold at fixed zoom, waits for drawing to finish and checks changed canvas pixels. Final runtime outcomes are recorded after the run.
+- Final layer-lab run: all four Chromium checks pass, including full-viewport sizing, actual distant rendering, no browser errors, mobile/French controls, disposal and focus restoration. The two shared Terrain V2 browser checks and three targeted Node test files pass; production build and formatting pass. The previous live-map keyboard-rotation failure now passes with restored river courses. The longer orientation journey progressed to its final reset but exceeded its 30-second total test budget; an extended-budget run is recorded separately below.
+- Extended orientation run: both checks pass with `--timeout=90000`; the long journey completed in 34.7s and keyboard/mobile/French in 6.3s. This resolves the prior functional orientation failures after the river-course fix. The default 30-second test budget still needs allowance for the longer rendered journey; no assertions were removed or weakened.
+
+## 2026-09-28 — Layer lab readability polish
+
+- Added independent Ocean off, land/water analysis participation, visible coastlines, base landscape/detail switches and one detail zoom threshold. Retained existing rendering budgets; no density setting or live-game UI migration.
+- Added individual opacity controls, geographic name filters, separate territory labels and matching categorical/shore legends. River names affect labels only; geometry remains above heatmaps. Narrowed the picker, changed Close to an accessible cross, corrected icon text-spacing and compacted the mobile dock.
+- Reused RangeField and the current feature-local composition. Shared renderer extensions are optional with existing defaults. All national values remain labelled sample data; unrelated workspace changes are preserved.
+- Verification: focused Node cases pass; nine Chromium checks (six existing foundation checks and three layer-lab checks) pass. Browser instrumentation confirms river strokes survive name hiding, validates actual river alpha and confirms ocean labels disappear. Desktop and mobile screenshots reviewed; final build/layout rerun recorded with the task results. The lab remains the review surface before production integration.
+- Broader regression limitation: both existing `map-orientation.spec.js` journeys failed (zoom display did not initialize to 320%, and keyboard rotation remained at 0°). The new lab checks passed in that same run. A short fixture diagnostic captured no browser exception; the cause and whether these failures predate this pass are unverified. No orientation code was changed or speculative fix introduced. Production integration should include investigation of these failures.
+
+## 2026-09-28 — Map layer menu UI lab
+
+- Added a lazy-loaded experiment at `/dev-panel/ui-foundations#map-layers`: a bottom icon dock, seven retained category panels, 33 analysis views, six independent decoration switches and a persistent source/scale legend. Browsing categories preserves the active analysis; Clear restores natural terrain without resetting annotations.
+- Geography uses the shared generator, snapshot and renderer. Economy, ownership and military values are explicitly synthetic regional fixtures; foreign values are unavailable rather than zero. Founding/Governing contexts demonstrate availability without changing real game disclosure or homeland eligibility rules.
+- Reused existing Component/Scope, Button, FieldShell, camera/interactions, icon assets and military scale helpers. EN/FR, keyboard focus, narrow layouts and disposal are covered. No production menu, game rules, backend, database or player preferences changed in this experiment.
+- Verification: two focused Node tests, two focused Chromium tests and the six existing UI-foundations Chromium checks passed; production build passed. Reviewed desktop coast and narrow French screenshots. Browser coverage includes 390/320px widths, one active analysis, independent decorations, unavailable views, no mutation requests and return to baseline lifecycle diagnostics after disposal. Cross-browser and real-device review remain open.
+- [Design and complete layer catalogue](map-layer-menu-experiment.md) separates available projections from future systems. Next step is player review in the lab before selecting and integrating a production subset.
+
+## 2026-09-28 — Persistent microcell world first implementation
+
+- Implemented configurable dimensions and 7/19/37 resolution, complete static geography/feature/resource persistence, shared production/lab Terrain V2, geographic production capacity and the new map workspace. The latest UI decision is left icon tabs with retained category instances and a collapsible right inspector.
+- Added the scoped reset command and forward migration; rehearsed both old and new schema resets on an isolated temporary server. Corrected table discovery to stay within the selected database. No live reset, migration, host configuration change or Git commit/push was performed.
+- Verified all six dimension/resolution combinations, exact persistence, resource/economy/passive season tests, custom-world HTTP creation, actual browser founding and subsequent season/rollback/replay with static map identity unchanged. Browser workspace/coast/water checks, client contracts and builds passed. The two initial wider Node failures passed after targeted correction/environment adjustment.
+- Live rollout is blocked on serving-host memory/body/packet configuration: the 40 × 30/37 map is about 41.7 MB JSON and PHP validation reached about 565 MiB; installed FPM defaults are insufficient. Do not discard live data until the host can ingest the enabled maps.
+- [Results, measurements, remaining checks and rollout](../game-design/map-v2-implementation-results.md); [format contract](../game-design/map-v2-format.md). Earlier entries below describe historical milestones, not the new release's deployment state.
+
+
+## 2026-09-28 — Map workspace panel clarification
+
+- Updated the map implementation plan, ADR 0032 and UI foundation notes to require a small independent panel instance per settings category, with multiple panels usable together on desktop and one shared workspace draft/preview.
+- Added acceptance checks for simultaneous category editing, close/reopen value retention, preserved focus/scroll, narrow-layout switching and disposal. Documentation only; no implementation or reset performed.
+
+## 2026-09-28 — Persistent microcell world implementation plan
+
+- Added the [ordered implementation plan](../game-design/map-v2-implementation-plan.md) and [ADR 0032](decisions/0032-persistent-microcell-world.md): configurable region dimensions, 7/19/37 cells, complete static geography, named features, explicit resource selections/profiles, territorial aggregation and the associated map workspace.
+- Reviewed the current geometry, partial snapshot codec/server validation, map persistence, shared renderer/editor and laboratory geography/resource modules. Recorded the fixed-size assumptions, missing persistence fields and extraction boundaries. Reused the UI/client-data skill contracts in the plan; no new confirmed-data store or editor framework is proposed.
+- Defined isolated verification, editor/browser acceptance, repeated seasons/rollback and the final destructive rollout. That future reset includes saved maps and database-authored gameplay templates, superseding their earlier preservation; account/admin access and unrelated site/source data remain outside its scope.
+- Planning only: no runtime code, migration, database, active game or Git commit changed. Documentation links and whitespace are checked separately; no runtime tests or performance results are claimed. First implementation assignment is Package A's configurable geometry and complete save/restore contract.
+
+## 2026-09-28 — Map Lab coastal terrain artwork
+
+- Added `map-lab/coastal-landscape.js`: read-only, spatially indexed per-shore-edge styles for soft margins, shaded/striated rock faces, rough inland approaches and broken exposure-inspired foam. A cell's six faces can differ; neighbouring styles blend at joins and artwork follows the same continuous land mask as Terrain V2. Turning transitions off retains straight-edge detail. Cliff strength uses shore rise, not the composite access grade; inland difficulty cannot manufacture cliffs. Lake/map-edge exposure is attenuated, ice suppresses warm margins/foam, and snow covers rock.
+- Default-on **Coastal terrain detail** is independent of the existing coloured **Shoreline analysis**. Reused native controls, keyboard Find examples and the textual per-edge inspector per the UI skill. Help and the lab handoff distinguish artistic cues from measured sediment, surveyed cliffs, actual weather or landing rules. No new shared component, bitmap, dependency, persistence, live renderer, generator or gameplay change.
+- Terrain V2 includes the toggle in natural/decorated cache keys, uses nearby edge buckets instead of scanning shores per pixel, and thins decorative vegetation only at the shore margin. Existing pixel/chunk limits and development-ground reuse remain. Geography, assessment records, hydrology and fixture economy are unchanged.
+- Build, targeted formatting/diff checks and five Node test files passed: coastal landscape, coasts, terrain/water, biomes and development scale. New checks cover six distinct faces, shoreline-versus-inland causes, lake/cropped estimates, blended and hard boundaries, ice/deep water, margin clearing, read-only generation and 7/19/37 resolution. The initial two coastal Chromium cases passed; screenshot review prompted stronger rock-face contrast before the final rebuild. The development Map Lab URL returned HTTP 200.
+- All **16 final fixture Chromium cases passed (5.4 minutes)** across coastal art, coast analysis, desert navigation, development scale, Terrain V2 and water detail. Exact canvas comparisons verify reversible on/off artwork at fixed camera; checks also cover independent analysis, transitions, diagnostic views, 22,200-cell regeneration, narrow layout, unchanged geography/economy and the pixel budget. Reviewed final gentle/steep/off, exposed and lake screenshots. Art evidence: `test-results/client/map-coastal-art-{gentle,steep,off,exposed,sheltered,lake,mobile}.png`; related regression screenshots were regenerated in the same run. The treatment remains a provisional top-down close-up cue, not a physical coastal simulation.
+
+## 2026-09-28 — Map Lab desert biome experiment
+
+- Added `map-lab/biomes.js`: a deterministic lab-only desert/dryland interpretation of existing moisture and temperature. `biome` and continuous `desertStrength` sit over retained plains/hills/mountain landforms; water, snow, tundra and wet forests are protected. Overview colours and Terrain V2 blend into semi-arid margins, with subtle sand ripples on plains and warm exposed-rock tones on rugged ground. No new rainfall, wind or rain-shadow simulation is implied.
+- Reused the native landscape navigation pattern for **Find desert** and added a text **Biome** inspector row. Navigation prefers a coherent dry patch, with a sandy-plains preference, instead of an isolated edge cell; no-desert results leave settings/camera unchanged. Existing Wetness controls extent. The default 19-cell seed contains 603 labelled desert cells across all three landforms; coverage is not forced on wet maps.
+- The UI skill guided existing control/renderer reuse, readable empty states and lab-only scope. Original terrain/vegetation IDs and movement/resource/economic rules are unchanged; the shared generator/live game do not receive this interpretation. The lab handoff and foundation catalog record that boundary and provisional climate thresholds. No new bitmap, dependency, backend or persistence change.
+- Build, targeted formatting/diff checks and the initial biome/water/scale Node run passed. Model comparisons verify unchanged physical geography/drainage and mechanics against the shared generator at 7/19/37, deterministic classification, wetness response and distinct cold/wet cover. The later biome/development/water model run also passed after the navigation refinement.
+- All 15 combined fixture Chromium cases passed (4.4 minutes), covering biomes, atlas/resources, development scale, Terrain V2 and water detail. Initial screenshots prompted the representative-patch navigation refinement; the rebuilt final three biome cases then passed (45.7 seconds), including keyboard discovery, no-desert feedback, wetness extremes, narrow layout and 22,200-cell regeneration. Reviewed the final sandy plains beside a wetter river margin, plus the initial rocky-hill treatment. Final screenshots: `test-results/client/map-desert-detail.png`, `map-desert-close.png`, `map-desert-world.png`, `map-desert-dry-world.png` and `map-desert-mobile.png`. The existing lab URL returned HTTP 200. Physical-device/non-Chromium checks and real-game adoption remain separate.
+
+## 2026-09-28 — Map Lab water detail continuity
+
+- Replaced the close-up renderer's weak elevation/shore-distance tint with a water-only normalized depth field. Ocean colours retain the overview's turquoise-to-blue range; lakes use depth below their own surface. Deeper stops preserve additional contrast, land interpolation no longer manufactures a shallow halo, and subdued ripple/foam/ice treatments remain. Generator, elevations, drainage and the shared live-game renderer are unchanged.
+- Added lab-local `water-visuals.js` for depth tones, local-flow widths and rounded edge pieces. Terrain V2 now uses each edge's flow rather than a course-wide maximum, keeps overview-scale world widths with a screen readability floor, and draws every bank before every channel to preserve joins. Width-grouped Path2D caches are model-owned and cleared on reset/destruction. Compact development validation now covers the wider maximum bank envelope without changing the original artwork checkpoint.
+- The game UI skill guided reuse of existing renderer/layer controls and lab-only ownership; no new widget, image, dependency, API, game-data owner or gameplay mechanic. Updated the Map Lab handoff and foundation catalog with source paths and extraction boundaries. Build, targeted formatting/diff checks and four focused Node files (terrain/water, scale, development and coasts) passed. The existing Map Lab URL returned HTTP 200.
+- All 19 fixture Chromium cases passed (5.4 minutes): water detail, permanent Terrain V2, scale/development, coasts and atlas/resources. The new checks instrument actual Canvas water strokes to verify multiple local widths, stable world-space widths through zoom, independent visibility and unchanged geography. Reviewed completed coastal shelf/deep-water, river/confluence, elevated lake and quarter-size settlement screenshots. Artifacts include `test-results/client/map-water-coast.png`, `map-water-coast-close.png`, `map-water-river-close.png`, `map-water-lake.png` and `map-scale-quarter-clean.png`. No live game data or database operation was involved.
+- Limits remain illustrative depth/width mapping, sampled seabed detail, finitely bucketed widths and the existing rounded grid-derived river routes. This is not a bathymetry generator or hydraulic/navigation simulation; physical-device and non-Chromium evaluation remain separate.
+
+## 2026-09-28 — Resource development rollout repaired
+
+- Removed disposable pre-resource games through the administration lifecycle and applied the breaking resource schema while preserving 23 accounts and four saved map workspaces. No old-save conversion or whole-database reset was used.
+- Added a forward cleanup migration for development databases where the historical AI migration had already run. It removes retired `seed`, protection, enablement, aggression, memory and script fields; fresh databases see a harmless no-op because the simplified passive schema never creates them.
+- Confirmed no retained game and no creation lock after the reported HTTP 500. Real creation transactions for all four saved maps, each with one passive nation, created their resource set and participant successfully, then were deliberately rolled back. The administration page can be refreshed to clear its previous uncertain-operation notice. Package C's full browser founding-to-season journey and release review remain.
+
+## 2026-09-28 — Resource cleanup and passive players implemented
+
+- Completed resource Package B. Removed the retired enum/metadata/forecast/allocation runtime, old production request/read models and panel, inverse labor payload, fixed resource-name UI gate, orphan helpers and obsolete strategy/planner tests. Retained economy, diplomacy, geography and command checks now use catalogue keys/IDs and decimal strings.
+- Replaced strategic AI with explicit passive participants. They can only submit Ready; setup, completion, pause/resume, assignment/release, generation fencing and rollback lifecycle remain. Strategy scripts, memory, plans, forecasts, snapshots, author kit, preview routes and strategic schema fields were deleted. Administration explains the temporary behavior, and passive nations cannot process diplomatic offers.
+- The client-data skill preserved the existing shared snapshot and separate automation command lane without a new store or optimistic readiness. The UI skill kept the existing administration and watching controls, reduced to passive status/actions, and made header resource presentation depend on definition kind/icon metadata instead of `Capital` or a six-resource list.
+- Package B verification used only `/tmp/no7-entry-db-Bpkg6uGW`: 43 passive checks across pause/resume, three seasons, ordinary simulation and rollback/replay; 41 resource-foundation, 7 accounting and 40 seasonal-economy checks; updated diplomacy/grant/rollback journey; generated contracts; changed PHP parsing; all 240 Node tests; and a production build. It performed no live migration, save conversion or game mutation; the later development rollout is recorded above.
+
+## 2026-09-28 — Resource foundation and active consumers implemented
+
+- Delivered Package A: four catalogue tables, current-content seed, validation/clone/import/export CLI, semantic roles, decimal quantities, shared physical preview/settlement, recruitment occupancy and one treasury settlement. Active military, Guard, grants, rankings, terrain potential and owner workspace now use game definitions.
+- Replaced the player production allocator with a server preview and dynamic decimal controls. Retained shared snapshot/draft ownership, command serialization and accepted/rejected reconciliation. Catalogue counters fence requests; desktop/narrow EN/FR tested.
+- Verified 41 foundation checks, 7 additional accounting checks, 11 Guard cases, scoped deletion, 18 targeted client tests and a real-browser synthetic-good journey. Built the client and checked PHP parsing/endpoints. See [the implementation record](../game-design/resource-system-first-pass.md).
+- At this implementation checkpoint the migration was tested only on a fresh isolated database. The later development rollout is recorded above; no save conversion was added. Unfunded accepted orders after destructive test edits reject the whole seasonal transaction rather than implementing automatic per-order cancellation.
+
+
+## 2026-09-28 — Resource foundation contract drafted
+
+- Completed step 1 of the replacement direction as [a schema/runtime draft](../game-design/resource-system-schema.md): four definition tables, current-resource seed, named treasury/nutrition/recruitment roles, supported production/demand/capacity rules, game-owned unit costs, seasonal references and explicit quantity precision.
+- Specified one treasury balance and recruitment occupancy rather than a stored/consumed good. Definitions clone once; state/history follows seasons. Server resource previews and actual allocation must share the calculation. No old-save adapters or new market/recipe systems.
+- Added [bounded work packages](../game-design/resource-system-implementation-handoff.md) for foundation/callers, later legacy cleanup/passive AI, and fresh-game release. Separate assignments do not permit a released dual runtime. Strategic AI maintenance is explicitly excluded.
+- Verified seed amounts/yields/unit costs against current source, existing decimal-library availability in composer.lock, local document links and whitespace. No code, dependency, migration, database or running game changed; no runtime tests/build are claimed for this planning step. Detailed schema remains a proposal ready for implementation review.
+
+
+## 2026-09-28 — Resource system audit; replacement not implemented
+
+- Subsequent user decision: during the resource rebuild, AI nations only pass/mark ready. Strategic scripts and economic forecasts will not be maintained through the change. Ordinary nation simulation continues; strategic AI is deferred. The audit now reflects this narrower implementation target; no AI runtime change has been made yet.
+
+- Recorded the explicit no-old-save-compatibility and prompt-removal requirement in [the resource audit](../game-design/resource-system-audit.md). Inventoried resource identity/state, terrain production, consumption, military/Guard costs, grants, UI, rankings, policy extension and AI consumers. Current resources remain the starting catalogue; markets, Copper and broad balancing are deferred.
+- Identified residual Capital-as-labor logic, stale planner explanations, differing money projections and a PHP forecast fallback still consumed by AI. A no-database pure PHP calculation reproduced treasury changing food output despite disabled money production. Earlier economy verification did not cover this AI path.
+- Proposed one replacement runtime, game-owned definitions, explicit money/goods/capacity behavior, caller conversion with deletion gates, fresh-game recreation, and catalogue-variation tests. No production code, migration, database, game state or build changed. No full regression/browser run was needed for this audit.
+
+## 2026-09-28 — First playable seasonal economy
+
+- New games automatically clone the small economic policy catalogue and store their own economic coefficients. No old-save conversion or compatibility work is included. The development schema migration is applied; playtest with a new game.
+- Implemented territory income/capacity/infrastructure/unrest/informality, same-season tax avoidance, gradual compliance recovery, aggregate consumption/reinvestment, interest and credit, reserve-aware repayment, one restructuring per default episode, and probabilistic desertion. Money is treasury funded by tax; retained resource production still uses its existing system.
+- Added Budget & Policies: desktop columns, automatic drafts, approximate effect previews, one review/save package, last actual versus next saved/draft estimates, national indicators and territorial conditions. Header cash/financial warnings, Nation summary and territory inspector consume the same owner snapshot. Removed labor-produced-money forecasting from resource planning.
+- Kept policy drafts and command reconciliation in GameplayService, read-only previews in a scoped request, and persistent native inputs built from existing UI primitives. No catalogue-editor UI, new rendering framework or competing state owner. [ADR 0031](decisions/0031-seasonal-economy-workspace.md) and [the economic handoff](../game-design/seasonal-economy-first-playable.md) describe scope and approximations.
+- Verification: 40 isolated seasonal/accounting/new-game/rollback/default/desertion checks; 12 gameplay service tests, targeted production/header/API checks and prior complete Node regression run with its PHP-backed flag fixture rerun outside the sandbox. Generated-client reproduction, PHP endpoint contracts, changed PHP syntax and production build passed. Actual Chromium checks cover preview/save, current versus pending choices, invalid input/discard, refresh/input identity, resource planner access and EN/FR desktop/narrow layouts. Browser mutations used only the guarded disposable database.
+- Remaining limits: initial coefficients need player balancing; previews use a ±5% income sensitivity, not a statistical confidence interval or prediction of enemy actions. Detailed employment, resource prices/trade, migration, pollution and policy catalogue administration are not part of this delivered slice. Cross-browser/real-device checks remain open.
+
+
+
+## 2026-09-27 — Policy machinery, first backend pass
+
+- Implemented the approved eight-table policy schema, typed/registered effects, conditions, game-owned template clones and explicit national current/pending choices. Definitions are copied at game creation only; seasonal history stores selections and parameter values.
+- Integrated all-nation policy resolution before upkeep, destination reports, transactional failure and rollback/retry with test definition edits retained. Existing resource/economic formulas continue unchanged; the four example effects compile settings but have no economic consumers yet.
+- Added administrator catalogue APIs and `app:policies` authoring tools, player package validation/preview/submission, stale turn/rules checks, and intentionally direct test-game edits with diagnostics/reselection. Visual editing and indicator forecasts remain pending. See [the first-pass handoff](../game-design/policy-system-first-pass.md).
+- Verification: 72 isolated engine assertions, authenticated HTTP checks, migration down/up preserving retained gameplay records, populated-game cleanup and legacy turn/rollback passed. Existing generated-client contracts and changed PHP syntax passed. Test mutations used only `/tmp/no7-entry-db-9Tn6PJQU` and loopback port 8792.
+- Applied the additive policy migration to the development database and created example template #1. No existing game was attached to it or enabled for policy testing. No client UI or build assets changed in this pass.
+
+## 2026-09-27 — Version 7.1 classic-map and interface retirement
+
+- Made generated geography mandatory for every new game. Administration now requires a saved map, commissioning no longer creates a hidden default world, map reads require a `game_maps` row, and active-game count is no longer an implicit request scope. Removed `Game::getCurrent*` compatibility helpers.
+- Removed the rectangular picker/renderer, classic drawing layers, raster map boot data and bundled fixed-map PNGs. World, homeland, gameplay, minimap, administration and ownership comparison now share generated geometry and overlays; user-facing beta labels are gone while the persisted `hex-beta-1` snapshot identifier remains stable.
+- Removed GET `/dashboard`, GET `/create-nation` and `/dev-panel`; moved the nation wizard submission to `/client/setup/nation`. Vite once again cleans its output directory. Tests and isolated game fixtures now create generated worlds only and assert retired routes are absent.
+- The client-data skill kept immutable map ownership in `GameDataService`, explicit game identity and full command reconciliation. The game-UI skill kept the existing shared camera/component boundary and one overlay contract instead of introducing a replacement framework. [ADR 0030](decisions/0030-generated-world-only-runtime.md) records the accepted compatibility break and backup boundary.
+- Verified generated-client reproduction, PHP no-database contracts, PHP syntax, the production build and all 240 Node tests. The complete 158-scenario Chromium run passed 157 scenarios; its lone turn-briefing timing race was synchronized explicitly and then passed three consecutive reruns. Generated-map deployment, rotation, ownership comparison, live refresh/focus retention and panel identity all pass. Isolated MariaDB journeys remain separate; no live database was read or mutated.
+
 ## 2026-09-26 — Development scale checkpoint and microcell inputs
 
 - Added a lab-only fixed-camera Current / Half / Quarter comparison, separate structure-size and spacing controls, and restoration from preserved original geometry. Tracks, parcel footprints and landscape clearing use the same projection; names remain screen-readable. The previous painted-art checkpoint is retained, with independent built extent, urban intensity and activity.

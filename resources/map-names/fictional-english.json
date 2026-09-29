@@ -1,0 +1,34 @@
+{
+  "id": "fictional-english",
+  "version": 1,
+  "culture": "fictional",
+  "language": "en",
+  "roots": [
+    "Aster",
+    "Veyra",
+    "Orien",
+    "Neral",
+    "Selka",
+    "Istren",
+    "Talven",
+    "Evara",
+    "Meren",
+    "Calda",
+    "Varda",
+    "Lyris",
+    "Solen",
+    "Arden",
+    "Tirra",
+    "Osven"
+  ],
+  "endings": [
+    "a",
+    "is",
+    "en",
+    "ora",
+    "al",
+    "eth",
+    "une",
+    "ara"
+  ]
+}

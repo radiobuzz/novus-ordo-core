@@ -1,16 +1,28 @@
 import test from 'node:test';
 import assert from 'node:assert/strict';
 import { Camera } from '../../resources/js/client/features/world/Camera.js';
-import { MapPicker } from '../../resources/js/client/features/world/MapPicker.js';
+import { HexMapPicker } from '../../resources/js/client/ui/map/GeneratedMap.js';
 import { SavedState } from '../../resources/js/client/services/SavedState.js';
 
 const near = (actual, expected) => assert.ok(Math.abs(actual - expected) < 1e-8, `${actual} ≠ ${expected}`);
+const pickerAt = (x, y) => {
+    const region = { territoryId: 7, x, y, cellIds: ['0,0'] };
+    const model = {
+        offsetX: x,
+        offsetY: y,
+        cellSize: 10,
+        regions: [region],
+        cellById: new Map([['0,0', { regionId: 'region-7' }]]),
+        regionById: new Map([['region-7', region]]),
+    };
+    return new HexMapPicker([{ territory_id: 7 }], { model });
+};
 
 test('rotated camera uses the same transform for drawing, picking, panning and anchored zoom', () => {
     const camera = new Camera(900, 400);
     camera.resize(1000, 700);
     camera.zoom = 3;
-    const picker = new MapPicker([{ territory_id: 7, x: 10, y: 8 }], { tileWidth: 30, tileHeight: 20 });
+    const picker = pickerAt(315, 170);
     for (const degrees of [15, 45, 90, 180, 270, 345]) {
         camera.setAngle((degrees * Math.PI) / 180);
         const screen = camera.worldToScreen(315, 170),
@@ -72,7 +84,7 @@ test('camera transforms and picking remain correct after pan, resize and anchore
     const camera = new Camera(900, 400);
     camera.resize(1000, 700);
     camera.fit();
-    const picker = new MapPicker([{ territory_id: 7, x: 10, y: 8 }], { tileWidth: 30, tileHeight: 20 });
+    const picker = pickerAt(315, 170);
     const before = camera.screenToWorld(410, 350);
     camera.zoomAt(2, 410, 350);
     const after = camera.screenToWorld(410, 350);

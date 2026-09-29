@@ -2,19 +2,17 @@ import { axialKey, axialToPixel, hexDisk, hexDistance, neighborCoordinates, regi
 import { addWater, isWater } from './water.js';
 import { createGeography } from './geography.js';
 import { geographyStats } from './geography-stats.js';
+import { applyBiomes } from './biomes.js';
 import { prepareRelief } from './relief.js';
 
-export const RESOLUTIONS = new Map([
-    [7, 1],
-    [19, 2],
-    [37, 3],
-]);
+import { RESOLUTIONS, worldOptions } from './world.js';
+export { RESOLUTIONS } from './world.js';
 
 /** Geographic identity is independent of database IDs and demo factions. */
-export function worldRegions() {
-    return Array.from({ length: 600 }, (_, index) => {
-        const column = index % 30,
-            row = Math.floor(index / 30);
+export function worldRegions(columns = 30, rows = 20) {
+    return Array.from({ length: columns * rows }, (_, index) => {
+        const column = index % columns,
+            row = Math.floor(index / columns);
         return {
             id: 'region-' + (index + 1),
             name: 'Region ' + (index + 1),
@@ -26,9 +24,11 @@ export function worldRegions() {
     });
 }
 
-export function createMapModel(cellCount = 19, scale = 'world', options = {}, definitions = worldRegions()) {
+export function createMapModel(cellCount = 19, scale = 'world', options = {}, definitions = null) {
     const startedAt = performance.now();
-    const geography = createGeography(options);
+    const world = worldOptions({ ...options, cellCount }, options.limits);
+    definitions ??= worldRegions(world.regionColumns, world.regionRows);
+    const geography = createGeography({ ...options, ...world });
     const microRadius = RESOLUTIONS.get(Number(cellCount));
     if (!microRadius) throw new Error(`Unsupported cells-per-region value: ${cellCount}`);
     if (!['scenario', 'world'].includes(scale)) throw new Error(`Unsupported map scale: ${scale}`);
@@ -95,6 +95,8 @@ export function createMapModel(cellCount = 19, scale = 'world', options = {}, de
 
     const model = {
         scale,
+        regionColumns: world.regionColumns,
+        regionRows: world.regionRows,
         geography,
         cellCount: Number(cellCount),
         microRadius,
@@ -115,15 +117,16 @@ export function createMapModel(cellCount = 19, scale = 'world', options = {}, de
         delete cell.damage;
     }
     for (const region of regions) region.isLand = region.cellIds.some((id) => !isWater(cellById.get(id)));
+    applyBiomes(model);
     prepareRelief(model);
     const land = cells.filter((cell) => !isWater(cell));
     model.generation = {
-        version: 'landscape-v4',
+        version: 'landscape-v5',
         ...geographyStats(model),
         milliseconds: performance.now() - startedAt,
         landCells: land.length,
         landPercent: (land.length / cells.length) * 100,
-        maxElevation: Math.max(0, ...land.map((cell) => cell.elevation)),
+        maxElevation: land.reduce((max, cell) => Math.max(max, cell.elevation), 0),
         settings: geography.settings,
     };
     return model;

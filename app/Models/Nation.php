@@ -5,7 +5,6 @@ namespace App\Models;
 use App\Domain\DeploymentCommand;
 use App\Domain\DivisionType;
 use App\Domain\NationSetupStatus;
-use App\Domain\ResourceType;
 use App\Utils\GuardsForAssertions;
 use Closure;
 use Illuminate\Database\Eloquent\Builder;
@@ -81,7 +80,6 @@ class Nation extends Model
             $d->cancel();
         }
 
-        $this->getDetail()->onDeployment();
     }
 
     public function deploy(DeploymentCommand ...$deploymentCommands): array {
@@ -91,7 +89,7 @@ class Nation extends Model
 
         $deployedTypes = array_map(fn (DeploymentCommand $dc) => $dc->divisionType, $deploymentCommands);
 
-        if (!$detail->canAffordCosts(DivisionType::calculateTotalDeploymentCostsByResourceType(...$deployedTypes))) {
+        if (!$detail->canAffordCosts(\App\Services\Resources\ResourceCatalogue::forGame($this->getGame())->deploymentCosts(...$deployedTypes))) {
             throw new LogicException("Not enough resources for deployment.");
         }
 
@@ -101,7 +99,6 @@ class Nation extends Model
             $deployments[] = Deployment::Create($this, $d->divisionType, $territory);
         }
 
-        $detail->onDeployment();
 
         return $deployments;
     }
@@ -118,16 +115,15 @@ class Nation extends Model
         }
     }
 
-    public function onNextTurn(Turn $currentTurn, Turn $nextTurn): void {
+    public function onNextTurn(Turn $currentTurn, Turn $nextTurn, ?array $policyContext = null): void {
         $currentDetail = $this->getDetail($currentTurn);
         $newDetail = $currentDetail->replicateForTurn($nextTurn);
+        // Context is resolved for all nations before upkeep; do not inherit last season's report.
+        $newDetail->policy_report = $policyContext;
         $newDetail->onNextTurn($currentDetail);
+        if ($newDetail->hasEconomy()) app(\App\Services\EconomyService::class)->settle($currentDetail, $newDetail, $policyContext['settings']);
 
         $currentDetail->deployments()->get()->each(fn (Deployment $d) => $d->execute());
-    }
-
-    public function onTurnUpkeepEnding(Turn $currentTurn, Turn $nextTurn): void {
-        $this->getDetail($nextTurn)->onTurnUpkeepEnding();
     }
 
     public function equals(?Nation $otherNationOrNull): bool {

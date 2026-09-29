@@ -174,7 +174,7 @@ try {
             }
         }
         assert.ok(home);
-        const result = await joiner.api.post('/create-nation', {
+        const result = await joiner.api.post('/client/setup/nation', {
             headers: joiner.headers(id),
             multipart: {
                 nation_name: 'Two Worlds',

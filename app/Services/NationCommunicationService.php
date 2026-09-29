@@ -1,7 +1,7 @@
 <?php
 namespace App\Services;
 
-use App\Domain\{NationOfferKind, NationOfferStatus, RelationState, ResourceType};
+use App\Domain\{NationOfferKind, NationOfferStatus, RelationState};
 use App\Models\{Nation, NationMessage, NationOffer, NationOfferDetail, NationRelation, Turn};
 use Illuminate\Support\Facades\DB;
 
@@ -38,17 +38,17 @@ final class NationCommunicationService {
     }
 
     public function propose(Nation $nation, int $otherId, NationOfferKind $kind, string $key,
-        ?ResourceType $resource = null, mixed $quantity = null, ?string $basisRevision = null): array {
+        ?string $resource = null, mixed $quantity = null, ?string $basisRevision = null): array {
         return $this->mutate($nation, function ($turn) use ($nation, $otherId, $kind, $key, $resource, $quantity, $basisRevision) {
             $pair = $this->diplomacy->pair($nation, $otherId, true);
             $other = $nation->getGame()->nations()->findOrFail($otherId);
-            if ($kind !== NationOfferKind::Peace && (!app(GameParticipants::class)->canCommand($nation) || !app(GameParticipants::class)->canCommand($other))) {
-                abort(422, 'AI nations support peace offers only.');
+            if (!app(GameParticipants::class)->canCommand($nation) || !app(GameParticipants::class)->canCommand($other)) {
+                abort(422, 'Passive nations cannot process diplomatic offers.');
             }
-            if ($kind === NationOfferKind::ResourceGrant && (!$resource || !ResourceType::getMeta($resource)->canBeStocked)) abort(422, 'Choose a stockpiled resource.');
+            if ($kind === NationOfferKind::ResourceGrant && (!$resource || !$nation->getDetail()->resources()->get($resource)['grantable'])) abort(422, 'Choose a stockpiled resource.');
             if ($kind !== NationOfferKind::ResourceGrant && ($resource !== null || $quantity !== null)) abort(422, 'Treaties cannot contain grants.');
-            $amount = $kind === NationOfferKind::ResourceGrant ? NationGrantService::formatted(NationGrantService::quantityUnits($quantity)) : null;
-            $requestHash = hash('sha256', json_encode([$kind->value, $resource?->value, $amount, $basisRevision], JSON_THROW_ON_ERROR));
+            $amount = $kind === NationOfferKind::ResourceGrant ? NationGrantService::quantity($quantity) : null;
+            $requestHash = hash('sha256', json_encode([$kind->value, $resource, $amount, $basisRevision], JSON_THROW_ON_ERROR));
             $existing = NationOffer::where('relation_id', $pair->id)->where('sender_nation_id', $nation->getId())->where('request_key', $key)->first();
             if ($existing) {
                 if ($existing->request_hash !== $requestHash) abort(409, 'This request key was already used.');
@@ -72,7 +72,7 @@ final class NationCommunicationService {
             $offer = NationOffer::create(['relation_id' => $pair->id, 'sender_nation_id' => $nation->getId(),
                 'created_turn_id' => $turn->getId(), 'kind' => $kind, 'request_key' => $key, 'request_hash' => $requestHash,
                 'basis_relation_revision' => $kind === NationOfferKind::ResourceGrant ? null : $detail->revision,
-                'resource_type' => $resource, 'quantity' => $amount]);
+                'resource_id' => $resource ? $nation->getDetail()->resources()->get($resource)['id'] : null, 'quantity' => $amount]);
             NationOfferDetail::create(['offer_id' => $offer->id, 'game_id' => $nation->game_id,
                 'turn_id' => $turn->getId(), 'status' => NationOfferStatus::Pending]);
             NationMessage::create(['relation_id' => $pair->id, 'sender_nation_id' => $nation->getId(), 'kind' => 'Offer',
@@ -99,7 +99,7 @@ final class NationCommunicationService {
                     $sender = $nation->getGame()->nations()->findOrFail($offer->sender_nation_id);
                     if (!app(GameParticipants::class)->canCommand($sender) || !app(GameParticipants::class)->canCommand($nation)) {
                         $target = NationOfferStatus::Invalid; $reason = 'ai_unsupported';
-                    } elseif (!$this->grants->transfer($sender, $nation, $offer->resource_type, NationGrantService::quantityUnits($offer->quantity))) {
+                    } elseif (!$this->grants->transfer($sender, $nation, $nation->getDetail()->resources()->key($offer->resource_id), $offer->quantity)) {
                         $target = NationOfferStatus::Invalid; $reason = 'insufficient_stock';
                     }
                 } else {
@@ -118,7 +118,7 @@ final class NationCommunicationService {
             }
             $detail->update(['status' => $target, 'resolved_by_nation_id' => $nation->getId(), 'resolved_at' => now(), 'reason' => $reason]);
             $this->diplomacy->notice($pair, $turn, 'offer_result', ['offer_id' => $offer->id, 'kind' => $offer->kind->name,
-                'status' => $target->name, 'resource_type' => $offer->resource_type?->name, 'quantity' => $offer->quantity, 'reason' => $reason], $nation->getId());
+                'status' => $target->name, 'resource_key' => $offer->resource_id ? \App\Services\Resources\ResourceCatalogue::forGame($nation->getGame())->key($offer->resource_id) : null, 'quantity' => $offer->quantity, 'reason' => $reason], $nation->getId());
             return ['offer_id' => $offer->id, 'status' => $target->name];
         });
     }
@@ -153,13 +153,13 @@ final class NationCommunicationService {
             ->get()->keyBy('id') : collect();
         $details = NationOfferDetail::where('turn_id', $turn->getId())->whereIn('offer_id', $offers->keys())->get()->keyBy('offer_id');
         return $this->context($nation) + ['other_nation_id' => $otherId, 'has_more' => $hasMore,
-            'messages' => $messages->map(function ($message) use ($offers, $details) {
+            'messages' => $messages->map(function ($message) use ($offers, $details, $nation) {
                 $offer = $offers->get($message->offer_id); $detail = $details->get($message->offer_id);
                 return ['id' => $message->id, 'sender_nation_id' => $message->sender_nation_id, 'kind' => $message->kind,
                     'body' => $message->body, 'turn_number' => $message->original_turn_number, 'created_at' => $message->created_at->toIso8601String(),
                     'reverted' => $message->reverted_at !== null, 'event_type' => $message->event_type, 'event_data' => $message->event_data,
                     'offer' => $offer ? ['id' => $offer->id, 'kind' => $offer->kind->name, 'sender_nation_id' => (int) $offer->sender_nation_id,
-                        'resource_type' => $offer->resource_type?->name, 'quantity' => $offer->quantity,
+                        'resource_key' => $offer->resource_id ? \App\Services\Resources\ResourceCatalogue::forGame($nation->getGame())->key($offer->resource_id) : null, 'quantity' => $offer->quantity,
                         'status' => $detail?->status->name ?? 'Invalid', 'reason' => $detail?->reason] : null];
             })->all()];
     }

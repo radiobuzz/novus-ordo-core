@@ -4,7 +4,6 @@ namespace App\Models;
 
 use App\Domain\DivisionType;
 use App\Domain\OrderType;
-use App\Domain\ResourceType;
 use App\Domain\TerrainType;
 use App\Domain\TerritoryConnection;
 use App\ModelTraits\ReplicatesForTurns;
@@ -191,18 +190,6 @@ class DivisionDetail extends Model
 
         return ($order = $orderOrNull??false)
             && ($order->getType() == OrderType::Attack || $order->getType() == OrderType::Raid);
-    }
-
-    public static function getTotalUpkeepCostsByResourceType(Nation $nation, Turn $turn): array {
-        $divisionTypes = DB::table('division_details')
-            ->where('division_details.nation_id', $nation->getId())
-            ->where('division_details.turn_id', $turn->getId())
-            ->where('division_details.is_active', true)
-            ->join('divisions', 'divisions.id', "=", "division_details.division_id")
-            ->pluck('divisions.' . Division::FIELD_DIVISION_TYPE)
-            ->map(fn (int $type) => DivisionType::from($type));
-
-        return DivisionType::calculateTotalUpkeepCostsByResourceType(...$divisionTypes);
     }
 
     public function exportForOwner(): OwnedDivisionInfo {

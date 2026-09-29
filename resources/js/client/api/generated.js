@@ -167,9 +167,13 @@ export const endpoints = {
         "method": "POST",
         "path": "/login-user"
     },
-    "placeProductionBid": {
+    "previewPolicies": {
         "method": "POST",
-        "path": "/nation/production-bids"
+        "path": "/nation/policies/preview"
+    },
+    "previewProductionPlan": {
+        "method": "POST",
+        "path": "/nation/production-preview"
     },
     "proposeNationOffer": {
         "method": "POST",
@@ -186,6 +190,10 @@ export const endpoints = {
     "respondNationOffer": {
         "method": "POST",
         "path": "/nation/diplomacy/offers/respond"
+    },
+    "savePendingPolicies": {
+        "method": "PUT",
+        "path": "/nation/policies/pending"
     },
     "selectHomeTerritories": {
         "method": "POST",
@@ -209,12 +217,6 @@ export const endpoints = {
     },
     "storeNation": {
         "method": "POST",
-        "path": "/create-nation"
+        "path": "/client/setup/nation"
     }
-};
-export const mapDefinition = {
-    "width": 900,
-    "height": 400,
-    "tileWidth": 30,
-    "tileHeight": 20
 };

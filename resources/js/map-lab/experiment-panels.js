@@ -1,5 +1,5 @@
 import { nations } from './model.js';
-import { createCartography } from './cartography.js';
+import { createCartography } from '../map/cartography.js';
 import { createNaturalResources } from './natural-resources.js';
 import { createDevelopment } from './development.js';
 import {

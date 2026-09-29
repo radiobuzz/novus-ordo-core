@@ -1,3 +1,4 @@
+import { maintenancePanel } from './maintenance.js';
 import { el } from '../../ui/dom.js';
 import { panel } from '../../ui/Panel.js';
 import { MetricCard, cardStrip } from '../../ui/MetricCard.js';
@@ -11,15 +12,18 @@ import { LocalizationService } from '../../services/LocalizationService.js';
 import { aiAdminPanel } from '../../experimental-ai/admin.js';
 
 export async function overview(app, scope, id) {
-    const create = app.button(scope, 'Start classic-map game', () => app.startGame(scope));
     if (!id)
-        return panel(
-            { title: 'Your first world', tone: 'accent' },
-            el('p', {
-                text: 'No games exist yet. Create an original-map game or prepare a generated map in the map workspace.',
-            }),
-            create,
-            app.button(scope, 'Open map workspace', () => app.navigate('maps')),
+        return el(
+            'div',
+            { class: 'admin-stack' },
+            panel(
+                { title: 'Your first world', tone: 'accent' },
+                el('p', {
+                    text: 'No games exist yet. Prepare a generated world in the map workspace.',
+                }),
+                app.button(scope, 'Open map workspace', () => app.navigate('maps')),
+            ),
+            maintenancePanel(app, scope),
         );
     const [game, geography] = await Promise.all([
         app.service.read(`/games/${id}`, scope),
@@ -122,7 +126,6 @@ export async function overview(app, scope, id) {
         definition: mapDefinitionFor(geography.map, geography.territories),
         territories: geography.territories,
         layers: createLayers(),
-        images: app.boot.mapImages,
         onSelect: (territory) => {
             if (territory)
                 selected.textContent = `${territory.name} · territory #${territory.territory_id} · ${territory.terrain_type} · ${territory.owner_nation_id ? `nation #${territory.owner_nation_id}` : 'Unclaimed'}`;
@@ -155,12 +158,12 @@ export async function overview(app, scope, id) {
             new MetricCard({
                 label: 'Nations ready',
                 value: `${game.ready_count} / ${game.nation_count}`,
-                detail: 'Force bypasses human readiness; AI steps must finish first',
+                detail: 'Force bypasses human readiness; passive players must finish first',
             }),
             new MetricCard({
                 label: 'Territories',
                 value: game.territory_count,
-                detail: game.map_type === 'classic' ? 'Original map' : 'Generated map · beta',
+                detail: 'Generated world',
             }),
             new MetricCard({
                 label: 'Victory',
@@ -208,7 +211,6 @@ export async function overview(app, scope, id) {
                     el(
                         'div',
                         { class: 'admin-actions' },
-                        create,
                         app.button(scope, 'Prepare generated map', () => app.navigate('maps', id)),
                     ),
                 ),
@@ -233,5 +235,6 @@ export async function overview(app, scope, id) {
                 : el('p', { text: 'No nations have joined this game yet.' }),
         ),
         await aiAdminPanel(app, scope, { ...game, game_id: id }),
+        maintenancePanel(app, scope),
     );
 }

@@ -1,4 +1,4 @@
-import { featureHash } from './cartography.js';
+import { featureHash } from '../map/cartography.js';
 import { segmentDistance } from './living-settlement.js';
 
 // Decorative site planning only. Every footprint and access segment is sampled

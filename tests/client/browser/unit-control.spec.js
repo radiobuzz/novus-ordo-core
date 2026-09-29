@@ -1,31 +1,54 @@
 import { test, expect } from '@playwright/test';
 import { prepareHud } from './hud-helpers.js';
-import { fixtures } from '../fixtures.js';
+import { fixtures, generatedRegionFixture } from '../fixtures.js';
 import { createMapModel } from '../../../resources/js/map/model.js';
 import { exportMap, restoreMap } from '../../../resources/js/map/snapshot.js';
 import { isWater } from '../../../resources/js/map/water.js';
 
+const home = generatedRegionFixture(156);
+const fixtureZoom = 3.2;
+
 test.beforeEach(async ({ page }) => {
     await prepareHud(page);
-    await page.addInitScript(() =>
-        localStorage.setItem(
-            'no7:v1:user-1:game-1:world',
-            JSON.stringify({
-                version: 1,
-                value: { mode: 'military', camera: { x: 165, y: 110, zoom: 8 }, minimapCollapsed: true },
-            }),
-        ),
+    await page.addInitScript(
+        ({ home, fixtureZoom }) =>
+            localStorage.setItem(
+                'no7:v1:user-1:game-1:world',
+                JSON.stringify({
+                    version: 1,
+                    value: {
+                        mode: 'military',
+                        camera: { x: home.x, y: home.y, zoom: fixtureZoom },
+                        minimapCollapsed: true,
+                    },
+                }),
+            ),
+        { home, fixtureZoom },
     );
 });
 async function start(page) {
     await page.goto('/client?game_id=1');
-    await expect(page.locator('[data-resource="Capital"] dd').last()).toHaveText('30');
-    await expect(page.locator('.zoom-value')).toHaveText('800%');
+    await expect(page.locator('[data-resource="money"] dd').last()).toHaveText('30');
+    await expect(page.locator('.zoom-value')).toHaveText('320%');
     await page.evaluate(() => {
         window.originalUnitCanvas = document.querySelector('.world-canvas');
     });
     const bounds = await page.locator('.world-canvas').boundingBox();
     return { x: bounds.x + bounds.width / 2, y: bounds.y + bounds.height / 2 };
+}
+function unitPoint(center, index) {
+    const cell = home.cells[index];
+    return {
+        x: center.x + (cell.x - home.x) * fixtureZoom,
+        y: center.y + (cell.y - home.y) * fixtureZoom,
+    };
+}
+async function stageFromList(page, territoryId) {
+    const placement = page.locator('.deployment-list-placement');
+    if ((await placement.getAttribute('open')) === null) await placement.locator('summary').click();
+    await page.getByLabel('Destination territory', { exact: true }).selectOption(String(territoryId));
+    await page.getByLabel('Quantity (up to 100 per request)', { exact: true }).fill('1');
+    await page.getByRole('button', { name: 'Add to preview', exact: true }).click();
 }
 async function drag(page, a, b, button = 'left') {
     await page.mouse.move(a.x, a.y);
@@ -44,14 +67,14 @@ test('near-zoom picking, rectangle selection, Shift toggle, right-pan and replac
     await expect(page.locator('.world-command-dock')).toContainText('1 units selected');
     await expect(page.getByLabel('Select division 11', { exact: true })).toBeChecked();
     await page.keyboard.down('Shift');
-    await page.mouse.click(center.x - 72, center.y);
+    await page.mouse.click(unitPoint(center, 1).x, unitPoint(center, 1).y);
     await page.keyboard.up('Shift');
     await expect(page.locator('.world-command-dock')).toContainText('2 units selected');
     await page.keyboard.down('Shift');
     await page.mouse.click(center.x, center.y);
     await page.keyboard.up('Shift');
     await expect(page.locator('.world-command-dock')).toContainText('1 units selected');
-    await drag(page, { x: center.x - 104, y: center.y - 38 }, { x: center.x + 32, y: center.y + 38 });
+    await drag(page, { x: center.x - 104, y: center.y - 130 }, { x: center.x + 32, y: center.y + 38 });
     await expect(page.locator('.world-command-dock')).toContainText('2 units selected');
     await expect(page.locator('.map-selection-box')).toBeHidden();
     await drag(page, center, { x: center.x + 100, y: center.y + 40 }, 'right');
@@ -93,13 +116,13 @@ test('mixed territory/type clicks are ghosts until one confirmation; undo, budge
     await page.mouse.click(center.x, center.y);
     await page.mouse.click(center.x, center.y);
     await page.locator('[data-unit-type="Armored"]').click();
-    await page.mouse.click(center.x + 240, center.y);
+    await stageFromList(page, 157);
     await expect(page.locator('.deployment-draft-summary')).toHaveText('3 ghost units · 2 territories');
     await expect(page.locator('[data-unit-type="Infantry"]')).toContainText('Max affordable: 6');
     expect(writes).toHaveLength(0);
     await page.getByRole('button', { name: 'Undo last', exact: true }).click();
     await expect(page.locator('.deployment-draft-summary')).toContainText('2 ghost units');
-    await page.mouse.click(center.x + 240, center.y);
+    await stageFromList(page, 157);
     await page.screenshot({ path: 'test-results/client/units-ghosts.png' });
     await page.getByRole('button', { name: 'Confirm deployment', exact: true }).click();
     await expect(page.locator('.world-command-message')).toContainText('rejected');
@@ -131,7 +154,7 @@ test('draft revalidation, native list placement and French mobile controls', asy
     await page.getByLabel('Destination territory', { exact: true }).selectOption('156');
     await page.getByLabel('Quantity (up to 100 per request)', { exact: true }).fill('4');
     await page.getByRole('button', { name: 'Add to preview', exact: true }).click();
-    data.budget.available_production.Capital = 3;
+    data.budget.available_production.money = 3;
     data.deployment_limits.Infantry = 1;
     await page.evaluate(() => window.dispatchEvent(new Event('focus')));
     await expect(page.locator('.deployment-draft-validation')).toContainText('no longer affordable');
@@ -161,7 +184,7 @@ test('new placements made during submission survive; only accepted submitted gho
         requested();
         await pending;
         data.deployments = [{ deployment_id: 20, division_type: 'Infantry', territory_id: 156 }];
-        data.budget.available_production.Capital = 27;
+        data.budget.available_production.money = 27;
         data.deployment_limits.Infantry = 9;
         await route.fulfill({ status: 201, json: {} });
     });
@@ -170,7 +193,7 @@ test('new placements made during submission survive; only accepted submitted gho
     await page.mouse.click(center.x, center.y);
     await page.getByRole('button', { name: 'Confirm deployment', exact: true }).click();
     await sending;
-    await page.mouse.click(center.x + 240, center.y);
+    await stageFromList(page, 157);
     await expect(page.locator('.deployment-draft-summary')).toContainText('2 ghost units');
     release();
     await expect(page.locator('.world-command-message')).toContainText('accepted');
@@ -183,7 +206,7 @@ test('new placements made during submission survive; only accepted submitted gho
 test('accepted ghosts cannot return after navigating away during submission', async ({ page }) => {
     const data = structuredClone(fixtures('/client/gameplay'));
     Object.assign(data.budget, { free_labor: 0, labor_pools: [], labor_facility_allocations: [] });
-    Object.assign(data.definitions, { labor_per_unit: 1000000, bid_resources: [] });
+    Object.assign(data.definitions, { bid_resources: [] });
     data.bids = [];
     await page.route('**/client/gameplay', (route) => route.fulfill({ json: data }));
     let release, requested;

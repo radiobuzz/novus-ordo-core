@@ -13,7 +13,11 @@ const transport = createTransport({ baseUrl: location.origin, csrfToken: boot.cs
 const start = new Button({ label: 'Start new game with this map', variant: 'primary', disabled: true });
 const message = el('p', { role: 'status' });
 const ai = aiSetupFields(scope);
-const studio = new MapStudio({ scope, onChange: () => start.setDisabled(!studio.snapshot) });
+const studio = new MapStudio({
+    scope,
+    limits: boot.mapLimits,
+    onChange: () => start.setDisabled(!studio.snapshot),
+});
 studio.message.classList.add('generation-summary');
 root.replaceChildren(
     el(
@@ -33,7 +37,7 @@ scope.listen(start.element, 'click', async () => {
     const snapshot = studio.snapshot;
     if (!snapshot) return;
     if (!window.confirm('Start a new game with this map? Existing games remain active.')) return;
-    studio.setBusy(true);
+    studio.setCommandBusy(true);
     start.setPending(true);
     message.textContent = 'Saving the exact map and creating the game…';
     try {
@@ -49,7 +53,7 @@ scope.listen(start.element, 'click', async () => {
             : Object.values(error.fields ?? {})
                   .flat()
                   .join(' ') || error.message;
-        studio.setBusy(false);
+        studio.setCommandBusy(false);
         start.setPending(false);
     }
 });

@@ -6,6 +6,10 @@ The user has agreed that an effect catalogue is the next design priority: identi
 
 Basis: [NO2 extraction](no2-policy-extraction.md), [complete legacy catalogue](no2-policy-catalogue.md), [economic foundations](economy-simulation-foundations.md), [candidate effect families](policy-effect-vocabulary.md), and a read-only inspection of the current NO7 workspace on the date above.
 
+Subsequent direction: the [first policy-system foundation](policy-system-foundation.md) narrows the immediate objective to a small playable seasonal loop and records accepted authoring, game-owned ruleset, dependency, funding and future national-terminology requirements. This catalogue is an expansion reference, not a requirement to settle every effect before beginning the first slice.
+
+Testing clarification: indicator previews concern a nation changing its choices. ADMIN definition edits in test games have no preview and may simply rebuild effective policies and recalculate. The user explicitly excludes elaborate revision/migration tooling for that rough workflow from V1; the foundation document supersedes earlier suggestions to require it.
+
 ## 1. Vocabulary: stop using “level” for several different things
 
 | Term | Question it answers | Example |
@@ -158,7 +162,7 @@ Aggregation depends on the quantity: population is summed; a compatible per-pers
 
 1. Adopt or adjust the vocabulary, especially territory/province/zone and authority/scope/target/simulation scale.
 2. Mark each legacy mechanism **retain**, **adapt** or **retire**; identify which proposed effects are necessary for the first slice.
-3. Complete the effect specifications before choosing a generalized editor or database layout. An unfinished formula may remain an explicit open item; it must not be disguised as an implemented effect.
+3. Complete the effect specifications needed for the first slice while designing its generic machinery. The whole future catalogue need not be resolved first. An unfinished formula may remain an explicit open item; it must not be disguised as an implemented effect.
 
 No need to implement every missing system at once. This catalogue should show the intended reach and the dependencies, while the first working set stays small.
 

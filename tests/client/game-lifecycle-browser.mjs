@@ -31,8 +31,10 @@ try {
         return r.json();
     };
     const write = (path, data) => page.request.post(origin + api + path, { headers, data });
+    const maps = await read('/maps');
+    assert(maps.maps.length, 'Expected a saved generated map fixture');
     const create = async () => {
-        const r = await write('/games', {});
+        const r = await write('/games', { map_draft_id: maps.maps[0].id });
         assert.equal(r.status(), 201);
         return (await r.json()).game_id;
     };
@@ -159,7 +161,7 @@ try {
     await page.getByRole('button', { name: 'Delete game', exact: true }).click();
     await page.getByRole('button', { name: `Delete game ${survivor}`, exact: true }).click();
     await expect(page.getByRole('heading', { name: 'Your first world', exact: true })).toBeVisible();
-    await expect(page.getByRole('button', { name: 'Start classic-map game', exact: true })).toBeEnabled();
+    await expect(page.getByRole('button', { name: 'Open map workspace', exact: true })).toBeEnabled();
     assert.equal((await page.request.get(origin + api + `/games/${survivor}`, { headers })).status(), 404);
     assert.deepEqual(errors, []);
     console.log(

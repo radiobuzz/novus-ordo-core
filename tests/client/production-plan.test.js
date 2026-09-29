@@ -1,93 +1,234 @@
-import test from 'node:test';
-import assert from 'node:assert/strict';
-import { fixtures } from './fixtures.js';
-import { productionPlanBids, productionPlanPreview } from '../../resources/js/client/services/production.js';
+import test from "node:test";
+import assert from "node:assert/strict";
+import { acquisitionPlan } from "../../resources/js/client/services/production.js";
+import { GameplayService } from "../../resources/js/client/services/GameplayService.js";
+import {
+    deploymentDraft,
+    moveOrderPreview,
+} from "../../resources/js/client/services/militaryCommands.js";
 
-function economy() {
-    const data = fixtures('/client/gameplay');
-    data.bids = [];
-    data.budget.labor_pools = [{ territory_id: 1, size: 12645753 }];
-    data.production_planning.bid_order = [];
-    for (const [name, meta] of Object.entries(data.production_planning.resources)) {
-        meta.stock = 0;
-        meta.upkeep = name === 'Food' ? 12645753 : name === 'Capital' ? 6000000 : 0;
-    }
-    data.production_planning.facilities = ['Capital', 'Food', 'Material', 'Ore', 'Oil'].map(
-        (resource_type) => ({
-            territory_id: 1,
-            resource_type,
-            capacity: 12645753,
-            productivity: ['Food', 'Material'].includes(resource_type) ? 4 : 1,
-        }),
-    );
-    return data;
-}
-const drafts = (values) =>
-    Object.fromEntries(Object.entries(values).map(([key, quantity]) => [key, { quantity, productivity: 0 }]));
-test('joint plan reserves upkeep and balances useful production without materials', () => {
-    const data = economy(),
-        before = structuredClone(data);
-    const plan = productionPlanPreview(data, productionPlanBids(data, drafts({ Food: 1, Ore: 1, Oil: 1 })));
-    assert.equal(plan.total, 12645753);
-    assert.equal(plan.automatic, 3161439);
-    assert.equal(plan.reserved, 6000000);
-    assert.equal(plan.discretionary, 3484314);
-    assert.equal(plan.allocated, 2250000);
-    assert.equal(plan.rows.Capital.balance, 1234314);
-    assert.equal(plan.rows.Food.production, 13645756);
-    assert.equal(plan.rows.Material.production, 0);
-    assert.equal(plan.rows.Oil.shortfall, 0);
-    assert.deepEqual(data, before);
+const data = () => ({
+    definitions: {
+        edit_counter: 2,
+        acquisition_resources: ["grain", "test_good"],
+    },
+    policies: { turn_id: 5, edit_counter: 1, current: {}, pending: {} },
+    acquisitions: [
+        {
+            resource_key: "test_good",
+            quantity: "1.234567",
+            spending_limit: "2.345678",
+            priority: 100,
+        },
+    ],
 });
-test('competing ore leaves only remaining labor for oil, not a full independent forecast', () => {
-    const data = economy();
-    const plan = productionPlanPreview(data, productionPlanBids(data, drafts({ Ore: 2.55, Oil: 3.18 })));
-    assert.equal(plan.rows.Ore.commandOutput, 2550000);
-    assert.equal(plan.rows.Oil.commandOutput, 934314);
-    assert.equal(plan.rows.Oil.shortfall, 2245686);
-    assert.equal(plan.rows.Capital.balance, 0);
-});
-test('saved order determines competition, not displayed resource order', () => {
-    const data = economy();
-    data.production_planning.bid_order = [{ resource_type: 'Oil', upkeep: false, priority: 65536 }];
-    const plan = productionPlanPreview(data, productionPlanBids(data, drafts({ Ore: 3, Oil: 3 })));
-    assert.equal(plan.rows.Oil.commandOutput, 3000000);
-    assert.equal(plan.rows.Ore.commandOutput, 484314);
-});
-test('unused workers elsewhere cannot satisfy oil and cutoffs exclude facilities', () => {
-    const data = economy();
-    data.production_planning.facilities.find((f) => f.resource_type === 'Oil').territory_id = 2;
-    data.budget.labor_pools.push({ territory_id: 2, size: 100000 });
-    const plan = productionPlanPreview(data, productionPlanBids(data, drafts({ Oil: 1 })));
-    assert.equal(plan.rows.Oil.commandOutput, 100000);
-    assert.ok(plan.rows.Capital.balance > 3000000);
-    const excluded = productionPlanPreview(
-        data,
-        productionPlanBids(data, { Oil: { quantity: 1, productivity: 2 } }),
-    );
-    assert.equal(excluded.rows.Oil.commandOutput, 0);
-    assert.equal(excluded.rows.Oil.capacityShortfall, 1000000);
-});
-test('cutoff display rounding and existing materials are preserved in full batch', () => {
-    const data = economy();
-    data.bids = [{ resource_type: 'Material', max_quantity: 1234567, max_labor_allocation_per_unit: 333334 }];
-    const bids = productionPlanBids(data, { Material: { quantity: '1.234567', productivity: '3' } });
-    assert.equal(bids.length, 4);
+test("complete dynamic plan retains unedited decimals and does not mutate confirmed data", () => {
+    const source = data(),
+        before = structuredClone(source);
     assert.deepEqual(
-        bids.find((bid) => bid.resource_type === 'Material'),
-        data.bids[0],
+        acquisitionPlan(source, {
+            grain: { quantity: "0.000001", spending_limit: "0", priority: 100 },
+        }),
+        [
+            {
+                resource_key: "grain",
+                quantity: "0.000001",
+                spending_limit: "0",
+                priority: 100,
+            },
+            {
+                resource_key: "test_good",
+                quantity: "1.234567",
+                spending_limit: "2.345678",
+                priority: 100,
+            },
+        ],
     );
-    assert.throws(() => productionPlanBids(data, drafts({ Oil: Infinity })));
-    assert.equal(productionPlanPreview({ ...data, production_planning: null }, bids), null);
+    assert.deepEqual(source, before);
 });
-test('zero target still covers food upkeep, and capital shortage activates reserve fallback', () => {
-    const data = economy();
-    const plan = productionPlanPreview(data, productionPlanBids(data, {}));
-    assert.equal(plan.rows.Food.production, 12645756);
-    data.production_planning.facilities.find((f) => f.resource_type === 'Capital').capacity = 1000000;
-    data.production_planning.resources.Food.stock = 12645753;
-    const fallback = productionPlanPreview(data, productionPlanBids(data, drafts({ Food: 1 })));
-    assert.equal(fallback.usesReserves, true);
-    assert.equal(fallback.rows.Food.automatic, 0);
-    assert.equal(fallback.rows.Food.commandOutput, 1000000);
+test("reject non-decimal, negative, excess precision and oversized draft quantities", () => {
+    for (const value of [
+        "1e5",
+        "-1",
+        "Infinity",
+        "0.0000001",
+        "100000000000000",
+    ])
+        assert.throws(() =>
+            acquisitionPlan(data(), { grain: { quantity: value } }),
+        );
+});
+test("priority requires an explicit nonnegative bounded integer", () => {
+    for (const priority of ["", " ", "1e2", "-1", "2.5", "2147483648"])
+        assert.throws(() => acquisitionPlan(data(), { grain: { priority } }));
+    assert.equal(
+        acquisitionPlan(data(), { grain: { priority: "7" } })[0].priority,
+        7,
+    );
+});
+test("resource preview uses authoritative endpoint and rejects late catalogue responses", async () => {
+    const snapshot = {
+        game_id: 1,
+        turn_number: 3,
+        turn_context_revision: "turn",
+        setup: { nation_id: 4 },
+        nation: data(),
+    };
+    const world = {
+        snapshot,
+        same: (a, b) =>
+            a.game_id === b.game_id &&
+            a.turn_context_revision === b.turn_context_revision,
+    };
+    let payload;
+    const service = new GameplayService(
+        {
+            previewPolicies: async (args) => {
+                payload = args.body;
+                return {
+                    valid: true,
+                    production_planning: {
+                        rows: { grain: { production: "0.000001" } },
+                    },
+                };
+            },
+        },
+        world,
+        { userId: 5 },
+    );
+    const bids = acquisitionPlan(snapshot.nation, {});
+    assert.deepEqual(await service.previewProduction(snapshot, bids), {
+        rows: { grain: { production: "0.000001" } },
+    });
+    assert.equal(payload.client_context.resource_edit_counter, 2);
+    service.api.previewPolicies = async () => {
+        world.snapshot = {
+            ...snapshot,
+            nation: {
+                ...snapshot.nation,
+                definitions: {
+                    ...snapshot.nation.definitions,
+                    edit_counter: 3,
+                },
+            },
+        };
+        return {};
+    };
+    await assert.rejects(
+        service.previewProduction(snapshot, bids),
+        /plan changed/i,
+    );
+    assert.equal(service.outcome, null);
+});
+test("deployment display accepts catalogue decimal strings for a synthetic good", () => {
+    const d = {
+        definitions: {
+            divisions: [
+                {
+                    division_type: "Infantry",
+                    deployment_costs: { test_good: "0.123456" },
+                    upkeep_costs: { credits: "1.000000" },
+                },
+            ],
+        },
+        deployment_limits: { Infantry: 4 },
+        budget: {
+            available_production: {
+                test_good: "0.200000",
+                credits: "20.000000",
+            },
+        },
+    };
+    const snapshot = {
+        ownTerritories: [{ territory_id: 1, can_deploy: true }],
+    };
+    const plan = deploymentDraft(d, snapshot, [
+        { division_type: "Infantry", territory_id: 1 },
+    ]);
+    assert.equal(plan.valid, true);
+    assert.equal(plan.costs.test_good, 0.123456);
+    assert.equal(
+        deploymentDraft(d, snapshot, [
+            { division_type: "Infantry", territory_id: 1 },
+            { division_type: "Infantry", territory_id: 1 },
+        ]).valid,
+        false,
+    );
+});
+
+test("combined commands preserve newer policy and acquisition drafts and reject conflicts before busy state", async () => {
+    const snapshot = {
+        game_id: 1,
+        turn_number: 3,
+        turn_context_revision: "turn",
+        setup: { nation_id: 4 },
+        nation: data(),
+    };
+    const world = {
+        snapshot,
+        same: () => true,
+        beginCommand() {},
+        reconcile: async () => true,
+        refresh: async () => true,
+    };
+    let sent;
+    const service = new GameplayService(
+        {
+            applyProductionPlan: async ({ body }) => {
+                sent = body;
+                service.drafts(snapshot).grain = {
+                    quantity: "3",
+                    spending_limit: "8",
+                };
+                service.policyDraft(snapshot).changes = { newer: true };
+            },
+        },
+        world,
+        { userId: 1 },
+    );
+    service.check = async () => {};
+    service.drafts(snapshot).grain = { quantity: "2", spending_limit: "4" };
+    const draft = service.policyDraft(snapshot);
+    draft.base = JSON.stringify([{}, {}]);
+    draft.changes = {
+        tax: { option: "standard", parameters: { rate: "0.3" } },
+    };
+    await service.command("applyProductionPlan", {}, snapshot);
+    assert.equal(sent.changes.tax.parameters.rate, "0.3");
+    assert.equal(sent.acquisitions[0].quantity, "2");
+    assert.equal(service.drafts(snapshot).grain.quantity, "3");
+    assert.deepEqual(draft.changes, { newer: true });
+    draft.base = "changed elsewhere";
+    await assert.rejects(
+        service.command("applyProductionPlan", {}, snapshot),
+        /saved policy plan changed/i,
+    );
+    assert.equal(service.busy, false);
+});
+
+test("editing either draft invalidates an in-flight economic preview", async () => {
+    const snapshot = {
+        game_id: 1,
+        turn_number: 3,
+        turn_context_revision: "turn",
+        setup: { nation_id: 4 },
+        nation: data(),
+    };
+    const world = { snapshot, same: () => true };
+    let complete;
+    const service = new GameplayService(
+        {
+            previewPolicies: () =>
+                new Promise((resolve) => {
+                    complete = resolve;
+                }),
+        },
+        world,
+        { userId: 1 },
+    );
+    const pending = service.previewPolicies(snapshot, {});
+    service.drafts(snapshot).grain = { quantity: "9", spending_limit: "20" };
+    service.notifyEconomicDraft();
+    complete({ valid: true });
+    await assert.rejects(pending, /plan changed/i);
 });

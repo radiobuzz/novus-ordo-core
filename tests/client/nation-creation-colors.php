@@ -8,7 +8,7 @@ use Illuminate\Validation\ValidationException;
 function checkCreationColor(bool $ok, string $message): void { if (!$ok) throw new RuntimeException($message); }
 DB::beginTransaction();
 try {
-    $game = Game::getCurrent();
+    $game = Game::where('is_active', true)->firstOrFail();
     $available = $game->freeSuitableTerritoriesInTurn()->get();
     $ids = [];
     foreach ($available as $first) {
@@ -29,7 +29,7 @@ try {
     $primary = DB::table('nation_colors')->where('primary_allowed', true)->whereNotIn('id', NationColorAssignment::where('game_id', $game->getId())->pluck('primary_color_id'))->orderByDesc('id')->value('id');
     $make = function (array $colors) use ($app, $context, $ids) {
         $request = new App\Http\Controllers\CreateNationUiRequest($context);
-        Illuminate\Http\Request::createFrom(Illuminate\Http\Request::create('/create-nation', 'POST'), $request);
+        Illuminate\Http\Request::createFrom(Illuminate\Http\Request::create('/client/setup/nation', 'POST'), $request);
         $request->setContainer($app)->setRedirector(app('redirect'));
         $request->replace(array_merge(['nation_name' => 'Creation Colour Fixture', 'leader_name' => 'Fixture Leader', 'territory_ids_as_json' => json_encode($ids)], $colors));
         $request->validateResolved();

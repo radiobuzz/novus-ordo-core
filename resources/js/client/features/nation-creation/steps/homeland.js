@@ -1,3 +1,4 @@
+import { MapLayerMenu } from '../../../ui/map/MapLayerMenu.js';
 import { Component } from '../../../runtime/Component.js';
 import { el, button } from '../../../ui/dom.js';
 import { MapViewport } from '../../../ui/map/MapViewport.js';
@@ -7,7 +8,7 @@ import { mapDefinitionFor } from '../../../ui/map/HexMap.js';
 class HomelandStep extends Component {
     async render() {
         const { process } = this.inputs,
-            { i18n, boot } = this.services;
+            { i18n } = this.services;
         const mapDefinition = mapDefinitionFor(process.options.map, process.options.territories);
         this.element.append(
             i18n.bind(this.scope, el('h2', { tabindex: -1 }), 'nation.homelandTitle'),
@@ -23,43 +24,12 @@ class HomelandStep extends Component {
         const list = el('div', { class: 'homeland-list' });
         const error = el('p', { class: 'field-error', role: 'alert', tabindex: -1 });
         const layers = createLayers().filter((layer) => ['terrain', 'detail'].includes(layer.id));
-        layers.push({
-            id: 'homeland',
-            visible: true,
-            draw({ ctx, definition: d, camera }) {
-                for (const territory of process.options.territories) {
-                    const selected = process.draft.homeland.includes(territory.territory_id);
-                    const available = process.options.suitable_ids.includes(territory.territory_id);
-                    if (!available && !selected) continue;
-                    ctx.fillStyle = selected ? '#f4d18a' : '#8edbc0';
-                    ctx.globalAlpha = selected ? 0.62 : 0.18;
-                    ctx.fillRect(
-                        territory.x * d.tileWidth,
-                        territory.y * d.tileHeight,
-                        d.tileWidth,
-                        d.tileHeight,
-                    );
-                    if (selected) {
-                        ctx.globalAlpha = 1;
-                        ctx.strokeStyle = '#ffe4b0';
-                        ctx.lineWidth = 2 / camera.zoom;
-                        ctx.strokeRect(
-                            territory.x * d.tileWidth,
-                            territory.y * d.tileHeight,
-                            d.tileWidth,
-                            d.tileHeight,
-                        );
-                    }
-                }
-            },
-        });
         const map = new MapViewport({
             scope: this.scope,
             i18n,
             definition: mapDefinition,
             territories: process.options.territories,
             layers,
-            images: boot.mapImages,
             savedCamera: process.camera,
             context: {
                 homeland: () => ({
@@ -67,11 +37,39 @@ class HomelandStep extends Component {
                     available: process.options.suitable_ids,
                 }),
             },
+            onDraw: () => {
+                if (map.context.mapLayers) map.context.mapLayers.updateDetailStatus(map.renderer);
+            },
             onSelect: (territory) => {
                 if (territory) process.select(territory.territory_id);
             },
         });
+        const layerMenu = new MapLayerMenu({
+            scope: this.scope,
+            i18n,
+            model: mapDefinition.model,
+            snapshot: {
+                territories: process.options.territories,
+                resource_definitions: process.options.resource_definitions,
+            },
+            host: map.element,
+            controls: map.element.querySelector('.map-controls'),
+            homeland: true,
+            saved: process.mapLayers,
+            onChange: () => {
+                process.mapLayers = layerMenu.preferences();
+                map.invalidate();
+            },
+        });
+        map.context.mapLayers = layerMenu;
+        this.scope.listen(map.canvas, 'click', (e) => {
+            layerMenu.drawer.hidden = true;
+            layerMenu.updatePanels();
+            const b = map.canvas.getBoundingClientRect();
+            layerMenu.inspect(map.renderer.cellAtScreen(e.clientX - b.left, e.clientY - b.top));
+        });
         this.scope.own(() => {
+            process.mapLayers = layerMenu.preferences();
             process.camera = map.camera.snapshot();
         });
         this.element.append(

@@ -3,14 +3,8 @@
 namespace App\Http\Controllers;
 
 use App\Domain\DivisionType;
-use App\Domain\LaborPoolConstants;
-use App\Domain\ProductionBidConstants;
-use App\Domain\ResourceType;
-use App\Models\Deployment;
-use App\Models\Division;
 use App\Models\LeaderDetail;
 use App\Models\Nation;
-use App\Models\ProductionBid;
 use App\Services\NationContext;
 use App\Services\PublicGameContext;
 use App\Utils\Annotations\Summary;

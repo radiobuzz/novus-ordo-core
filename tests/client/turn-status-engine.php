@@ -1,7 +1,7 @@
 <?php
 // Real model hooks, strictly on the explicit socket/public fixture root.
 $app = require __DIR__ . '/isolated-app.php';
-$game = App\Models\Game::getCurrent();
+$game = App\Models\Game::where('is_active', true)->firstOrFail();
 $status = app(App\Services\GameTurnStatus::class);
 $current = App\Models\Turn::getCurrentForGame($game);
 $number = $current->getNumber();

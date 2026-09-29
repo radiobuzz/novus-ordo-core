@@ -3,7 +3,7 @@ $app = require __DIR__ . '/isolated-app.php';
 use App\Models\{Game, User, Nation, NewNation, NationDetail, TerritoryDetail};
 use Illuminate\Support\Facades\Auth;
 function checkEntry(bool $value, string $message): void { if (!$value) throw new RuntimeException($message); }
-$game = Game::getCurrent();
+$game = Game::where('is_active', true)->firstOrFail();
 $complete = Nation::getForUserOrNull($game, User::where('name', 'entry-player')->firstOrFail());
 checkEntry($complete !== null, 'Created nation missing');
 $detail = $complete->getDetail();
@@ -36,7 +36,7 @@ foreach ($available as $first) {
     if (count($candidate)===Game::NUMBER_OF_STARTING_TERRITORIES) { $ids=$candidate; break; }
 }
 $request = new App\Http\Controllers\CreateNationUiRequest($context);
-Illuminate\Http\Request::createFrom(Illuminate\Http\Request::create('/create-nation', 'POST'), $request);
+Illuminate\Http\Request::createFrom(Illuminate\Http\Request::create('/client/setup/nation', 'POST'), $request);
 $request->setContainer($app)->setRedirector(app('redirect'));
 $request->replace(['nation_name'=>'Recovery Republic', 'nation_formal_name'=>'Recovery Republic', 'leader_name'=>'Recovery Leader', 'leader_title'=>'President', 'territory_ids_as_json'=>json_encode($ids)]);
 $request->files->set('nation_flag', Illuminate\Http\UploadedFile::fake()->image('flag.png', $designedFlag ? 900 : 300, $designedFlag ? 600 : 200));

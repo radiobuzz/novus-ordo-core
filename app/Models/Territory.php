@@ -291,6 +291,7 @@ class Territory extends Model
         $territory->y = $territoryData->y;
         $territory->terrain_type = $territoryData->terrainType;
         $territory->usable_land_ratio = $territoryData->usableLandRatio;
+        $territory->geographic_potential = json_encode($territoryData->geographicPotential, JSON_THROW_ON_ERROR);
         $territory->has_sea_access = $territoryData->hasSeaAccess;
         $territory->name = TerrainType::getMeta($territoryData->terrainType)->description;
         $territory->save(); // Generates ID

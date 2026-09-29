@@ -17,6 +17,7 @@ import { aiSetupFields } from '../experimental-ai/setup.js';
 const sections = {
     overview: 'Overview',
     maps: 'Map workspace',
+    slideshow: 'Slideshow',
     accounts: 'Accounts',
     tools: 'Object inspector',
 };
@@ -72,6 +73,7 @@ export class AdminApp {
                         'div',
                         { class: 'admin-header-actions' },
                         destinationNav(boot.destinations, 'admin', (key) => i18n.t(key)),
+                        actionLink(i18n.t('hud.logout'), boot.urls.logout),
                     ),
                 ),
                 el(
@@ -218,12 +220,14 @@ export class AdminApp {
         this.select.value = gameId ?? '';
         const game = this.games.find((g) => g.game_id === gameId);
         this.scopeBadge.update({
-            label: ['accounts', 'tools', 'maps'].includes(section)
+            label: ['accounts', 'tools', 'maps', 'slideshow'].includes(section)
                 ? section === 'accounts'
                     ? 'Global accounts'
                     : section === 'maps'
                       ? 'Global map library'
-                      : 'Tools · explicit targets'
+                      : section === 'slideshow'
+                        ? 'Global homepage'
+                        : 'Tools · explicit targets'
                 : game
                   ? `Game ${gameId} · ${game.active ? 'Active' : 'Inactive'}`
                   : 'No active game',
@@ -240,10 +244,11 @@ export class AdminApp {
         const scope = (this.viewScope = new Scope());
         this.content.replaceChildren(el('p', { text: 'Loading module…' }));
         try {
-            const render =
-                section === 'maps'
+            const render = ['maps', 'slideshow'].includes(section)
+                ? section === 'maps'
                     ? (await import('../features/admin/maps.js')).maps
-                    : { overview, accounts, tools }[section];
+                    : (await import('../features/admin/slideshow.js')).slideshow
+                : { overview, accounts, tools }[section];
             if (scope.closed) return;
             const content = await render(this, scope, gameId);
             if (!scope.closed) this.content.replaceChildren(content);
@@ -266,13 +271,13 @@ export class AdminApp {
             this.error(error);
         }
     }
-    async startGame(scope, draft = null) {
+    async startGame(scope, draft) {
         const ai = aiSetupFields(scope);
         if (
             !(await confirmDialog(scope, {
                 title: 'Start a new game?',
                 content: ai.element,
-                message: `${draft ? `Map: ${draft.name} (#${draft.id}).` : 'Map: original classic world.'} Existing games remain active.`,
+                message: `Map: ${draft.name} (#${draft.id}). Existing games remain active.`,
                 confirmLabel: 'Create and activate game',
             }))
         )
@@ -280,7 +285,7 @@ export class AdminApp {
         let id;
         await this.run(async () => {
             const result = await this.service.write('/games', {
-                map_draft_id: draft?.id ?? null,
+                map_draft_id: draft.id,
                 ai: ai.value(),
             });
             id = result.game_id;

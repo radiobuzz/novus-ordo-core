@@ -1,14 +1,12 @@
 import { el } from '../dom.js';
 import { MapViewport } from './MapViewport.js';
-import { MapPicker } from './MapPicker.js';
-import { CanvasRenderer } from './CanvasRenderer.js';
 import { HexMapPicker, HexMapRenderer, mapDefinitionFor } from './HexMap.js';
 import { createLayers } from './layers.js';
 import { nationPalette } from '../../services/nationColors.js';
 
 /** Two ownership frames, one camera. No live state, requests or playback policy. */
 export class OwnershipMap {
-    constructor({ scope, i18n, map, before, after, nationColors, images }) {
+    constructor({ scope, i18n, map, before, after, nationColors }) {
         const definition = mapDefinitionFor(map, before);
         this.viewport = new MapViewport({
             scope,
@@ -16,7 +14,6 @@ export class OwnershipMap {
             definition,
             territories: before,
             layers: createLayers(),
-            images,
             onSelect: () => {},
             context: { nationColors },
             onDraw: () => this.afterRenderer?.draw(),
@@ -33,16 +30,14 @@ export class OwnershipMap {
         this.highlights = [];
         // Generated pickers write ownership into their model, so each frame owns its geometry instance.
         const afterDefinition = mapDefinitionFor(map, after);
-        const Picker = afterDefinition.model ? HexMapPicker : MapPicker;
-        const Renderer = afterDefinition.model ? HexMapRenderer : CanvasRenderer;
-        this.afterRenderer = new Renderer(
+        this.afterRenderer = new HexMapRenderer(
             this.afterCanvas,
             this.viewport.camera,
             {
                 definition: afterDefinition,
                 territories: after,
                 layers: createLayers(),
-                picker: new Picker(after, afterDefinition),
+                picker: new HexMapPicker(after, afterDefinition),
                 nationColors,
             },
             scope,
@@ -61,16 +56,10 @@ export class OwnershipMap {
             const owner = territory.owner_nation_id;
             if (!groups.has(owner)) groups.set(owner, { owner, fill: new Path2D(), border: new Path2D() });
             const group = groups.get(owner);
-            if (afterDefinition.model) {
-                const paths = this.afterRenderer.territoryPaths(territory.territory_id);
-                if (paths) {
-                    group.fill.addPath(paths.fill);
-                    group.border.addPath(paths.border);
-                }
-            } else {
-                const { tileWidth, tileHeight } = afterDefinition;
-                for (const path of [group.fill, group.border])
-                    path.rect(territory.x * tileWidth, territory.y * tileHeight, tileWidth, tileHeight);
+            const paths = this.afterRenderer.territoryPaths(territory.territory_id);
+            if (paths) {
+                group.fill.addPath(paths.fill);
+                group.border.addPath(paths.border);
             }
         }
         this.highlights = [...groups.values()].map((group) => ({
@@ -78,7 +67,7 @@ export class OwnershipMap {
             color: group.owner == null ? null : nationPalette(nationColors, group.owner).paint,
         }));
         scope.own(() => this.stopHighlight());
-        this.ready = Promise.all([this.viewport.ready, this.afterRenderer.loadImages(images)]);
+        this.ready = this.viewport.ready;
     }
     drawHighlights() {
         const canvas = this.highlightCanvas;

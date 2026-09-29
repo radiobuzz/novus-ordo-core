@@ -26,13 +26,13 @@ export function moveOrderPreview(snapshot, data, orders) {
             valid = false;
             continue;
         }
-        for (const [resource, cost] of Object.entries(meta.attack_costs)) {
+        for (const [resource, cost] of Object.entries(meta.attack_costs).map(([k, v]) => [k, Number(v)])) {
             if (!Number.isFinite(cost) || cost < 0) valid = false;
             else costs[resource] = (costs[resource] ?? 0) + cost;
         }
     }
     for (const [resource, cost] of Object.entries(costs)) {
-        const available = data?.budget.available_production[resource];
+        const available = Number(data?.budget.available_production[resource]);
         if (!Number.isFinite(available)) valid = false;
         else if (cost > available) {
             shortages[resource] = cost - available;
@@ -122,12 +122,12 @@ export function deploymentDraft(data, snapshot, entries) {
             [costs, meta.deployment_costs],
             [upkeep, meta.upkeep_costs],
         ])
-            for (const [resource, value] of Object.entries(values)) {
+            for (const [resource, value] of Object.entries(values).map(([k, v]) => [k, Number(v)])) {
                 if (!Number.isFinite(value) || value < 0) valid = false;
                 else if (value) target[resource] = (target[resource] ?? 0) + value;
             }
     }
-    const remaining = { ...data?.budget.available_production };
+    const remaining = Object.fromEntries(Object.entries(data?.budget.available_production ?? {}).map(([k, v]) => [k, Number(v)]));
     for (const [resource, cost] of Object.entries(costs)) {
         if (!Number.isFinite(remaining[resource]) || cost > remaining[resource]) valid = false;
         remaining[resource] -= cost;
@@ -146,7 +146,7 @@ export function remainingDeploymentMaximum(data, snapshot, entries, type) {
     const draft = deploymentDraft(data, snapshot, entries);
     if (entries.length && !draft.valid) return 0;
     let max = Math.min(100 - entries.length, limit - (draft.counts[type] ?? 0));
-    for (const [resource, cost] of Object.entries(meta.deployment_costs)) {
+    for (const [resource, cost] of Object.entries(meta.deployment_costs).map(([k, v]) => [k, Number(v)])) {
         if (!Number.isFinite(cost) || cost < 0) return null;
         if (!cost) continue;
         if (!Number.isFinite(draft.remaining[resource])) return null;

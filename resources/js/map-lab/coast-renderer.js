@@ -1,5 +1,5 @@
-import { COAST_COLORS } from './coasts.js';
-import { shoreEdge } from './coasts.js';
+import { COAST_COLORS } from '../map/coasts.js';
+import { shoreEdge } from '../map/coasts.js';
 import { neighborCoordinates, axialKey } from './hex.js';
 
 export class CoastOverlay {

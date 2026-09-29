@@ -7,7 +7,8 @@ import { exportMap } from '../../../resources/js/map/snapshot.js';
 
 async function start(page) {
     await page.goto('/client?game_id=1');
-    await expect(page.locator('[data-resource="Capital"] dd').last()).toHaveText('30');
+    await expect(page.locator('[data-resource="money"] dd').last()).toHaveText('30');
+    await expect(page.locator('.map-notice')).toBeHidden();
     await page.locator('[data-mode="military"]').click();
     await page.evaluate(() => {
         window.originalCanvas = document.querySelector('.world-canvas');
@@ -136,7 +137,7 @@ test('a successful command preserves a newer draft typed while its response was 
     await page.route('**/nation/territories/deployments', async (route) => {
         requested();
         await response;
-        data.budget.available_production.Capital = 27;
+        data.budget.available_production.money = '27.000000';
         data.deployment_limits.Infantry = 9;
         await route.fulfill({ status: 201, json: {} });
     });
@@ -164,7 +165,7 @@ test('deployment and cancellation reconcile a shared bundle without replacing th
     });
     await page.route('**/nation/territories/deployments', (route) => {
         writes++;
-        data.budget.available_production.Capital = 27;
+        data.budget.available_production.money = '27.000000';
         data.deployment_limits.Infantry = 9;
         data.deployments = [{ deployment_id: 42, territory_id: 156, division_type: 'Infantry' }];
         return route.fulfill({ status: 201, json: {} });
@@ -183,7 +184,7 @@ test('deployment and cancellation reconcile a shared bundle without replacing th
     const zoom = await page.locator('.zoom-value').textContent();
     await draft(page);
     await page.getByRole('button', { name: 'Confirm deployment', exact: true }).click();
-    await expect(page.locator('[data-resource="Capital"] dd').last()).toHaveText('27');
+    await expect(page.locator('[data-resource="money"] dd').last()).toHaveText('27');
     await page.locator('.pending-order-group summary').click();
     await expect(page.getByRole('button', { name: 'Cancel deployment #42', exact: true })).toBeEnabled();
     await stable(page);
@@ -193,7 +194,7 @@ test('deployment and cancellation reconcile a shared bundle without replacing th
     await page.locator('[data-tool="orders"]').click();
     await page.locator('.pending-order-group summary').click();
     await page.getByRole('button', { name: 'Cancel deployment #42', exact: true }).click();
-    await expect(page.locator('[data-resource="Capital"] dd').last()).toHaveText('30');
+    await expect(page.locator('[data-resource="money"] dd').last()).toHaveText('30');
     await expect(page.locator('.world-command-message')).toContainText('latest server state');
     await expect(page.getByRole('button', { name: 'Cancel deployment #42', exact: true })).toHaveCount(0);
     await stable(page);
@@ -213,10 +214,10 @@ test('focus refresh notices another-tab changes without replacing input, focus, 
     });
     const baseline = await page.evaluate(() => window.novusClientDiagnostics());
     data.deployment_limits.Infantry = 2;
-    data.budget.available_production.Capital = 6;
+    data.budget.available_production.money = 6;
     await page.evaluate(() => window.dispatchEvent(new Event('focus')));
     await expect(page.locator('[data-unit-type="Infantry"]')).toContainText('Max affordable: 0');
-    await expect(page.locator('[data-resource="Capital"] dd').last()).toHaveText('6');
+    await expect(page.locator('[data-resource="money"] dd').last()).toHaveText('6');
     expect(
         await page.evaluate(
             () =>
@@ -289,13 +290,13 @@ test('uncertain commands are not retried; editable draft survives and explicit r
     await stable(page);
 });
 
-test('beta ownership updates refresh main-map and minimap caches without replacing geography', async ({
+test('generated ownership updates refresh main-map and minimap caches without replacing geography', async ({
     page,
 }) => {
     const map = exportMap(createMapModel());
     let owner = 7;
     await page.route('**/game/map?*', (route) =>
-        route.fulfill({ json: { game_id: 1, fingerprint: 'fixture-beta', map } }),
+        route.fulfill({ json: { game_id: 1, fingerprint: 'fixture-generated', map } }),
     );
     await page.route('**/territories/turn-infos?*', (route) =>
         route.fulfill({

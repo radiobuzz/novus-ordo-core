@@ -12,6 +12,9 @@ class EntryController extends Controller
 {
     public static function boot(Request $request): array
     {
+        $slideshow = \App\Models\EntrySlideshow::withPublicUrls(
+            \App\Models\EntrySlideshow::publishedOrDefault(),
+        );
         $gameId = $request->has('game_id') || $request->hasHeader('X-Game-Id')
             ? app(\App\Services\SelectedGame::class)->resolve($request, false)?->getId() : null;
         $scope = $gameId ? ['game_id' => $gameId] : [];
@@ -29,25 +32,10 @@ class EntryController extends Controller
                 'tools' => config('app.env') === 'development' ? route('client.tools') : null,
             ],
             'assets' => [
-                'background' => asset('res/bundled/entry/2026-09-26-static.png'),
-                'backgroundSlides' => array_map(
-                    fn (string $file) => asset("res/bundled/entry/{$file}"),
-                    [
-                        '2026-09-26-01-0a.png',
-                        '2026-09-26-02-0b.png',
-                        '2026-09-26-03-1.png',
-                        '2026-09-26-04-2.png',
-                        '2026-09-26-05-3.png',
-                        '2026-09-26-06-4.png',
-                        '2026-09-26-07-5.png',
-                        '2026-09-26-08-6.png',
-                    ],
-                ),
-                'soundtrack' => asset('res/bundled/entry/intro.mp3'),
-            ],
-            'mapImages' => [
-                'terrain' => asset('res/bundled/map/map_layer_0.png'),
-                'detail' => asset('res/bundled/map/map_layer_2.png'),
+                'background' => $slideshow['fallback_url'],
+                'backgroundSlides' => $slideshow['slides'],
+                'soundtrack' => $slideshow['audio']['url'],
+                'slideshow' => $slideshow,
             ],
         ];
     }
@@ -76,6 +64,7 @@ class EntryController extends Controller
             'pending_name' => $pending?->name,
             'pending_nation_id' => $pending?->getId(),
             'nation_colors' => \App\Models\NationColorAssignment::exportForGame($game),
+            'resource_definitions' => \App\Services\Resources\ResourceCatalogue::forGame($game)->mapDefinitions(),
             'required_territories' => Game::NUMBER_OF_STARTING_TERRITORIES,
             'suitable_ids' => $game->freeSuitableTerritoriesInTurn()->pluck('id'),
             'taken_ids' => $game->alreadyTakenTerritoriesInTurn()->pluck('id'),

@@ -1,5 +1,6 @@
 import { axialKey, neighborCoordinates, pixelToAxial, traceHex } from './hex.js';
 import { isWater } from './water.js';
+import { agriculturalSuitability } from './resources.js';
 import { TerrainTiles } from './tiles.js';
 
 const terrainLabel = {
@@ -14,6 +15,18 @@ const terrainLabel = {
 };
 
 function fieldColor(cell, view) {
+    if (view.startsWith('resource:')) {
+        const density = cell.resourcePotential?.[view.slice(9)]?.density ?? 0;
+        return density > 0
+            ? `hsl(${45 - Math.min(1, density) * 40} 60% ${25 + Math.min(1, density) * 35}%)`
+            : '#263c41';
+    }
+    if (view === 'coast') return cell.terrainColor;
+    if (view === 'fertility') return `hsl(${30 + agriculturalSuitability(cell) * 100} 45% 42%)`;
+    if (view === 'depth') {
+        const depth = cell.waterDepth ?? Math.max(0, -cell.baseElevation);
+        return isWater(cell) ? `hsl(200 50% ${48 - Math.min(1, depth / 550) * 34}%)` : cell.terrainColor;
+    }
     if (view === 'temperature') {
         const t = Math.round(cell.temperature * 24) / 24;
         return `hsl(${220 - t * 205} ${45 + t * 25}% ${75 - t * 28}%)`;

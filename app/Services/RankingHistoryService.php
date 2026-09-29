@@ -3,7 +3,6 @@
 namespace App\Services;
 
 use App\Domain\Ranking;
-use App\Domain\ResourceType;
 use App\Models\Game;
 use App\Models\Territory;
 use App\Models\Turn;
@@ -63,10 +62,10 @@ final class RankingHistoryService
             ->get(['turn_id', 'nation_id', DB::raw('count(*) as army_size')])
             ->keyBy(fn ($row) => $this->rowKey($row->turn_id, $row->nation_id));
 
-        $wealthValues = DB::table('nation_resource_stockpiles')
+        $wealthValues = DB::table('nation_resource_stockpiles')->where('owner_kind', 'government')
             ->where('game_id', $game->getId())
             ->whereIn('turn_id', $turnIds)
-            ->where('resource_type', ResourceType::Capital->value)
+            ->where('resource_id', \App\Services\Resources\ResourceCatalogue::forGame($game)->get(\App\Services\Resources\ResourceCatalogue::forGame($game)->role('treasury'))['id'])
             ->groupBy('turn_id', 'nation_id')
             ->get(['turn_id', 'nation_id', DB::raw('max(available_quantity) as wealth')])
             ->keyBy(fn ($row) => $this->rowKey($row->turn_id, $row->nation_id));

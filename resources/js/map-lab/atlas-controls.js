@@ -1,7 +1,7 @@
 import { createNaturalResources, RESOURCE_KINDS } from './natural-resources.js';
 import { updateOilSubstrate } from './economy.js';
-import { createCartography } from './cartography.js';
-import { FEATURE_LAYERS, FEATURE_TITLES } from './geographic-features.js';
+import { createCartography } from '../map/cartography.js';
+import { FEATURE_LAYERS, FEATURE_TITLES } from '../map/geographic-features.js';
 
 export const atlasControls = `
     <section class="atlas-controls">

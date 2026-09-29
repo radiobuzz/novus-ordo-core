@@ -1,0 +1,3143 @@
+{
+  "status": "discussion-only; provisional coefficients; no game integration",
+  "assumptions": {
+    "income": "Exogenous, already-paid income funded by explicit income-payer cash. No endogenous demand or GDP-to-cash mechanism is demonstrated.",
+    "values": "Money amounts rounded half-up to cents; other ratios retained as Decimal.",
+    "time": "One season. Interest rates are seasonal, not annual.",
+    "recovery": "Explicit restoration of assumed income plus reduced army costs; not an automatic effect of restructuring.",
+    "behaviour": "Informality, unrest, investment conversion, credit cap, reserve, relief and desertion coefficients are illustrative."
+  },
+  "checks": [
+    "Affordable season cash reconciliation",
+    "Affordable season pays down debt above reserve",
+    "Basic needs can exhaust a poor territory surplus",
+    "Borrowing funds the requested seasonal deficit",
+    "Warn before actual missed payments",
+    "Borrowing stops at the opening credit limit",
+    "Army can be partially funded",
+    "Military underfunding alone is not a debt default",
+    "Unpaid contractual interest triggers default",
+    "Restructuring includes explicit arrears and halves debt once",
+    "Debt relief is not spendable cash",
+    "No repeated haircut every season in the same crisis",
+    "Credit remains closed during crisis",
+    "Recovery possible under explicit income recovery and smaller army",
+    "Priority cannot create additional public funds",
+    "Priority does not divert basic upkeep",
+    "Regional development directs more improvements toward the frontier",
+    "Zero public funding grants no new infrastructure",
+    "Unpaid maintenance gradually damages existing infrastructure",
+    "Zero public funding does not erase the civilian economy",
+    "High taxes push informal activity upward gradually",
+    "Tax evasion reduces government collection",
+    "Informal income cushions household hardship through retained income",
+    "Underfunding gives a chance of desertion, not guaranteed disbanding",
+    "Desertion cannot refund the just-resolved budget",
+    "Named seed repeats the same dry-run event outcome",
+    "Territory and division enumeration do not change allocation or events",
+    "Falling borrowing capacity does not call in the principal automatically",
+    "A large desired reserve does not cause loans",
+    "Empty economy creates neither tax receipts nor phantom infrastructure spending",
+    "Zero investment weights use eligible needs rather than borrowing idle cash",
+    "Capped allocation redistributes a saturated territory share",
+    "Zero preference weights have a defined fallback",
+    "A dry-run call does not mutate its input",
+    "New infrastructure cannot produce same-season tax receipts recursively",
+    "Accounting invariants also hold across all 12 interest/credit sensitivity combinations",
+    "All accounting/priority/bounds invariants hold in 250 deterministic mixed-condition stress cases"
+  ],
+  "mixed_condition_cases": 250,
+  "scenarios": {
+    "affordable": {
+      "season": 1,
+      "gross_income": "10000.00",
+      "tax_receipts": "2187.50",
+      "opening_cash": "200.00",
+      "opening_debt": "500.00",
+      "credit_limit": "6000.00",
+      "borrowing_headroom": "5500.00",
+      "interest_due": "25.00",
+      "interest_paid": "25.00",
+      "military_due": "1000.00",
+      "military_paid": "1000.00",
+      "military_funded_fraction": "1",
+      "infrastructure_requirement": "256.00",
+      "infrastructure_requested": "256.00",
+      "infrastructure_paid": "256.00",
+      "borrowing": "0",
+      "principal_repayment": "500.00",
+      "interest_arrears": "0.00",
+      "debt_relief": "0",
+      "new_default": false,
+      "closing_cash": "606.50",
+      "closing_debt": "0.00",
+      "credit_lock": 0,
+      "remaining_credit": "6000.00",
+      "warning": "funded",
+      "budget_shortfall": "0.00",
+      "operating_balance": "906.50",
+      "probability_per_division": "0.00",
+      "desertions": [],
+      "local": {
+        "Core": {
+          "gross": "6000.00",
+          "informal_income": "600.00",
+          "taxable": "5400.00",
+          "tax": "1350.00",
+          "consumption": "1600.00",
+          "unmet_needs": "0.00",
+          "domestic_investment": "610.00",
+          "civilian_saving": "2440.00",
+          "maintenance_need": "32.00",
+          "improvement_cap": "80.00",
+          "cost_per_point": "40",
+          "maintenance_paid": "32.00",
+          "improvement_paid": "80.00",
+          "opening_infrastructure": "80",
+          "closing_infrastructure": "82.00",
+          "opening_capacity": "12000",
+          "capacity_addition": "61.00",
+          "closing_capacity": "12061.00",
+          "opening_informal": "0.10",
+          "closing_informal": "0.09375",
+          "opening_unrest": "0.05",
+          "closing_unrest": "0.040"
+        },
+        "Frontier": {
+          "gross": "1000.00",
+          "informal_income": "200.00",
+          "taxable": "800.00",
+          "tax": "200.00",
+          "consumption": "800.00",
+          "unmet_needs": "0.00",
+          "domestic_investment": "0.00",
+          "civilian_saving": "0.00",
+          "maintenance_need": "4.00",
+          "improvement_cap": "40.00",
+          "cost_per_point": "20",
+          "maintenance_paid": "4.00",
+          "improvement_paid": "40.00",
+          "opening_infrastructure": "20",
+          "closing_infrastructure": "22.00",
+          "opening_capacity": "4000",
+          "capacity_addition": "0.00",
+          "closing_capacity": "4000.00",
+          "opening_informal": "0.20",
+          "closing_informal": "0.16875",
+          "opening_unrest": "0.15",
+          "closing_unrest": "0.120"
+        },
+        "Interior": {
+          "gross": "3000.00",
+          "informal_income": "450.00",
+          "taxable": "2550.00",
+          "tax": "637.50",
+          "consumption": "1600.00",
+          "unmet_needs": "0.00",
+          "domestic_investment": "152.50",
+          "civilian_saving": "610.00",
+          "maintenance_need": "20.00",
+          "improvement_cap": "80.00",
+          "cost_per_point": "40",
+          "maintenance_paid": "20.00",
+          "improvement_paid": "80.00",
+          "opening_infrastructure": "50",
+          "closing_infrastructure": "52.00",
+          "opening_capacity": "8000",
+          "capacity_addition": "15.25",
+          "closing_capacity": "8015.25",
+          "opening_informal": "0.15",
+          "closing_informal": "0.13125",
+          "opening_unrest": "0.10",
+          "closing_unrest": "0.080"
+        }
+      },
+      "cash_journal": [
+        {
+          "source": "income_payers",
+          "destination": "civilians",
+          "amount": "10000.00",
+          "reason": "assumed settled seasonal income; not a GDP-to-cash conversion"
+        },
+        {
+          "source": "civilians",
+          "destination": "treasury",
+          "amount": "1350.00",
+          "reason": "tax:Core"
+        },
+        {
+          "source": "civilians",
+          "destination": "ordinary_suppliers",
+          "amount": "1600.00",
+          "reason": "consumption:Core"
+        },
+        {
+          "source": "civilians",
+          "destination": "investment_suppliers",
+          "amount": "610.00",
+          "reason": "local investment:Core"
+        },
+        {
+          "source": "civilians",
+          "destination": "treasury",
+          "amount": "200.00",
+          "reason": "tax:Frontier"
+        },
+        {
+          "source": "civilians",
+          "destination": "ordinary_suppliers",
+          "amount": "800.00",
+          "reason": "consumption:Frontier"
+        },
+        {
+          "source": "civilians",
+          "destination": "treasury",
+          "amount": "637.50",
+          "reason": "tax:Interior"
+        },
+        {
+          "source": "civilians",
+          "destination": "ordinary_suppliers",
+          "amount": "1600.00",
+          "reason": "consumption:Interior"
+        },
+        {
+          "source": "civilians",
+          "destination": "investment_suppliers",
+          "amount": "152.50",
+          "reason": "local investment:Interior"
+        },
+        {
+          "source": "treasury",
+          "destination": "lenders",
+          "amount": "25.00",
+          "reason": "interest on opening principal"
+        },
+        {
+          "source": "treasury",
+          "destination": "military",
+          "amount": "1000.00",
+          "reason": "military upkeep"
+        },
+        {
+          "source": "treasury",
+          "destination": "public_suppliers",
+          "amount": "256.00",
+          "reason": "funded maintenance and improvements"
+        },
+        {
+          "source": "treasury",
+          "destination": "lenders",
+          "amount": "500.00",
+          "reason": "principal repayment above treasury reserve"
+        }
+      ],
+      "closing_cash_accounts": {
+        "treasury": "606.50",
+        "income_payers": "0.00",
+        "lenders": "6025.00",
+        "civilians": "3050.00",
+        "ordinary_suppliers": "4000.00",
+        "investment_suppliers": "762.50",
+        "public_suppliers": "256.00",
+        "military": "1000.00"
+      }
+    },
+    "borrowed_budget": {
+      "season": 1,
+      "gross_income": "10000.00",
+      "tax_receipts": "2187.50",
+      "opening_cash": "100.00",
+      "opening_debt": "4000.00",
+      "credit_limit": "6000.00",
+      "borrowing_headroom": "2000.00",
+      "interest_due": "200.00",
+      "interest_paid": "200.00",
+      "military_due": "3500.00",
+      "military_paid": "3500.00",
+      "military_funded_fraction": "1",
+      "infrastructure_requirement": "256.00",
+      "infrastructure_requested": "256.00",
+      "infrastructure_paid": "256.00",
+      "borrowing": "1668.50",
+      "principal_repayment": "0",
+      "interest_arrears": "0.00",
+      "debt_relief": "0",
+      "new_default": false,
+      "closing_cash": "0.00",
+      "closing_debt": "5668.50",
+      "credit_lock": 0,
+      "remaining_credit": "331.50",
+      "warning": "credit_at_risk",
+      "budget_shortfall": "0.00",
+      "operating_balance": "-1768.50",
+      "probability_per_division": "0.00",
+      "desertions": [],
+      "local": {
+        "Core": {
+          "gross": "6000.00",
+          "informal_income": "600.00",
+          "taxable": "5400.00",
+          "tax": "1350.00",
+          "consumption": "1600.00",
+          "unmet_needs": "0.00",
+          "domestic_investment": "610.00",
+          "civilian_saving": "2440.00",
+          "maintenance_need": "32.00",
+          "improvement_cap": "80.00",
+          "cost_per_point": "40",
+          "maintenance_paid": "32.00",
+          "improvement_paid": "80.00",
+          "opening_infrastructure": "80",
+          "closing_infrastructure": "82.00",
+          "opening_capacity": "12000",
+          "capacity_addition": "61.00",
+          "closing_capacity": "12061.00",
+          "opening_informal": "0.10",
+          "closing_informal": "0.09375",
+          "opening_unrest": "0.05",
+          "closing_unrest": "0.040"
+        },
+        "Frontier": {
+          "gross": "1000.00",
+          "informal_income": "200.00",
+          "taxable": "800.00",
+          "tax": "200.00",
+          "consumption": "800.00",
+          "unmet_needs": "0.00",
+          "domestic_investment": "0.00",
+          "civilian_saving": "0.00",
+          "maintenance_need": "4.00",
+          "improvement_cap": "40.00",
+          "cost_per_point": "20",
+          "maintenance_paid": "4.00",
+          "improvement_paid": "40.00",
+          "opening_infrastructure": "20",
+          "closing_infrastructure": "22.00",
+          "opening_capacity": "4000",
+          "capacity_addition": "0.00",
+          "closing_capacity": "4000.00",
+          "opening_informal": "0.20",
+          "closing_informal": "0.16875",
+          "opening_unrest": "0.15",
+          "closing_unrest": "0.120"
+        },
+        "Interior": {
+          "gross": "3000.00",
+          "informal_income": "450.00",
+          "taxable": "2550.00",
+          "tax": "637.50",
+          "consumption": "1600.00",
+          "unmet_needs": "0.00",
+          "domestic_investment": "152.50",
+          "civilian_saving": "610.00",
+          "maintenance_need": "20.00",
+          "improvement_cap": "80.00",
+          "cost_per_point": "40",
+          "maintenance_paid": "20.00",
+          "improvement_paid": "80.00",
+          "opening_infrastructure": "50",
+          "closing_infrastructure": "52.00",
+          "opening_capacity": "8000",
+          "capacity_addition": "15.25",
+          "closing_capacity": "8015.25",
+          "opening_informal": "0.15",
+          "closing_informal": "0.13125",
+          "opening_unrest": "0.10",
+          "closing_unrest": "0.080"
+        }
+      },
+      "cash_journal": [
+        {
+          "source": "income_payers",
+          "destination": "civilians",
+          "amount": "10000.00",
+          "reason": "assumed settled seasonal income; not a GDP-to-cash conversion"
+        },
+        {
+          "source": "civilians",
+          "destination": "treasury",
+          "amount": "1350.00",
+          "reason": "tax:Core"
+        },
+        {
+          "source": "civilians",
+          "destination": "ordinary_suppliers",
+          "amount": "1600.00",
+          "reason": "consumption:Core"
+        },
+        {
+          "source": "civilians",
+          "destination": "investment_suppliers",
+          "amount": "610.00",
+          "reason": "local investment:Core"
+        },
+        {
+          "source": "civilians",
+          "destination": "treasury",
+          "amount": "200.00",
+          "reason": "tax:Frontier"
+        },
+        {
+          "source": "civilians",
+          "destination": "ordinary_suppliers",
+          "amount": "800.00",
+          "reason": "consumption:Frontier"
+        },
+        {
+          "source": "civilians",
+          "destination": "treasury",
+          "amount": "637.50",
+          "reason": "tax:Interior"
+        },
+        {
+          "source": "civilians",
+          "destination": "ordinary_suppliers",
+          "amount": "1600.00",
+          "reason": "consumption:Interior"
+        },
+        {
+          "source": "civilians",
+          "destination": "investment_suppliers",
+          "amount": "152.50",
+          "reason": "local investment:Interior"
+        },
+        {
+          "source": "lenders",
+          "destination": "treasury",
+          "amount": "1668.50",
+          "reason": "borrowing; creates debt, not revenue"
+        },
+        {
+          "source": "treasury",
+          "destination": "lenders",
+          "amount": "200.00",
+          "reason": "interest on opening principal"
+        },
+        {
+          "source": "treasury",
+          "destination": "military",
+          "amount": "3500.00",
+          "reason": "military upkeep"
+        },
+        {
+          "source": "treasury",
+          "destination": "public_suppliers",
+          "amount": "256.00",
+          "reason": "funded maintenance and improvements"
+        }
+      ],
+      "closing_cash_accounts": {
+        "treasury": "0.00",
+        "income_payers": "0.00",
+        "lenders": "531.50",
+        "civilians": "3050.00",
+        "ordinary_suppliers": "4000.00",
+        "investment_suppliers": "762.50",
+        "public_suppliers": "256.00",
+        "military": "3500.00"
+      }
+    },
+    "exhausted_credit": {
+      "season": 1,
+      "gross_income": "10000.00",
+      "tax_receipts": "2187.50",
+      "opening_cash": "100.00",
+      "opening_debt": "5900.00",
+      "credit_limit": "6000.00",
+      "borrowing_headroom": "100.00",
+      "interest_due": "295.00",
+      "interest_paid": "295.00",
+      "military_due": "3500.00",
+      "military_paid": "2092.50",
+      "military_funded_fraction": "0.5978571428571428571428571429",
+      "infrastructure_requirement": "256.00",
+      "infrastructure_requested": "256.00",
+      "infrastructure_paid": "0",
+      "borrowing": "100.00",
+      "principal_repayment": "0",
+      "interest_arrears": "0.00",
+      "debt_relief": "0",
+      "new_default": false,
+      "closing_cash": "0.00",
+      "closing_debt": "6000.00",
+      "credit_lock": 0,
+      "remaining_credit": "0",
+      "warning": "unfunded_budget",
+      "budget_shortfall": "1663.50",
+      "operating_balance": "-1863.50",
+      "probability_per_division": "0.1407500000000000000000000000",
+      "desertions": [],
+      "local": {
+        "Core": {
+          "gross": "6000.00",
+          "informal_income": "600.00",
+          "taxable": "5400.00",
+          "tax": "1350.00",
+          "consumption": "1600.00",
+          "unmet_needs": "0.00",
+          "domestic_investment": "610.00",
+          "civilian_saving": "2440.00",
+          "maintenance_need": "32.00",
+          "improvement_cap": "80.00",
+          "cost_per_point": "40",
+          "maintenance_paid": "0",
+          "improvement_paid": "0",
+          "opening_infrastructure": "80",
+          "closing_infrastructure": "79",
+          "opening_capacity": "12000",
+          "capacity_addition": "61.00",
+          "closing_capacity": "12061.00",
+          "opening_informal": "0.10",
+          "closing_informal": "0.09375",
+          "opening_unrest": "0.05",
+          "closing_unrest": "0.040"
+        },
+        "Frontier": {
+          "gross": "1000.00",
+          "informal_income": "200.00",
+          "taxable": "800.00",
+          "tax": "200.00",
+          "consumption": "800.00",
+          "unmet_needs": "0.00",
+          "domestic_investment": "0.00",
+          "civilian_saving": "0.00",
+          "maintenance_need": "4.00",
+          "improvement_cap": "40.00",
+          "cost_per_point": "20",
+          "maintenance_paid": "0",
+          "improvement_paid": "0",
+          "opening_infrastructure": "20",
+          "closing_infrastructure": "19",
+          "opening_capacity": "4000",
+          "capacity_addition": "0.00",
+          "closing_capacity": "4000.00",
+          "opening_informal": "0.20",
+          "closing_informal": "0.16875",
+          "opening_unrest": "0.15",
+          "closing_unrest": "0.120"
+        },
+        "Interior": {
+          "gross": "3000.00",
+          "informal_income": "450.00",
+          "taxable": "2550.00",
+          "tax": "637.50",
+          "consumption": "1600.00",
+          "unmet_needs": "0.00",
+          "domestic_investment": "152.50",
+          "civilian_saving": "610.00",
+          "maintenance_need": "20.00",
+          "improvement_cap": "80.00",
+          "cost_per_point": "40",
+          "maintenance_paid": "0",
+          "improvement_paid": "0",
+          "opening_infrastructure": "50",
+          "closing_infrastructure": "49",
+          "opening_capacity": "8000",
+          "capacity_addition": "15.25",
+          "closing_capacity": "8015.25",
+          "opening_informal": "0.15",
+          "closing_informal": "0.13125",
+          "opening_unrest": "0.10",
+          "closing_unrest": "0.080"
+        }
+      },
+      "cash_journal": [
+        {
+          "source": "income_payers",
+          "destination": "civilians",
+          "amount": "10000.00",
+          "reason": "assumed settled seasonal income; not a GDP-to-cash conversion"
+        },
+        {
+          "source": "civilians",
+          "destination": "treasury",
+          "amount": "1350.00",
+          "reason": "tax:Core"
+        },
+        {
+          "source": "civilians",
+          "destination": "ordinary_suppliers",
+          "amount": "1600.00",
+          "reason": "consumption:Core"
+        },
+        {
+          "source": "civilians",
+          "destination": "investment_suppliers",
+          "amount": "610.00",
+          "reason": "local investment:Core"
+        },
+        {
+          "source": "civilians",
+          "destination": "treasury",
+          "amount": "200.00",
+          "reason": "tax:Frontier"
+        },
+        {
+          "source": "civilians",
+          "destination": "ordinary_suppliers",
+          "amount": "800.00",
+          "reason": "consumption:Frontier"
+        },
+        {
+          "source": "civilians",
+          "destination": "treasury",
+          "amount": "637.50",
+          "reason": "tax:Interior"
+        },
+        {
+          "source": "civilians",
+          "destination": "ordinary_suppliers",
+          "amount": "1600.00",
+          "reason": "consumption:Interior"
+        },
+        {
+          "source": "civilians",
+          "destination": "investment_suppliers",
+          "amount": "152.50",
+          "reason": "local investment:Interior"
+        },
+        {
+          "source": "lenders",
+          "destination": "treasury",
+          "amount": "100.00",
+          "reason": "borrowing; creates debt, not revenue"
+        },
+        {
+          "source": "treasury",
+          "destination": "lenders",
+          "amount": "295.00",
+          "reason": "interest on opening principal"
+        },
+        {
+          "source": "treasury",
+          "destination": "military",
+          "amount": "2092.50",
+          "reason": "military upkeep"
+        }
+      ],
+      "closing_cash_accounts": {
+        "treasury": "0.00",
+        "income_payers": "0.00",
+        "lenders": "295.00",
+        "civilians": "3050.00",
+        "ordinary_suppliers": "4000.00",
+        "investment_suppliers": "762.50",
+        "public_suppliers": "0",
+        "military": "2092.50"
+      }
+    },
+    "bankruptcy": {
+      "season": 1,
+      "gross_income": "400.00",
+      "tax_receipts": "87.50",
+      "opening_cash": "10.00",
+      "opening_debt": "6000.00",
+      "credit_limit": "450.00",
+      "borrowing_headroom": "0",
+      "interest_due": "300.00",
+      "interest_paid": "97.50",
+      "military_due": "3500.00",
+      "military_paid": "0.00",
+      "military_funded_fraction": "0",
+      "infrastructure_requirement": "256.00",
+      "infrastructure_requested": "256.00",
+      "infrastructure_paid": "0",
+      "borrowing": "0",
+      "principal_repayment": "0",
+      "interest_arrears": "202.50",
+      "debt_relief": "3101.25",
+      "new_default": true,
+      "closing_cash": "0.00",
+      "closing_debt": "3101.25",
+      "credit_lock": 4,
+      "remaining_credit": "0",
+      "warning": "default",
+      "budget_shortfall": "3958.50",
+      "operating_balance": "-3968.50",
+      "probability_per_division": "0.35",
+      "desertions": [
+        {
+          "division": "artillery",
+          "location": "Core",
+          "draw": "0.3324377176647567278910781752",
+          "probability": "0.35",
+          "news": "artillery division at Core deserted after unpaid upkeep."
+        }
+      ],
+      "local": {
+        "Core": {
+          "gross": "240.00",
+          "informal_income": "24.00",
+          "taxable": "216.00",
+          "tax": "54.00",
+          "consumption": "186.00",
+          "unmet_needs": "1414.00",
+          "domestic_investment": "0.00",
+          "civilian_saving": "0.00",
+          "maintenance_need": "32.00",
+          "improvement_cap": "80.00",
+          "cost_per_point": "40",
+          "maintenance_paid": "0",
+          "improvement_paid": "0",
+          "opening_infrastructure": "80",
+          "closing_infrastructure": "79",
+          "opening_capacity": "12000",
+          "capacity_addition": "0.00",
+          "closing_capacity": "12000.00",
+          "opening_informal": "0.10",
+          "closing_informal": "0.09375",
+          "opening_unrest": "0.05",
+          "closing_unrest": "0.2783750"
+        },
+        "Frontier": {
+          "gross": "40.00",
+          "informal_income": "8.00",
+          "taxable": "32.00",
+          "tax": "8.00",
+          "consumption": "32.00",
+          "unmet_needs": "768.00",
+          "domestic_investment": "0.00",
+          "civilian_saving": "0.00",
+          "maintenance_need": "4.00",
+          "improvement_cap": "40.00",
+          "cost_per_point": "20",
+          "maintenance_paid": "0",
+          "improvement_paid": "0",
+          "opening_infrastructure": "20",
+          "closing_infrastructure": "19",
+          "opening_capacity": "4000",
+          "capacity_addition": "0.00",
+          "closing_capacity": "4000.00",
+          "opening_informal": "0.20",
+          "closing_informal": "0.16875",
+          "opening_unrest": "0.15",
+          "closing_unrest": "0.3660"
+        },
+        "Interior": {
+          "gross": "120.00",
+          "informal_income": "18.00",
+          "taxable": "102.00",
+          "tax": "25.50",
+          "consumption": "94.50",
+          "unmet_needs": "1505.50",
+          "domestic_investment": "0.00",
+          "civilian_saving": "0.00",
+          "maintenance_need": "20.00",
+          "improvement_cap": "80.00",
+          "cost_per_point": "40",
+          "maintenance_paid": "0",
+          "improvement_paid": "0",
+          "opening_infrastructure": "50",
+          "closing_infrastructure": "49",
+          "opening_capacity": "8000",
+          "capacity_addition": "0.00",
+          "closing_capacity": "8000.00",
+          "opening_informal": "0.15",
+          "closing_informal": "0.13125",
+          "opening_unrest": "0.10",
+          "closing_unrest": "0.324093750"
+        }
+      },
+      "cash_journal": [
+        {
+          "source": "income_payers",
+          "destination": "civilians",
+          "amount": "400.00",
+          "reason": "assumed settled seasonal income; not a GDP-to-cash conversion"
+        },
+        {
+          "source": "civilians",
+          "destination": "treasury",
+          "amount": "54.00",
+          "reason": "tax:Core"
+        },
+        {
+          "source": "civilians",
+          "destination": "ordinary_suppliers",
+          "amount": "186.00",
+          "reason": "consumption:Core"
+        },
+        {
+          "source": "civilians",
+          "destination": "treasury",
+          "amount": "8.00",
+          "reason": "tax:Frontier"
+        },
+        {
+          "source": "civilians",
+          "destination": "ordinary_suppliers",
+          "amount": "32.00",
+          "reason": "consumption:Frontier"
+        },
+        {
+          "source": "civilians",
+          "destination": "treasury",
+          "amount": "25.50",
+          "reason": "tax:Interior"
+        },
+        {
+          "source": "civilians",
+          "destination": "ordinary_suppliers",
+          "amount": "94.50",
+          "reason": "consumption:Interior"
+        },
+        {
+          "source": "treasury",
+          "destination": "lenders",
+          "amount": "97.50",
+          "reason": "interest on opening principal"
+        }
+      ],
+      "closing_cash_accounts": {
+        "treasury": "0.00",
+        "income_payers": "0.00",
+        "lenders": "97.50",
+        "civilians": "0.00",
+        "ordinary_suppliers": "312.50",
+        "investment_suppliers": "0",
+        "public_suppliers": "0",
+        "military": "0"
+      }
+    },
+    "continued_crisis": {
+      "season": 2,
+      "gross_income": "400.00",
+      "tax_receipts": "88.75",
+      "opening_cash": "0.00",
+      "opening_debt": "3101.25",
+      "credit_limit": "403.13",
+      "borrowing_headroom": "0",
+      "interest_due": "155.06",
+      "interest_paid": "88.75",
+      "military_due": "1500.00",
+      "military_paid": "0.00",
+      "military_funded_fraction": "0",
+      "infrastructure_requirement": "255.00",
+      "infrastructure_requested": "255.00",
+      "infrastructure_paid": "0",
+      "borrowing": "0",
+      "principal_repayment": "0",
+      "interest_arrears": "66.31",
+      "debt_relief": "0",
+      "new_default": false,
+      "closing_cash": "0.00",
+      "closing_debt": "3167.56",
+      "credit_lock": 3,
+      "remaining_credit": "0",
+      "warning": "default",
+      "budget_shortfall": "1821.31",
+      "operating_balance": "-1821.31",
+      "probability_per_division": "0.35",
+      "desertions": [],
+      "local": {
+        "Core": {
+          "gross": "240.00",
+          "informal_income": "22.50",
+          "taxable": "217.50",
+          "tax": "54.38",
+          "consumption": "185.62",
+          "unmet_needs": "1414.38",
+          "domestic_investment": "0.00",
+          "civilian_saving": "0.00",
+          "maintenance_need": "31.60",
+          "improvement_cap": "80.00",
+          "cost_per_point": "40",
+          "maintenance_paid": "0",
+          "improvement_paid": "0",
+          "opening_infrastructure": "79",
+          "closing_infrastructure": "78",
+          "opening_capacity": "12000.00",
+          "capacity_addition": "0.00",
+          "closing_capacity": "12000.00",
+          "opening_informal": "0.09375",
+          "closing_informal": "0.0890625",
+          "opening_unrest": "0.2783750",
+          "closing_unrest": "0.311098750"
+        },
+        "Frontier": {
+          "gross": "40.00",
+          "informal_income": "6.75",
+          "taxable": "33.25",
+          "tax": "8.31",
+          "consumption": "31.69",
+          "unmet_needs": "768.31",
+          "domestic_investment": "0.00",
+          "civilian_saving": "0.00",
+          "maintenance_need": "3.80",
+          "improvement_cap": "40.00",
+          "cost_per_point": "20",
+          "maintenance_paid": "0",
+          "improvement_paid": "0",
+          "opening_infrastructure": "19",
+          "closing_infrastructure": "18",
+          "opening_capacity": "4000.00",
+          "capacity_addition": "0.00",
+          "closing_capacity": "4000.00",
+          "opening_informal": "0.16875",
+          "closing_informal": "0.1453125",
+          "opening_unrest": "0.3660",
+          "closing_unrest": "0.388838750"
+        },
+        "Interior": {
+          "gross": "120.00",
+          "informal_income": "15.75",
+          "taxable": "104.25",
+          "tax": "26.06",
+          "consumption": "93.94",
+          "unmet_needs": "1506.06",
+          "domestic_investment": "0.00",
+          "civilian_saving": "0.00",
+          "maintenance_need": "19.60",
+          "improvement_cap": "80.00",
+          "cost_per_point": "40",
+          "maintenance_paid": "0",
+          "improvement_paid": "0",
+          "opening_infrastructure": "49",
+          "closing_infrastructure": "48",
+          "opening_capacity": "8000.00",
+          "capacity_addition": "0.00",
+          "closing_capacity": "8000.00",
+          "opening_informal": "0.13125",
+          "closing_informal": "0.1171875",
+          "opening_unrest": "0.324093750",
+          "closing_unrest": "0.3534037500"
+        }
+      },
+      "cash_journal": [
+        {
+          "source": "income_payers",
+          "destination": "civilians",
+          "amount": "400.00",
+          "reason": "assumed settled seasonal income; not a GDP-to-cash conversion"
+        },
+        {
+          "source": "civilians",
+          "destination": "treasury",
+          "amount": "54.38",
+          "reason": "tax:Core"
+        },
+        {
+          "source": "civilians",
+          "destination": "ordinary_suppliers",
+          "amount": "185.62",
+          "reason": "consumption:Core"
+        },
+        {
+          "source": "civilians",
+          "destination": "treasury",
+          "amount": "8.31",
+          "reason": "tax:Frontier"
+        },
+        {
+          "source": "civilians",
+          "destination": "ordinary_suppliers",
+          "amount": "31.69",
+          "reason": "consumption:Frontier"
+        },
+        {
+          "source": "civilians",
+          "destination": "treasury",
+          "amount": "26.06",
+          "reason": "tax:Interior"
+        },
+        {
+          "source": "civilians",
+          "destination": "ordinary_suppliers",
+          "amount": "93.94",
+          "reason": "consumption:Interior"
+        },
+        {
+          "source": "treasury",
+          "destination": "lenders",
+          "amount": "88.75",
+          "reason": "interest on opening principal"
+        }
+      ],
+      "closing_cash_accounts": {
+        "treasury": "0.00",
+        "income_payers": "0.00",
+        "lenders": "88.75",
+        "civilians": "0.00",
+        "ordinary_suppliers": "311.25",
+        "investment_suppliers": "0",
+        "public_suppliers": "0",
+        "military": "0"
+      }
+    },
+    "recovery_trajectory": [
+      {
+        "season": 2,
+        "gross_income": "10000.00",
+        "tax_receipts": "2218.75",
+        "opening_cash": "0.00",
+        "opening_debt": "3101.25",
+        "credit_limit": "6000.00",
+        "borrowing_headroom": "0",
+        "interest_due": "155.06",
+        "interest_paid": "155.06",
+        "military_due": "500.00",
+        "military_paid": "500.00",
+        "military_funded_fraction": "1",
+        "infrastructure_requirement": "255.00",
+        "infrastructure_requested": "127.50",
+        "infrastructure_paid": "127.50",
+        "borrowing": "0",
+        "principal_repayment": "936.19",
+        "interest_arrears": "0.00",
+        "debt_relief": "0",
+        "new_default": false,
+        "closing_cash": "500.00",
+        "closing_debt": "2165.06",
+        "credit_lock": 3,
+        "remaining_credit": "0",
+        "warning": "funded",
+        "budget_shortfall": "0.00",
+        "operating_balance": "1436.19",
+        "probability_per_division": "0.00",
+        "desertions": [],
+        "local": {
+          "Core": {
+            "gross": "6000.00",
+            "informal_income": "562.50",
+            "taxable": "5437.50",
+            "tax": "1359.38",
+            "consumption": "1600.00",
+            "unmet_needs": "0.00",
+            "domestic_investment": "608.12",
+            "civilian_saving": "2432.50",
+            "maintenance_need": "31.60",
+            "improvement_cap": "80.00",
+            "cost_per_point": "40",
+            "maintenance_paid": "31.60",
+            "improvement_paid": "15.08",
+            "opening_infrastructure": "79",
+            "closing_infrastructure": "79.377",
+            "opening_capacity": "12000.00",
+            "capacity_addition": "60.812",
+            "closing_capacity": "12060.812",
+            "opening_informal": "0.09375",
+            "closing_informal": "0.0890625",
+            "opening_unrest": "0.2783750",
+            "closing_unrest": "0.22270000"
+          },
+          "Frontier": {
+            "gross": "1000.00",
+            "informal_income": "168.75",
+            "taxable": "831.25",
+            "tax": "207.81",
+            "consumption": "792.19",
+            "unmet_needs": "7.81",
+            "domestic_investment": "0.00",
+            "civilian_saving": "0.00",
+            "maintenance_need": "3.80",
+            "improvement_cap": "40.00",
+            "cost_per_point": "20",
+            "maintenance_paid": "3.80",
+            "improvement_paid": "24.94",
+            "opening_infrastructure": "19",
+            "closing_infrastructure": "20.247",
+            "opening_capacity": "4000.00",
+            "capacity_addition": "0.00",
+            "closing_capacity": "4000.00",
+            "opening_informal": "0.16875",
+            "closing_informal": "0.1453125",
+            "opening_unrest": "0.3660",
+            "closing_unrest": "0.293776250"
+          },
+          "Interior": {
+            "gross": "3000.00",
+            "informal_income": "393.75",
+            "taxable": "2606.25",
+            "tax": "651.56",
+            "consumption": "1600.00",
+            "unmet_needs": "0.00",
+            "domestic_investment": "149.69",
+            "civilian_saving": "598.75",
+            "maintenance_need": "19.60",
+            "improvement_cap": "80.00",
+            "cost_per_point": "40",
+            "maintenance_paid": "19.60",
+            "improvement_paid": "32.48",
+            "opening_infrastructure": "49",
+            "closing_infrastructure": "49.812",
+            "opening_capacity": "8000.00",
+            "capacity_addition": "14.969",
+            "closing_capacity": "8014.969",
+            "opening_informal": "0.13125",
+            "closing_informal": "0.1171875",
+            "opening_unrest": "0.324093750",
+            "closing_unrest": "0.2592750000"
+          }
+        },
+        "cash_journal": [
+          {
+            "source": "income_payers",
+            "destination": "civilians",
+            "amount": "10000.00",
+            "reason": "assumed settled seasonal income; not a GDP-to-cash conversion"
+          },
+          {
+            "source": "civilians",
+            "destination": "treasury",
+            "amount": "1359.38",
+            "reason": "tax:Core"
+          },
+          {
+            "source": "civilians",
+            "destination": "ordinary_suppliers",
+            "amount": "1600.00",
+            "reason": "consumption:Core"
+          },
+          {
+            "source": "civilians",
+            "destination": "investment_suppliers",
+            "amount": "608.12",
+            "reason": "local investment:Core"
+          },
+          {
+            "source": "civilians",
+            "destination": "treasury",
+            "amount": "207.81",
+            "reason": "tax:Frontier"
+          },
+          {
+            "source": "civilians",
+            "destination": "ordinary_suppliers",
+            "amount": "792.19",
+            "reason": "consumption:Frontier"
+          },
+          {
+            "source": "civilians",
+            "destination": "treasury",
+            "amount": "651.56",
+            "reason": "tax:Interior"
+          },
+          {
+            "source": "civilians",
+            "destination": "ordinary_suppliers",
+            "amount": "1600.00",
+            "reason": "consumption:Interior"
+          },
+          {
+            "source": "civilians",
+            "destination": "investment_suppliers",
+            "amount": "149.69",
+            "reason": "local investment:Interior"
+          },
+          {
+            "source": "treasury",
+            "destination": "lenders",
+            "amount": "155.06",
+            "reason": "interest on opening principal"
+          },
+          {
+            "source": "treasury",
+            "destination": "military",
+            "amount": "500.00",
+            "reason": "military upkeep"
+          },
+          {
+            "source": "treasury",
+            "destination": "public_suppliers",
+            "amount": "127.50",
+            "reason": "funded maintenance and improvements"
+          },
+          {
+            "source": "treasury",
+            "destination": "lenders",
+            "amount": "936.19",
+            "reason": "principal repayment above treasury reserve"
+          }
+        ],
+        "closing_cash_accounts": {
+          "treasury": "500.00",
+          "income_payers": "0.00",
+          "lenders": "1091.25",
+          "civilians": "3031.25",
+          "ordinary_suppliers": "3992.19",
+          "investment_suppliers": "757.81",
+          "public_suppliers": "127.50",
+          "military": "500.00"
+        }
+      },
+      {
+        "season": 3,
+        "gross_income": "10000.00",
+        "tax_receipts": "2242.19",
+        "opening_cash": "500.00",
+        "opening_debt": "2165.06",
+        "credit_limit": "6164.06",
+        "borrowing_headroom": "0",
+        "interest_due": "108.25",
+        "interest_paid": "108.25",
+        "military_due": "500.00",
+        "military_paid": "500.00",
+        "military_funded_fraction": "1",
+        "infrastructure_requirement": "255.72",
+        "infrastructure_requested": "127.86",
+        "infrastructure_paid": "127.86",
+        "borrowing": "0",
+        "principal_repayment": "1506.08",
+        "interest_arrears": "0.00",
+        "debt_relief": "0",
+        "new_default": false,
+        "closing_cash": "500.00",
+        "closing_debt": "658.98",
+        "credit_lock": 2,
+        "remaining_credit": "0",
+        "warning": "funded",
+        "budget_shortfall": "0.00",
+        "operating_balance": "1506.08",
+        "probability_per_division": "0.00",
+        "desertions": [],
+        "local": {
+          "Core": {
+            "gross": "6000.00",
+            "informal_income": "534.38",
+            "taxable": "5465.62",
+            "tax": "1366.41",
+            "consumption": "1600.00",
+            "unmet_needs": "0.00",
+            "domestic_investment": "606.72",
+            "civilian_saving": "2426.87",
+            "maintenance_need": "31.75",
+            "improvement_cap": "80.00",
+            "cost_per_point": "40",
+            "maintenance_paid": "31.75",
+            "improvement_paid": "15.00",
+            "opening_infrastructure": "79.377",
+            "closing_infrastructure": "79.752",
+            "opening_capacity": "12060.812",
+            "capacity_addition": "60.672",
+            "closing_capacity": "12121.484",
+            "opening_informal": "0.0890625",
+            "closing_informal": "0.085546875",
+            "opening_unrest": "0.22270000",
+            "closing_unrest": "0.178160000"
+          },
+          "Frontier": {
+            "gross": "1000.00",
+            "informal_income": "145.31",
+            "taxable": "854.69",
+            "tax": "213.67",
+            "consumption": "786.33",
+            "unmet_needs": "13.67",
+            "domestic_investment": "0.00",
+            "civilian_saving": "0.00",
+            "maintenance_need": "4.05",
+            "improvement_cap": "40.00",
+            "cost_per_point": "20",
+            "maintenance_paid": "4.05",
+            "improvement_paid": "24.82",
+            "opening_infrastructure": "20.247",
+            "closing_infrastructure": "21.488",
+            "opening_capacity": "4000.00",
+            "capacity_addition": "0.00",
+            "closing_capacity": "4000.00",
+            "opening_informal": "0.1453125",
+            "closing_informal": "0.127734375",
+            "opening_unrest": "0.293776250",
+            "closing_unrest": "0.2367297500"
+          },
+          "Interior": {
+            "gross": "3000.00",
+            "informal_income": "351.56",
+            "taxable": "2648.44",
+            "tax": "662.11",
+            "consumption": "1600.00",
+            "unmet_needs": "0.00",
+            "domestic_investment": "147.58",
+            "civilian_saving": "590.31",
+            "maintenance_need": "19.92",
+            "improvement_cap": "80.00",
+            "cost_per_point": "40",
+            "maintenance_paid": "19.92",
+            "improvement_paid": "32.32",
+            "opening_infrastructure": "49.812",
+            "closing_infrastructure": "50.620",
+            "opening_capacity": "8014.969",
+            "capacity_addition": "14.758",
+            "closing_capacity": "8029.727",
+            "opening_informal": "0.1171875",
+            "closing_informal": "0.106640625",
+            "opening_unrest": "0.2592750000",
+            "closing_unrest": "0.20742000000"
+          }
+        },
+        "cash_journal": [
+          {
+            "source": "income_payers",
+            "destination": "civilians",
+            "amount": "10000.00",
+            "reason": "assumed settled seasonal income; not a GDP-to-cash conversion"
+          },
+          {
+            "source": "civilians",
+            "destination": "treasury",
+            "amount": "1366.41",
+            "reason": "tax:Core"
+          },
+          {
+            "source": "civilians",
+            "destination": "ordinary_suppliers",
+            "amount": "1600.00",
+            "reason": "consumption:Core"
+          },
+          {
+            "source": "civilians",
+            "destination": "investment_suppliers",
+            "amount": "606.72",
+            "reason": "local investment:Core"
+          },
+          {
+            "source": "civilians",
+            "destination": "treasury",
+            "amount": "213.67",
+            "reason": "tax:Frontier"
+          },
+          {
+            "source": "civilians",
+            "destination": "ordinary_suppliers",
+            "amount": "786.33",
+            "reason": "consumption:Frontier"
+          },
+          {
+            "source": "civilians",
+            "destination": "treasury",
+            "amount": "662.11",
+            "reason": "tax:Interior"
+          },
+          {
+            "source": "civilians",
+            "destination": "ordinary_suppliers",
+            "amount": "1600.00",
+            "reason": "consumption:Interior"
+          },
+          {
+            "source": "civilians",
+            "destination": "investment_suppliers",
+            "amount": "147.58",
+            "reason": "local investment:Interior"
+          },
+          {
+            "source": "treasury",
+            "destination": "lenders",
+            "amount": "108.25",
+            "reason": "interest on opening principal"
+          },
+          {
+            "source": "treasury",
+            "destination": "military",
+            "amount": "500.00",
+            "reason": "military upkeep"
+          },
+          {
+            "source": "treasury",
+            "destination": "public_suppliers",
+            "amount": "127.86",
+            "reason": "funded maintenance and improvements"
+          },
+          {
+            "source": "treasury",
+            "destination": "lenders",
+            "amount": "1506.08",
+            "reason": "principal repayment above treasury reserve"
+          }
+        ],
+        "closing_cash_accounts": {
+          "treasury": "500.00",
+          "income_payers": "0.00",
+          "lenders": "1614.33",
+          "civilians": "3017.18",
+          "ordinary_suppliers": "3986.33",
+          "investment_suppliers": "754.30",
+          "public_suppliers": "127.86",
+          "military": "500.00"
+        }
+      },
+      {
+        "season": 4,
+        "gross_income": "10000.00",
+        "tax_receipts": "2259.77",
+        "opening_cash": "500.00",
+        "opening_debt": "658.98",
+        "credit_limit": "6345.71",
+        "borrowing_headroom": "0",
+        "interest_due": "32.95",
+        "interest_paid": "32.95",
+        "military_due": "500.00",
+        "military_paid": "500.00",
+        "military_funded_fraction": "1",
+        "infrastructure_requirement": "256.45",
+        "infrastructure_requested": "128.23",
+        "infrastructure_paid": "128.23",
+        "borrowing": "0",
+        "principal_repayment": "658.98",
+        "interest_arrears": "0.00",
+        "debt_relief": "0",
+        "new_default": false,
+        "closing_cash": "1439.61",
+        "closing_debt": "0.00",
+        "credit_lock": 1,
+        "remaining_credit": "0",
+        "warning": "funded",
+        "budget_shortfall": "0.00",
+        "operating_balance": "1598.59",
+        "probability_per_division": "0.00",
+        "desertions": [],
+        "local": {
+          "Core": {
+            "gross": "6000.00",
+            "informal_income": "513.28",
+            "taxable": "5486.72",
+            "tax": "1371.68",
+            "consumption": "1600.00",
+            "unmet_needs": "0.00",
+            "domestic_investment": "605.66",
+            "civilian_saving": "2422.66",
+            "maintenance_need": "31.90",
+            "improvement_cap": "80.00",
+            "cost_per_point": "40",
+            "maintenance_paid": "31.90",
+            "improvement_paid": "14.93",
+            "opening_infrastructure": "79.752",
+            "closing_infrastructure": "80.12525",
+            "opening_capacity": "12121.484",
+            "capacity_addition": "60.566",
+            "closing_capacity": "12182.050",
+            "opening_informal": "0.085546875",
+            "closing_informal": "0.08291015625",
+            "opening_unrest": "0.178160000",
+            "closing_unrest": "0.1425280000"
+          },
+          "Frontier": {
+            "gross": "1000.00",
+            "informal_income": "127.73",
+            "taxable": "872.27",
+            "tax": "218.07",
+            "consumption": "781.93",
+            "unmet_needs": "18.07",
+            "domestic_investment": "0.00",
+            "civilian_saving": "0.00",
+            "maintenance_need": "4.30",
+            "improvement_cap": "40.00",
+            "cost_per_point": "20",
+            "maintenance_paid": "4.30",
+            "improvement_paid": "24.69",
+            "opening_infrastructure": "21.488",
+            "closing_infrastructure": "22.7225",
+            "opening_capacity": "4000.00",
+            "capacity_addition": "0.00",
+            "closing_capacity": "4000.00",
+            "opening_informal": "0.127734375",
+            "closing_informal": "0.11455078125",
+            "opening_unrest": "0.2367297500",
+            "closing_unrest": "0.19164255000"
+          },
+          "Interior": {
+            "gross": "3000.00",
+            "informal_income": "319.92",
+            "taxable": "2680.08",
+            "tax": "670.02",
+            "consumption": "1600.00",
+            "unmet_needs": "0.00",
+            "domestic_investment": "146.00",
+            "civilian_saving": "583.98",
+            "maintenance_need": "20.25",
+            "improvement_cap": "80.00",
+            "cost_per_point": "40",
+            "maintenance_paid": "20.25",
+            "improvement_paid": "32.16",
+            "opening_infrastructure": "50.620",
+            "closing_infrastructure": "51.424",
+            "opening_capacity": "8029.727",
+            "capacity_addition": "14.60",
+            "closing_capacity": "8044.327",
+            "opening_informal": "0.106640625",
+            "closing_informal": "0.09873046875",
+            "opening_unrest": "0.20742000000",
+            "closing_unrest": "0.165936000000"
+          }
+        },
+        "cash_journal": [
+          {
+            "source": "income_payers",
+            "destination": "civilians",
+            "amount": "10000.00",
+            "reason": "assumed settled seasonal income; not a GDP-to-cash conversion"
+          },
+          {
+            "source": "civilians",
+            "destination": "treasury",
+            "amount": "1371.68",
+            "reason": "tax:Core"
+          },
+          {
+            "source": "civilians",
+            "destination": "ordinary_suppliers",
+            "amount": "1600.00",
+            "reason": "consumption:Core"
+          },
+          {
+            "source": "civilians",
+            "destination": "investment_suppliers",
+            "amount": "605.66",
+            "reason": "local investment:Core"
+          },
+          {
+            "source": "civilians",
+            "destination": "treasury",
+            "amount": "218.07",
+            "reason": "tax:Frontier"
+          },
+          {
+            "source": "civilians",
+            "destination": "ordinary_suppliers",
+            "amount": "781.93",
+            "reason": "consumption:Frontier"
+          },
+          {
+            "source": "civilians",
+            "destination": "treasury",
+            "amount": "670.02",
+            "reason": "tax:Interior"
+          },
+          {
+            "source": "civilians",
+            "destination": "ordinary_suppliers",
+            "amount": "1600.00",
+            "reason": "consumption:Interior"
+          },
+          {
+            "source": "civilians",
+            "destination": "investment_suppliers",
+            "amount": "146.00",
+            "reason": "local investment:Interior"
+          },
+          {
+            "source": "treasury",
+            "destination": "lenders",
+            "amount": "32.95",
+            "reason": "interest on opening principal"
+          },
+          {
+            "source": "treasury",
+            "destination": "military",
+            "amount": "500.00",
+            "reason": "military upkeep"
+          },
+          {
+            "source": "treasury",
+            "destination": "public_suppliers",
+            "amount": "128.23",
+            "reason": "funded maintenance and improvements"
+          },
+          {
+            "source": "treasury",
+            "destination": "lenders",
+            "amount": "658.98",
+            "reason": "principal repayment above treasury reserve"
+          }
+        ],
+        "closing_cash_accounts": {
+          "treasury": "1439.61",
+          "income_payers": "0.00",
+          "lenders": "691.93",
+          "civilians": "3006.64",
+          "ordinary_suppliers": "3981.93",
+          "investment_suppliers": "751.66",
+          "public_suppliers": "128.23",
+          "military": "500.00"
+        }
+      },
+      {
+        "season": 5,
+        "gross_income": "10000.00",
+        "tax_receipts": "2272.95",
+        "opening_cash": "1439.61",
+        "opening_debt": "0.00",
+        "credit_limit": "6540.53",
+        "borrowing_headroom": "0",
+        "interest_due": "0.00",
+        "interest_paid": "0.00",
+        "military_due": "500.00",
+        "military_paid": "500.00",
+        "military_funded_fraction": "1",
+        "infrastructure_requirement": "257.16",
+        "infrastructure_requested": "128.58",
+        "infrastructure_paid": "128.58",
+        "borrowing": "0",
+        "principal_repayment": "0.00",
+        "interest_arrears": "0.00",
+        "debt_relief": "0",
+        "new_default": false,
+        "closing_cash": "3083.98",
+        "closing_debt": "0.00",
+        "credit_lock": 0,
+        "remaining_credit": "6540.53",
+        "warning": "funded",
+        "budget_shortfall": "0.00",
+        "operating_balance": "1644.37",
+        "probability_per_division": "0.00",
+        "desertions": [],
+        "local": {
+          "Core": {
+            "gross": "6000.00",
+            "informal_income": "497.46",
+            "taxable": "5502.54",
+            "tax": "1375.64",
+            "consumption": "1600.00",
+            "unmet_needs": "0.00",
+            "domestic_investment": "604.87",
+            "civilian_saving": "2419.49",
+            "maintenance_need": "32.05",
+            "improvement_cap": "80.00",
+            "cost_per_point": "40",
+            "maintenance_paid": "32.05",
+            "improvement_paid": "14.85",
+            "opening_infrastructure": "80.12525",
+            "closing_infrastructure": "80.49650",
+            "opening_capacity": "12182.050",
+            "capacity_addition": "60.487",
+            "closing_capacity": "12242.537",
+            "opening_informal": "0.08291015625",
+            "closing_informal": "0.0809326171875",
+            "opening_unrest": "0.1425280000",
+            "closing_unrest": "0.11402240000"
+          },
+          "Frontier": {
+            "gross": "1000.00",
+            "informal_income": "114.55",
+            "taxable": "885.45",
+            "tax": "221.36",
+            "consumption": "778.64",
+            "unmet_needs": "21.36",
+            "domestic_investment": "0.00",
+            "civilian_saving": "0.00",
+            "maintenance_need": "4.54",
+            "improvement_cap": "40.00",
+            "cost_per_point": "20",
+            "maintenance_paid": "4.54",
+            "improvement_paid": "24.57",
+            "opening_infrastructure": "22.7225",
+            "closing_infrastructure": "23.9510",
+            "opening_capacity": "4000.00",
+            "capacity_addition": "0.00",
+            "closing_capacity": "4000.00",
+            "opening_informal": "0.11455078125",
+            "closing_informal": "0.1046630859375",
+            "opening_unrest": "0.19164255000",
+            "closing_unrest": "0.155984040000"
+          },
+          "Interior": {
+            "gross": "3000.00",
+            "informal_income": "296.19",
+            "taxable": "2703.81",
+            "tax": "675.95",
+            "consumption": "1600.00",
+            "unmet_needs": "0.00",
+            "domestic_investment": "144.81",
+            "civilian_saving": "579.24",
+            "maintenance_need": "20.57",
+            "improvement_cap": "80.00",
+            "cost_per_point": "40",
+            "maintenance_paid": "20.57",
+            "improvement_paid": "32.00",
+            "opening_infrastructure": "51.424",
+            "closing_infrastructure": "52.224",
+            "opening_capacity": "8044.327",
+            "capacity_addition": "14.481",
+            "closing_capacity": "8058.808",
+            "opening_informal": "0.09873046875",
+            "closing_informal": "0.0927978515625",
+            "opening_unrest": "0.165936000000",
+            "closing_unrest": "0.1327488000000"
+          }
+        },
+        "cash_journal": [
+          {
+            "source": "income_payers",
+            "destination": "civilians",
+            "amount": "10000.00",
+            "reason": "assumed settled seasonal income; not a GDP-to-cash conversion"
+          },
+          {
+            "source": "civilians",
+            "destination": "treasury",
+            "amount": "1375.64",
+            "reason": "tax:Core"
+          },
+          {
+            "source": "civilians",
+            "destination": "ordinary_suppliers",
+            "amount": "1600.00",
+            "reason": "consumption:Core"
+          },
+          {
+            "source": "civilians",
+            "destination": "investment_suppliers",
+            "amount": "604.87",
+            "reason": "local investment:Core"
+          },
+          {
+            "source": "civilians",
+            "destination": "treasury",
+            "amount": "221.36",
+            "reason": "tax:Frontier"
+          },
+          {
+            "source": "civilians",
+            "destination": "ordinary_suppliers",
+            "amount": "778.64",
+            "reason": "consumption:Frontier"
+          },
+          {
+            "source": "civilians",
+            "destination": "treasury",
+            "amount": "675.95",
+            "reason": "tax:Interior"
+          },
+          {
+            "source": "civilians",
+            "destination": "ordinary_suppliers",
+            "amount": "1600.00",
+            "reason": "consumption:Interior"
+          },
+          {
+            "source": "civilians",
+            "destination": "investment_suppliers",
+            "amount": "144.81",
+            "reason": "local investment:Interior"
+          },
+          {
+            "source": "treasury",
+            "destination": "military",
+            "amount": "500.00",
+            "reason": "military upkeep"
+          },
+          {
+            "source": "treasury",
+            "destination": "public_suppliers",
+            "amount": "128.58",
+            "reason": "funded maintenance and improvements"
+          }
+        ],
+        "closing_cash_accounts": {
+          "treasury": "3083.98",
+          "income_payers": "0.00",
+          "lenders": "0.00",
+          "civilians": "2998.73",
+          "ordinary_suppliers": "3978.64",
+          "investment_suppliers": "749.68",
+          "public_suppliers": "128.58",
+          "military": "500.00"
+        }
+      }
+    ],
+    "investment_priorities": {
+      "population": {
+        "season": 1,
+        "gross_income": "10000.00",
+        "tax_receipts": "2187.50",
+        "opening_cash": "200.00",
+        "opening_debt": "500.00",
+        "credit_limit": "6000.00",
+        "borrowing_headroom": "5500.00",
+        "interest_due": "25.00",
+        "interest_paid": "25.00",
+        "military_due": "1000.00",
+        "military_paid": "1000.00",
+        "military_funded_fraction": "1",
+        "infrastructure_requirement": "256.00",
+        "infrastructure_requested": "128.00",
+        "infrastructure_paid": "128.00",
+        "borrowing": "0",
+        "principal_repayment": "500.00",
+        "interest_arrears": "0.00",
+        "debt_relief": "0",
+        "new_default": false,
+        "closing_cash": "734.50",
+        "closing_debt": "0.00",
+        "credit_lock": 0,
+        "remaining_credit": "6000.00",
+        "warning": "funded",
+        "budget_shortfall": "0.00",
+        "operating_balance": "1034.50",
+        "probability_per_division": "0.00",
+        "desertions": [],
+        "local": {
+          "Core": {
+            "gross": "6000.00",
+            "informal_income": "600.00",
+            "taxable": "5400.00",
+            "tax": "1350.00",
+            "consumption": "1600.00",
+            "unmet_needs": "0.00",
+            "domestic_investment": "610.00",
+            "civilian_saving": "2440.00",
+            "maintenance_need": "32.00",
+            "improvement_cap": "80.00",
+            "cost_per_point": "40",
+            "maintenance_paid": "32.00",
+            "improvement_paid": "28.80",
+            "opening_infrastructure": "80",
+            "closing_infrastructure": "80.72",
+            "opening_capacity": "12000",
+            "capacity_addition": "61.00",
+            "closing_capacity": "12061.00",
+            "opening_informal": "0.10",
+            "closing_informal": "0.09375",
+            "opening_unrest": "0.05",
+            "closing_unrest": "0.040"
+          },
+          "Frontier": {
+            "gross": "1000.00",
+            "informal_income": "200.00",
+            "taxable": "800.00",
+            "tax": "200.00",
+            "consumption": "800.00",
+            "unmet_needs": "0.00",
+            "domestic_investment": "0.00",
+            "civilian_saving": "0.00",
+            "maintenance_need": "4.00",
+            "improvement_cap": "40.00",
+            "cost_per_point": "20",
+            "maintenance_paid": "4.00",
+            "improvement_paid": "14.40",
+            "opening_infrastructure": "20",
+            "closing_infrastructure": "20.72",
+            "opening_capacity": "4000",
+            "capacity_addition": "0.00",
+            "closing_capacity": "4000.00",
+            "opening_informal": "0.20",
+            "closing_informal": "0.16875",
+            "opening_unrest": "0.15",
+            "closing_unrest": "0.120"
+          },
+          "Interior": {
+            "gross": "3000.00",
+            "informal_income": "450.00",
+            "taxable": "2550.00",
+            "tax": "637.50",
+            "consumption": "1600.00",
+            "unmet_needs": "0.00",
+            "domestic_investment": "152.50",
+            "civilian_saving": "610.00",
+            "maintenance_need": "20.00",
+            "improvement_cap": "80.00",
+            "cost_per_point": "40",
+            "maintenance_paid": "20.00",
+            "improvement_paid": "28.80",
+            "opening_infrastructure": "50",
+            "closing_infrastructure": "50.72",
+            "opening_capacity": "8000",
+            "capacity_addition": "15.25",
+            "closing_capacity": "8015.25",
+            "opening_informal": "0.15",
+            "closing_informal": "0.13125",
+            "opening_unrest": "0.10",
+            "closing_unrest": "0.080"
+          }
+        },
+        "cash_journal": [
+          {
+            "source": "income_payers",
+            "destination": "civilians",
+            "amount": "10000.00",
+            "reason": "assumed settled seasonal income; not a GDP-to-cash conversion"
+          },
+          {
+            "source": "civilians",
+            "destination": "treasury",
+            "amount": "1350.00",
+            "reason": "tax:Core"
+          },
+          {
+            "source": "civilians",
+            "destination": "ordinary_suppliers",
+            "amount": "1600.00",
+            "reason": "consumption:Core"
+          },
+          {
+            "source": "civilians",
+            "destination": "investment_suppliers",
+            "amount": "610.00",
+            "reason": "local investment:Core"
+          },
+          {
+            "source": "civilians",
+            "destination": "treasury",
+            "amount": "200.00",
+            "reason": "tax:Frontier"
+          },
+          {
+            "source": "civilians",
+            "destination": "ordinary_suppliers",
+            "amount": "800.00",
+            "reason": "consumption:Frontier"
+          },
+          {
+            "source": "civilians",
+            "destination": "treasury",
+            "amount": "637.50",
+            "reason": "tax:Interior"
+          },
+          {
+            "source": "civilians",
+            "destination": "ordinary_suppliers",
+            "amount": "1600.00",
+            "reason": "consumption:Interior"
+          },
+          {
+            "source": "civilians",
+            "destination": "investment_suppliers",
+            "amount": "152.50",
+            "reason": "local investment:Interior"
+          },
+          {
+            "source": "treasury",
+            "destination": "lenders",
+            "amount": "25.00",
+            "reason": "interest on opening principal"
+          },
+          {
+            "source": "treasury",
+            "destination": "military",
+            "amount": "1000.00",
+            "reason": "military upkeep"
+          },
+          {
+            "source": "treasury",
+            "destination": "public_suppliers",
+            "amount": "128.00",
+            "reason": "funded maintenance and improvements"
+          },
+          {
+            "source": "treasury",
+            "destination": "lenders",
+            "amount": "500.00",
+            "reason": "principal repayment above treasury reserve"
+          }
+        ],
+        "closing_cash_accounts": {
+          "treasury": "734.50",
+          "income_payers": "0.00",
+          "lenders": "6025.00",
+          "civilians": "3050.00",
+          "ordinary_suppliers": "4000.00",
+          "investment_suppliers": "762.50",
+          "public_suppliers": "128.00",
+          "military": "1000.00"
+        }
+      },
+      "regional_development": {
+        "season": 1,
+        "gross_income": "10000.00",
+        "tax_receipts": "2187.50",
+        "opening_cash": "200.00",
+        "opening_debt": "500.00",
+        "credit_limit": "6000.00",
+        "borrowing_headroom": "5500.00",
+        "interest_due": "25.00",
+        "interest_paid": "25.00",
+        "military_due": "1000.00",
+        "military_paid": "1000.00",
+        "military_funded_fraction": "1",
+        "infrastructure_requirement": "256.00",
+        "infrastructure_requested": "128.00",
+        "infrastructure_paid": "128.00",
+        "borrowing": "0",
+        "principal_repayment": "500.00",
+        "interest_arrears": "0.00",
+        "debt_relief": "0",
+        "new_default": false,
+        "closing_cash": "734.50",
+        "closing_debt": "0.00",
+        "credit_lock": 0,
+        "remaining_credit": "6000.00",
+        "warning": "funded",
+        "budget_shortfall": "0.00",
+        "operating_balance": "1034.50",
+        "probability_per_division": "0.00",
+        "desertions": [],
+        "local": {
+          "Core": {
+            "gross": "6000.00",
+            "informal_income": "600.00",
+            "taxable": "5400.00",
+            "tax": "1350.00",
+            "consumption": "1600.00",
+            "unmet_needs": "0.00",
+            "domestic_investment": "610.00",
+            "civilian_saving": "2440.00",
+            "maintenance_need": "32.00",
+            "improvement_cap": "80.00",
+            "cost_per_point": "40",
+            "maintenance_paid": "32.00",
+            "improvement_paid": "14.69",
+            "opening_infrastructure": "80",
+            "closing_infrastructure": "80.36725",
+            "opening_capacity": "12000",
+            "capacity_addition": "61.00",
+            "closing_capacity": "12061.00",
+            "opening_informal": "0.10",
+            "closing_informal": "0.09375",
+            "opening_unrest": "0.05",
+            "closing_unrest": "0.040"
+          },
+          "Frontier": {
+            "gross": "1000.00",
+            "informal_income": "200.00",
+            "taxable": "800.00",
+            "tax": "200.00",
+            "consumption": "800.00",
+            "unmet_needs": "0.00",
+            "domestic_investment": "0.00",
+            "civilian_saving": "0.00",
+            "maintenance_need": "4.00",
+            "improvement_cap": "40.00",
+            "cost_per_point": "20",
+            "maintenance_paid": "4.00",
+            "improvement_paid": "24.98",
+            "opening_infrastructure": "20",
+            "closing_infrastructure": "21.249",
+            "opening_capacity": "4000",
+            "capacity_addition": "0.00",
+            "closing_capacity": "4000.00",
+            "opening_informal": "0.20",
+            "closing_informal": "0.16875",
+            "opening_unrest": "0.15",
+            "closing_unrest": "0.120"
+          },
+          "Interior": {
+            "gross": "3000.00",
+            "informal_income": "450.00",
+            "taxable": "2550.00",
+            "tax": "637.50",
+            "consumption": "1600.00",
+            "unmet_needs": "0.00",
+            "domestic_investment": "152.50",
+            "civilian_saving": "610.00",
+            "maintenance_need": "20.00",
+            "improvement_cap": "80.00",
+            "cost_per_point": "40",
+            "maintenance_paid": "20.00",
+            "improvement_paid": "32.33",
+            "opening_infrastructure": "50",
+            "closing_infrastructure": "50.80825",
+            "opening_capacity": "8000",
+            "capacity_addition": "15.25",
+            "closing_capacity": "8015.25",
+            "opening_informal": "0.15",
+            "closing_informal": "0.13125",
+            "opening_unrest": "0.10",
+            "closing_unrest": "0.080"
+          }
+        },
+        "cash_journal": [
+          {
+            "source": "income_payers",
+            "destination": "civilians",
+            "amount": "10000.00",
+            "reason": "assumed settled seasonal income; not a GDP-to-cash conversion"
+          },
+          {
+            "source": "civilians",
+            "destination": "treasury",
+            "amount": "1350.00",
+            "reason": "tax:Core"
+          },
+          {
+            "source": "civilians",
+            "destination": "ordinary_suppliers",
+            "amount": "1600.00",
+            "reason": "consumption:Core"
+          },
+          {
+            "source": "civilians",
+            "destination": "investment_suppliers",
+            "amount": "610.00",
+            "reason": "local investment:Core"
+          },
+          {
+            "source": "civilians",
+            "destination": "treasury",
+            "amount": "200.00",
+            "reason": "tax:Frontier"
+          },
+          {
+            "source": "civilians",
+            "destination": "ordinary_suppliers",
+            "amount": "800.00",
+            "reason": "consumption:Frontier"
+          },
+          {
+            "source": "civilians",
+            "destination": "treasury",
+            "amount": "637.50",
+            "reason": "tax:Interior"
+          },
+          {
+            "source": "civilians",
+            "destination": "ordinary_suppliers",
+            "amount": "1600.00",
+            "reason": "consumption:Interior"
+          },
+          {
+            "source": "civilians",
+            "destination": "investment_suppliers",
+            "amount": "152.50",
+            "reason": "local investment:Interior"
+          },
+          {
+            "source": "treasury",
+            "destination": "lenders",
+            "amount": "25.00",
+            "reason": "interest on opening principal"
+          },
+          {
+            "source": "treasury",
+            "destination": "military",
+            "amount": "1000.00",
+            "reason": "military upkeep"
+          },
+          {
+            "source": "treasury",
+            "destination": "public_suppliers",
+            "amount": "128.00",
+            "reason": "funded maintenance and improvements"
+          },
+          {
+            "source": "treasury",
+            "destination": "lenders",
+            "amount": "500.00",
+            "reason": "principal repayment above treasury reserve"
+          }
+        ],
+        "closing_cash_accounts": {
+          "treasury": "734.50",
+          "income_payers": "0.00",
+          "lenders": "6025.00",
+          "civilians": "3050.00",
+          "ordinary_suppliers": "4000.00",
+          "investment_suppliers": "762.50",
+          "public_suppliers": "128.00",
+          "military": "1000.00"
+        }
+      },
+      "economic_concentration": {
+        "season": 1,
+        "gross_income": "10000.00",
+        "tax_receipts": "2187.50",
+        "opening_cash": "200.00",
+        "opening_debt": "500.00",
+        "credit_limit": "6000.00",
+        "borrowing_headroom": "5500.00",
+        "interest_due": "25.00",
+        "interest_paid": "25.00",
+        "military_due": "1000.00",
+        "military_paid": "1000.00",
+        "military_funded_fraction": "1",
+        "infrastructure_requirement": "256.00",
+        "infrastructure_requested": "128.00",
+        "infrastructure_paid": "128.00",
+        "borrowing": "0",
+        "principal_repayment": "500.00",
+        "interest_arrears": "0.00",
+        "debt_relief": "0",
+        "new_default": false,
+        "closing_cash": "734.50",
+        "closing_debt": "0.00",
+        "credit_lock": 0,
+        "remaining_credit": "6000.00",
+        "warning": "funded",
+        "budget_shortfall": "0.00",
+        "operating_balance": "1034.50",
+        "probability_per_division": "0.00",
+        "desertions": [],
+        "local": {
+          "Core": {
+            "gross": "6000.00",
+            "informal_income": "600.00",
+            "taxable": "5400.00",
+            "tax": "1350.00",
+            "consumption": "1600.00",
+            "unmet_needs": "0.00",
+            "domestic_investment": "610.00",
+            "civilian_saving": "2440.00",
+            "maintenance_need": "32.00",
+            "improvement_cap": "80.00",
+            "cost_per_point": "40",
+            "maintenance_paid": "32.00",
+            "improvement_paid": "43.20",
+            "opening_infrastructure": "80",
+            "closing_infrastructure": "81.08",
+            "opening_capacity": "12000",
+            "capacity_addition": "61.00",
+            "closing_capacity": "12061.00",
+            "opening_informal": "0.10",
+            "closing_informal": "0.09375",
+            "opening_unrest": "0.05",
+            "closing_unrest": "0.040"
+          },
+          "Frontier": {
+            "gross": "1000.00",
+            "informal_income": "200.00",
+            "taxable": "800.00",
+            "tax": "200.00",
+            "consumption": "800.00",
+            "unmet_needs": "0.00",
+            "domestic_investment": "0.00",
+            "civilian_saving": "0.00",
+            "maintenance_need": "4.00",
+            "improvement_cap": "40.00",
+            "cost_per_point": "20",
+            "maintenance_paid": "4.00",
+            "improvement_paid": "7.20",
+            "opening_infrastructure": "20",
+            "closing_infrastructure": "20.36",
+            "opening_capacity": "4000",
+            "capacity_addition": "0.00",
+            "closing_capacity": "4000.00",
+            "opening_informal": "0.20",
+            "closing_informal": "0.16875",
+            "opening_unrest": "0.15",
+            "closing_unrest": "0.120"
+          },
+          "Interior": {
+            "gross": "3000.00",
+            "informal_income": "450.00",
+            "taxable": "2550.00",
+            "tax": "637.50",
+            "consumption": "1600.00",
+            "unmet_needs": "0.00",
+            "domestic_investment": "152.50",
+            "civilian_saving": "610.00",
+            "maintenance_need": "20.00",
+            "improvement_cap": "80.00",
+            "cost_per_point": "40",
+            "maintenance_paid": "20.00",
+            "improvement_paid": "21.60",
+            "opening_infrastructure": "50",
+            "closing_infrastructure": "50.54",
+            "opening_capacity": "8000",
+            "capacity_addition": "15.25",
+            "closing_capacity": "8015.25",
+            "opening_informal": "0.15",
+            "closing_informal": "0.13125",
+            "opening_unrest": "0.10",
+            "closing_unrest": "0.080"
+          }
+        },
+        "cash_journal": [
+          {
+            "source": "income_payers",
+            "destination": "civilians",
+            "amount": "10000.00",
+            "reason": "assumed settled seasonal income; not a GDP-to-cash conversion"
+          },
+          {
+            "source": "civilians",
+            "destination": "treasury",
+            "amount": "1350.00",
+            "reason": "tax:Core"
+          },
+          {
+            "source": "civilians",
+            "destination": "ordinary_suppliers",
+            "amount": "1600.00",
+            "reason": "consumption:Core"
+          },
+          {
+            "source": "civilians",
+            "destination": "investment_suppliers",
+            "amount": "610.00",
+            "reason": "local investment:Core"
+          },
+          {
+            "source": "civilians",
+            "destination": "treasury",
+            "amount": "200.00",
+            "reason": "tax:Frontier"
+          },
+          {
+            "source": "civilians",
+            "destination": "ordinary_suppliers",
+            "amount": "800.00",
+            "reason": "consumption:Frontier"
+          },
+          {
+            "source": "civilians",
+            "destination": "treasury",
+            "amount": "637.50",
+            "reason": "tax:Interior"
+          },
+          {
+            "source": "civilians",
+            "destination": "ordinary_suppliers",
+            "amount": "1600.00",
+            "reason": "consumption:Interior"
+          },
+          {
+            "source": "civilians",
+            "destination": "investment_suppliers",
+            "amount": "152.50",
+            "reason": "local investment:Interior"
+          },
+          {
+            "source": "treasury",
+            "destination": "lenders",
+            "amount": "25.00",
+            "reason": "interest on opening principal"
+          },
+          {
+            "source": "treasury",
+            "destination": "military",
+            "amount": "1000.00",
+            "reason": "military upkeep"
+          },
+          {
+            "source": "treasury",
+            "destination": "public_suppliers",
+            "amount": "128.00",
+            "reason": "funded maintenance and improvements"
+          },
+          {
+            "source": "treasury",
+            "destination": "lenders",
+            "amount": "500.00",
+            "reason": "principal repayment above treasury reserve"
+          }
+        ],
+        "closing_cash_accounts": {
+          "treasury": "734.50",
+          "income_payers": "0.00",
+          "lenders": "6025.00",
+          "civilians": "3050.00",
+          "ordinary_suppliers": "4000.00",
+          "investment_suppliers": "762.50",
+          "public_suppliers": "128.00",
+          "military": "1000.00"
+        }
+      }
+    },
+    "zero_infrastructure_funding": {
+      "season": 1,
+      "gross_income": "10000.00",
+      "tax_receipts": "2187.50",
+      "opening_cash": "200.00",
+      "opening_debt": "500.00",
+      "credit_limit": "6000.00",
+      "borrowing_headroom": "5500.00",
+      "interest_due": "25.00",
+      "interest_paid": "25.00",
+      "military_due": "1000.00",
+      "military_paid": "1000.00",
+      "military_funded_fraction": "1",
+      "infrastructure_requirement": "256.00",
+      "infrastructure_requested": "0.00",
+      "infrastructure_paid": "0",
+      "borrowing": "0",
+      "principal_repayment": "500.00",
+      "interest_arrears": "0.00",
+      "debt_relief": "0",
+      "new_default": false,
+      "closing_cash": "862.50",
+      "closing_debt": "0.00",
+      "credit_lock": 0,
+      "remaining_credit": "6000.00",
+      "warning": "funded",
+      "budget_shortfall": "0.00",
+      "operating_balance": "1162.50",
+      "probability_per_division": "0.00",
+      "desertions": [],
+      "local": {
+        "Core": {
+          "gross": "6000.00",
+          "informal_income": "600.00",
+          "taxable": "5400.00",
+          "tax": "1350.00",
+          "consumption": "1600.00",
+          "unmet_needs": "0.00",
+          "domestic_investment": "610.00",
+          "civilian_saving": "2440.00",
+          "maintenance_need": "32.00",
+          "improvement_cap": "80.00",
+          "cost_per_point": "40",
+          "maintenance_paid": "0",
+          "improvement_paid": "0",
+          "opening_infrastructure": "80",
+          "closing_infrastructure": "79",
+          "opening_capacity": "12000",
+          "capacity_addition": "61.00",
+          "closing_capacity": "12061.00",
+          "opening_informal": "0.10",
+          "closing_informal": "0.09375",
+          "opening_unrest": "0.05",
+          "closing_unrest": "0.040"
+        },
+        "Frontier": {
+          "gross": "1000.00",
+          "informal_income": "200.00",
+          "taxable": "800.00",
+          "tax": "200.00",
+          "consumption": "800.00",
+          "unmet_needs": "0.00",
+          "domestic_investment": "0.00",
+          "civilian_saving": "0.00",
+          "maintenance_need": "4.00",
+          "improvement_cap": "40.00",
+          "cost_per_point": "20",
+          "maintenance_paid": "0",
+          "improvement_paid": "0",
+          "opening_infrastructure": "20",
+          "closing_infrastructure": "19",
+          "opening_capacity": "4000",
+          "capacity_addition": "0.00",
+          "closing_capacity": "4000.00",
+          "opening_informal": "0.20",
+          "closing_informal": "0.16875",
+          "opening_unrest": "0.15",
+          "closing_unrest": "0.120"
+        },
+        "Interior": {
+          "gross": "3000.00",
+          "informal_income": "450.00",
+          "taxable": "2550.00",
+          "tax": "637.50",
+          "consumption": "1600.00",
+          "unmet_needs": "0.00",
+          "domestic_investment": "152.50",
+          "civilian_saving": "610.00",
+          "maintenance_need": "20.00",
+          "improvement_cap": "80.00",
+          "cost_per_point": "40",
+          "maintenance_paid": "0",
+          "improvement_paid": "0",
+          "opening_infrastructure": "50",
+          "closing_infrastructure": "49",
+          "opening_capacity": "8000",
+          "capacity_addition": "15.25",
+          "closing_capacity": "8015.25",
+          "opening_informal": "0.15",
+          "closing_informal": "0.13125",
+          "opening_unrest": "0.10",
+          "closing_unrest": "0.080"
+        }
+      },
+      "cash_journal": [
+        {
+          "source": "income_payers",
+          "destination": "civilians",
+          "amount": "10000.00",
+          "reason": "assumed settled seasonal income; not a GDP-to-cash conversion"
+        },
+        {
+          "source": "civilians",
+          "destination": "treasury",
+          "amount": "1350.00",
+          "reason": "tax:Core"
+        },
+        {
+          "source": "civilians",
+          "destination": "ordinary_suppliers",
+          "amount": "1600.00",
+          "reason": "consumption:Core"
+        },
+        {
+          "source": "civilians",
+          "destination": "investment_suppliers",
+          "amount": "610.00",
+          "reason": "local investment:Core"
+        },
+        {
+          "source": "civilians",
+          "destination": "treasury",
+          "amount": "200.00",
+          "reason": "tax:Frontier"
+        },
+        {
+          "source": "civilians",
+          "destination": "ordinary_suppliers",
+          "amount": "800.00",
+          "reason": "consumption:Frontier"
+        },
+        {
+          "source": "civilians",
+          "destination": "treasury",
+          "amount": "637.50",
+          "reason": "tax:Interior"
+        },
+        {
+          "source": "civilians",
+          "destination": "ordinary_suppliers",
+          "amount": "1600.00",
+          "reason": "consumption:Interior"
+        },
+        {
+          "source": "civilians",
+          "destination": "investment_suppliers",
+          "amount": "152.50",
+          "reason": "local investment:Interior"
+        },
+        {
+          "source": "treasury",
+          "destination": "lenders",
+          "amount": "25.00",
+          "reason": "interest on opening principal"
+        },
+        {
+          "source": "treasury",
+          "destination": "military",
+          "amount": "1000.00",
+          "reason": "military upkeep"
+        },
+        {
+          "source": "treasury",
+          "destination": "lenders",
+          "amount": "500.00",
+          "reason": "principal repayment above treasury reserve"
+        }
+      ],
+      "closing_cash_accounts": {
+        "treasury": "862.50",
+        "income_payers": "0.00",
+        "lenders": "6025.00",
+        "civilians": "3050.00",
+        "ordinary_suppliers": "4000.00",
+        "investment_suppliers": "762.50",
+        "public_suppliers": "0",
+        "military": "1000.00"
+      }
+    },
+    "high_tax_first_season": {
+      "season": 1,
+      "gross_income": "10000.00",
+      "tax_receipts": "7875.00",
+      "opening_cash": "200.00",
+      "opening_debt": "500.00",
+      "credit_limit": "6000.00",
+      "borrowing_headroom": "5500.00",
+      "interest_due": "25.00",
+      "interest_paid": "25.00",
+      "military_due": "1000.00",
+      "military_paid": "1000.00",
+      "military_funded_fraction": "1",
+      "infrastructure_requirement": "256.00",
+      "infrastructure_requested": "256.00",
+      "infrastructure_paid": "256.00",
+      "borrowing": "0",
+      "principal_repayment": "500.00",
+      "interest_arrears": "0.00",
+      "debt_relief": "0",
+      "new_default": false,
+      "closing_cash": "6294.00",
+      "closing_debt": "0.00",
+      "credit_lock": 0,
+      "remaining_credit": "6000.00",
+      "warning": "funded",
+      "budget_shortfall": "0.00",
+      "operating_balance": "6594.00",
+      "probability_per_division": "0.00",
+      "desertions": [],
+      "local": {
+        "Core": {
+          "gross": "6000.00",
+          "informal_income": "600.00",
+          "taxable": "5400.00",
+          "tax": "4860.00",
+          "consumption": "1140.00",
+          "unmet_needs": "460.00",
+          "domestic_investment": "0.00",
+          "civilian_saving": "0.00",
+          "maintenance_need": "32.00",
+          "improvement_cap": "80.00",
+          "cost_per_point": "40",
+          "maintenance_paid": "32.00",
+          "improvement_paid": "80.00",
+          "opening_infrastructure": "80",
+          "closing_infrastructure": "82.00",
+          "opening_capacity": "12000",
+          "capacity_addition": "0.00",
+          "closing_capacity": "12000.00",
+          "opening_informal": "0.10",
+          "closing_informal": "0.2750",
+          "opening_unrest": "0.05",
+          "closing_unrest": "0.104750"
+        },
+        "Frontier": {
+          "gross": "1000.00",
+          "informal_income": "200.00",
+          "taxable": "800.00",
+          "tax": "720.00",
+          "consumption": "280.00",
+          "unmet_needs": "520.00",
+          "domestic_investment": "0.00",
+          "civilian_saving": "0.00",
+          "maintenance_need": "4.00",
+          "improvement_cap": "40.00",
+          "cost_per_point": "20",
+          "maintenance_paid": "4.00",
+          "improvement_paid": "40.00",
+          "opening_infrastructure": "20",
+          "closing_infrastructure": "22.00",
+          "opening_capacity": "4000",
+          "capacity_addition": "0.00",
+          "closing_capacity": "4000.00",
+          "opening_informal": "0.20",
+          "closing_informal": "0.3500",
+          "opening_unrest": "0.15",
+          "closing_unrest": "0.2210"
+        },
+        "Interior": {
+          "gross": "3000.00",
+          "informal_income": "450.00",
+          "taxable": "2550.00",
+          "tax": "2295.00",
+          "consumption": "705.00",
+          "unmet_needs": "895.00",
+          "domestic_investment": "0.00",
+          "civilian_saving": "0.00",
+          "maintenance_need": "20.00",
+          "improvement_cap": "80.00",
+          "cost_per_point": "40",
+          "maintenance_paid": "20.00",
+          "improvement_paid": "80.00",
+          "opening_infrastructure": "50",
+          "closing_infrastructure": "52.00",
+          "opening_capacity": "8000",
+          "capacity_addition": "0.00",
+          "closing_capacity": "8000.00",
+          "opening_informal": "0.15",
+          "closing_informal": "0.3125",
+          "opening_unrest": "0.10",
+          "closing_unrest": "0.17193750"
+        }
+      },
+      "cash_journal": [
+        {
+          "source": "income_payers",
+          "destination": "civilians",
+          "amount": "10000.00",
+          "reason": "assumed settled seasonal income; not a GDP-to-cash conversion"
+        },
+        {
+          "source": "civilians",
+          "destination": "treasury",
+          "amount": "4860.00",
+          "reason": "tax:Core"
+        },
+        {
+          "source": "civilians",
+          "destination": "ordinary_suppliers",
+          "amount": "1140.00",
+          "reason": "consumption:Core"
+        },
+        {
+          "source": "civilians",
+          "destination": "treasury",
+          "amount": "720.00",
+          "reason": "tax:Frontier"
+        },
+        {
+          "source": "civilians",
+          "destination": "ordinary_suppliers",
+          "amount": "280.00",
+          "reason": "consumption:Frontier"
+        },
+        {
+          "source": "civilians",
+          "destination": "treasury",
+          "amount": "2295.00",
+          "reason": "tax:Interior"
+        },
+        {
+          "source": "civilians",
+          "destination": "ordinary_suppliers",
+          "amount": "705.00",
+          "reason": "consumption:Interior"
+        },
+        {
+          "source": "treasury",
+          "destination": "lenders",
+          "amount": "25.00",
+          "reason": "interest on opening principal"
+        },
+        {
+          "source": "treasury",
+          "destination": "military",
+          "amount": "1000.00",
+          "reason": "military upkeep"
+        },
+        {
+          "source": "treasury",
+          "destination": "public_suppliers",
+          "amount": "256.00",
+          "reason": "funded maintenance and improvements"
+        },
+        {
+          "source": "treasury",
+          "destination": "lenders",
+          "amount": "500.00",
+          "reason": "principal repayment above treasury reserve"
+        }
+      ],
+      "closing_cash_accounts": {
+        "treasury": "6294.00",
+        "income_payers": "0.00",
+        "lenders": "6025.00",
+        "civilians": "0.00",
+        "ordinary_suppliers": "2125.00",
+        "investment_suppliers": "0",
+        "public_suppliers": "256.00",
+        "military": "1000.00"
+      }
+    }
+  },
+  "sensitivity": [
+    {
+      "interest_due": "40.00",
+      "credit_limit": "2000.00",
+      "borrowing": "0",
+      "military_paid": "2247.50",
+      "infrastructure_paid": "0",
+      "warning": "unfunded_budget",
+      "interest_rate": "0.01",
+      "credit_multiple": 1
+    },
+    {
+      "interest_due": "40.00",
+      "credit_limit": "6000.00",
+      "borrowing": "1508.50",
+      "military_paid": "3500.00",
+      "infrastructure_paid": "256.00",
+      "warning": "credit_at_risk",
+      "interest_rate": "0.01",
+      "credit_multiple": 3
+    },
+    {
+      "interest_due": "40.00",
+      "credit_limit": "12000.00",
+      "borrowing": "1508.50",
+      "military_paid": "3500.00",
+      "infrastructure_paid": "256.00",
+      "warning": "borrowing",
+      "interest_rate": "0.01",
+      "credit_multiple": 6
+    },
+    {
+      "interest_due": "120.00",
+      "credit_limit": "2000.00",
+      "borrowing": "0",
+      "military_paid": "2167.50",
+      "infrastructure_paid": "0",
+      "warning": "unfunded_budget",
+      "interest_rate": "0.03",
+      "credit_multiple": 1
+    },
+    {
+      "interest_due": "120.00",
+      "credit_limit": "6000.00",
+      "borrowing": "1588.50",
+      "military_paid": "3500.00",
+      "infrastructure_paid": "256.00",
+      "warning": "credit_at_risk",
+      "interest_rate": "0.03",
+      "credit_multiple": 3
+    },
+    {
+      "interest_due": "120.00",
+      "credit_limit": "12000.00",
+      "borrowing": "1588.50",
+      "military_paid": "3500.00",
+      "infrastructure_paid": "256.00",
+      "warning": "borrowing",
+      "interest_rate": "0.03",
+      "credit_multiple": 6
+    },
+    {
+      "interest_due": "200.00",
+      "credit_limit": "2000.00",
+      "borrowing": "0",
+      "military_paid": "2087.50",
+      "infrastructure_paid": "0",
+      "warning": "unfunded_budget",
+      "interest_rate": "0.05",
+      "credit_multiple": 1
+    },
+    {
+      "interest_due": "200.00",
+      "credit_limit": "6000.00",
+      "borrowing": "1668.50",
+      "military_paid": "3500.00",
+      "infrastructure_paid": "256.00",
+      "warning": "credit_at_risk",
+      "interest_rate": "0.05",
+      "credit_multiple": 3
+    },
+    {
+      "interest_due": "200.00",
+      "credit_limit": "12000.00",
+      "borrowing": "1668.50",
+      "military_paid": "3500.00",
+      "infrastructure_paid": "256.00",
+      "warning": "borrowing",
+      "interest_rate": "0.05",
+      "credit_multiple": 6
+    },
+    {
+      "interest_due": "400.00",
+      "credit_limit": "2000.00",
+      "borrowing": "0",
+      "military_paid": "1887.50",
+      "infrastructure_paid": "0",
+      "warning": "unfunded_budget",
+      "interest_rate": "0.10",
+      "credit_multiple": 1
+    },
+    {
+      "interest_due": "400.00",
+      "credit_limit": "6000.00",
+      "borrowing": "1868.50",
+      "military_paid": "3500.00",
+      "infrastructure_paid": "256.00",
+      "warning": "credit_at_risk",
+      "interest_rate": "0.10",
+      "credit_multiple": 3
+    },
+    {
+      "interest_due": "400.00",
+      "credit_limit": "12000.00",
+      "borrowing": "1868.50",
+      "military_paid": "3500.00",
+      "infrastructure_paid": "256.00",
+      "warning": "borrowing",
+      "interest_rate": "0.10",
+      "credit_multiple": 6
+    }
+  ],
+  "tax_response": {
+    "fixed_income": "10000",
+    "paired_examples": [
+      {
+        "high_rate": "0.50",
+        "schedules": {
+          "opening_share": {
+            "steady_low": {
+              "average_receipts": "2312.50",
+              "last_four": [
+                "2312.50",
+                "2312.50",
+                "2312.50",
+                "2312.50"
+              ]
+            },
+            "steady_high": {
+              "average_receipts": "2750.00",
+              "last_four": [
+                "2750.00",
+                "2750.00",
+                "2750.00",
+                "2750.00"
+              ]
+            },
+            "alternating": {
+              "average_receipts": "2799.11",
+              "last_four": [
+                "3821.43",
+                "1776.79",
+                "3821.43",
+                "1776.79"
+              ]
+            }
+          },
+          "adjust_before_collection": {
+            "steady_low": {
+              "average_receipts": "2312.50",
+              "last_four": [
+                "2312.50",
+                "2312.50",
+                "2312.50",
+                "2312.50"
+              ]
+            },
+            "steady_high": {
+              "average_receipts": "2750.00",
+              "last_four": [
+                "2750.00",
+                "2750.00",
+                "2750.00",
+                "2750.00"
+              ]
+            },
+            "alternating": {
+              "average_receipts": "2732.14",
+              "last_four": [
+                "3553.57",
+                "1910.71",
+                "3553.57",
+                "1910.71"
+              ]
+            }
+          },
+          "faster_evasion_slower_return": {
+            "steady_low": {
+              "average_receipts": "2312.30",
+              "last_four": [
+                "2312.48",
+                "2312.48",
+                "2312.48",
+                "2312.49"
+              ]
+            },
+            "steady_high": {
+              "average_receipts": "2750.00",
+              "last_four": [
+                "2750.00",
+                "2750.00",
+                "2750.00",
+                "2750.00"
+              ]
+            },
+            "alternating": {
+              "average_receipts": "2153.23",
+              "last_four": [
+                "2810.48",
+                "1495.97",
+                "2810.48",
+                "1495.97"
+              ]
+            }
+          }
+        }
+      },
+      {
+        "high_rate": "0.75",
+        "schedules": {
+          "opening_share": {
+            "steady_low": {
+              "average_receipts": "2312.50",
+              "last_four": [
+                "2312.50",
+                "2312.50",
+                "2312.50",
+                "2312.50"
+              ]
+            },
+            "steady_high": {
+              "average_receipts": "1500.01",
+              "last_four": [
+                "1500.00",
+                "1500.00",
+                "1500.00",
+                "1500.00"
+              ]
+            },
+            "alternating": {
+              "average_receipts": "2941.97",
+              "last_four": [
+                "4607.14",
+                "1276.79",
+                "4607.14",
+                "1276.79"
+              ]
+            }
+          },
+          "adjust_before_collection": {
+            "steady_low": {
+              "average_receipts": "2312.50",
+              "last_four": [
+                "2312.50",
+                "2312.50",
+                "2312.50",
+                "2312.50"
+              ]
+            },
+            "steady_high": {
+              "average_receipts": "1500.00",
+              "last_four": [
+                "1500.00",
+                "1500.00",
+                "1500.00",
+                "1500.00"
+              ]
+            },
+            "alternating": {
+              "average_receipts": "2683.04",
+              "last_four": [
+                "3830.36",
+                "1535.71",
+                "3830.36",
+                "1535.71"
+              ]
+            }
+          },
+          "faster_evasion_slower_return": {
+            "steady_low": {
+              "average_receipts": "2312.30",
+              "last_four": [
+                "2312.48",
+                "2312.48",
+                "2312.48",
+                "2312.49"
+              ]
+            },
+            "steady_high": {
+              "average_receipts": "1500.00",
+              "last_four": [
+                "1500.00",
+                "1500.00",
+                "1500.00",
+                "1500.00"
+              ]
+            },
+            "alternating": {
+              "average_receipts": "1204.64",
+              "last_four": [
+                "1675.40",
+                "733.87",
+                "1675.40",
+                "733.87"
+              ]
+            }
+          }
+        }
+      },
+      {
+        "high_rate": "1.00",
+        "schedules": {
+          "opening_share": {
+            "steady_low": {
+              "average_receipts": "2312.50",
+              "last_four": [
+                "2312.50",
+                "2312.50",
+                "2312.50",
+                "2312.50"
+              ]
+            },
+            "steady_high": {
+              "average_receipts": "2000.01",
+              "last_four": [
+                "2000.00",
+                "2000.00",
+                "2000.00",
+                "2000.00"
+              ]
+            },
+            "alternating": {
+              "average_receipts": "3709.83",
+              "last_four": [
+                "6142.86",
+                "1276.79",
+                "6142.86",
+                "1276.79"
+              ]
+            }
+          },
+          "adjust_before_collection": {
+            "steady_low": {
+              "average_receipts": "2312.50",
+              "last_four": [
+                "2312.50",
+                "2312.50",
+                "2312.50",
+                "2312.50"
+              ]
+            },
+            "steady_high": {
+              "average_receipts": "2000.01",
+              "last_four": [
+                "2000.00",
+                "2000.00",
+                "2000.00",
+                "2000.00"
+              ]
+            },
+            "alternating": {
+              "average_receipts": "3321.43",
+              "last_four": [
+                "5107.14",
+                "1535.71",
+                "5107.14",
+                "1535.71"
+              ]
+            }
+          },
+          "faster_evasion_slower_return": {
+            "steady_low": {
+              "average_receipts": "2312.30",
+              "last_four": [
+                "2312.48",
+                "2312.48",
+                "2312.48",
+                "2312.49"
+              ]
+            },
+            "steady_high": {
+              "average_receipts": "2000.00",
+              "last_four": [
+                "2000.00",
+                "2000.00",
+                "2000.00",
+                "2000.00"
+              ]
+            },
+            "alternating": {
+              "average_receipts": "1483.87",
+              "last_four": [
+                "2233.87",
+                "733.87",
+                "2233.87",
+                "733.87"
+              ]
+            }
+          }
+        }
+      }
+    ],
+    "best_constant_one_percent_grid": {
+      "rate": "0.43",
+      "receipts": "2816.50"
+    },
+    "schedule_sweep": [
+      {
+        "timing": "opening_share",
+        "schedules_tested": 180,
+        "best_cycle": {
+          "low_rate": "0.2",
+          "high_rate": "1",
+          "high_seasons": 1,
+          "low_seasons": 1,
+          "average_receipts": "3828.57"
+        },
+        "cycles_above_best_constant": 47
+      },
+      {
+        "timing": "adjust_before_collection",
+        "schedules_tested": 180,
+        "best_cycle": {
+          "low_rate": "0.2",
+          "high_rate": "1",
+          "high_seasons": 1,
+          "low_seasons": 1,
+          "average_receipts": "3371.43"
+        },
+        "cycles_above_best_constant": 19
+      },
+      {
+        "timing": "faster_evasion_slower_return",
+        "schedules_tested": 180,
+        "best_cycle": {
+          "low_rate": "0.3",
+          "high_rate": "0.4",
+          "high_seasons": 3,
+          "low_seasons": 1,
+          "average_receipts": "2641.40"
+        },
+        "cycles_above_best_constant": 0
+      }
+    ]
+  }
+}

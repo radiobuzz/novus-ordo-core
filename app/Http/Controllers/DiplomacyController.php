@@ -1,7 +1,7 @@
 <?php
 namespace App\Http\Controllers;
 
-use App\Domain\{NationOfferKind, ResourceType};
+use App\Domain\NationOfferKind;
 use App\Services\{DiplomacyService, NationCommunicationService, NationContext};
 use App\Utils\Annotations\Summary;
 use Illuminate\Http\{JsonResponse, Request};
@@ -30,10 +30,10 @@ class DiplomacyController extends Controller {
     public function propose(Request $request, NationContext $context, NationCommunicationService $messages): JsonResponse {
         $values = $request->validate(['nation_id' => 'required|integer|min:1', 'kind' => ['required', Rule::in(['Peace', 'Alliance', 'ResourceGrant'])],
             'request_key' => 'required|uuid', 'basis_revision' => 'nullable|uuid',
-            'resource_type' => ['nullable', Rule::in(['Capital', 'Food', 'Material', 'Ore', 'Oil'])],
+            'resource_key' => ['nullable', 'string'],
             'quantity' => 'nullable']);
         $kind = constant(NationOfferKind::class . '::' . $values['kind']);
-        $resource = isset($values['resource_type']) ? ResourceType::fromName($values['resource_type']) : null;
+        $resource = $values['resource_key'] ?? null;
         return response()->json($messages->propose($context->getNation(), $values['nation_id'], $kind,
             $values['request_key'], $resource, $values['quantity'] ?? null, $values['basis_revision'] ?? null), 201);
     }

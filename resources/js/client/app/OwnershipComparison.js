@@ -171,7 +171,6 @@ function openComparison(parent, services, snapshot) {
                 before: terrain(result.before),
                 after: terrain(result.after),
                 nationColors: snapshot.nation_colors,
-                images: services.boot.mapImages,
             });
             stage.replaceChildren(map.element);
             await map.ready;

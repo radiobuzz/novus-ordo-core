@@ -2,12 +2,10 @@
 
 namespace App\Models;
 
-use App\Domain\BidType;
 use App\Domain\DivisionType;
-use App\Domain\LaborPoolConstants;
-use App\Domain\ProductionBidConstants;
-use App\Domain\ResourceType;
-use App\Domain\ResourceTypeMeta;
+use App\Services\Resources\ResourceCatalogue;
+use App\Services\Resources\ResourceLedger;
+use App\Domain\Resources\Quantity as Q;
 use App\Domain\SharedAssetType;
 use App\Domain\StatUnit;
 use App\Facades\Metacache;
@@ -33,11 +31,10 @@ class NationDetail extends Model
     use ReplicatesForTurns;
     use GuardsForAssertions;
 
-    protected $casts = ['flag_design' => 'array'];
+    protected $casts = ['flag_design' => 'array', 'policy_report' => 'array', 'economy_state' => 'array', 'economy_report' => 'array', 'resource_report' => 'array'];
 
-    private const float MIN_POPULATION_GROWTH_MULTIPLIER = 1.00;
-    private const float MAX_POPULATION_GROWTH_MULTIPLIER = 5.00;
-    private const float MAX_FOOD_SURPLUS_RATIO = 5.00;
+    public function hasEconomy(): bool { return $this->getGame()->economy_rules !== null; }
+
     private const float MAX_RECRUITMENT_POOL_PER_LABOR_UNIT = 1.00;
 
     public function game(): BelongsTo {
@@ -140,11 +137,12 @@ class NationDetail extends Model
         return $this
             ->getNation()
             ->hasMany(NationResourceStockpile::class)
+            ->where('owner_kind', 'government')
             ->where('turn_id', $this->getTurn()->getId());
     }
 
     public function getStockpiles(): Collection {
-        return $this->stockpiles->mapWithKeys(fn (NationResourceStockpile $stockpile) => [$stockpile->getResourceType()->value => $stockpile]);
+        return $this->stockpiles()->get()->keyBy(fn ($stockpile) => $this->resources()->key($stockpile->resource_id));
     }
 
     public function getLeaderDetail(): LeaderDetail {
@@ -238,197 +236,52 @@ class NationDetail extends Model
             ->where('territory_id', $territory->getId());
     }
 
-    private function getProduction(ResourceType $resourceType): float {
-        return $this->getProductionRaw($resourceType) / LaborPoolConstants::LABOR_PER_UNIT_OF_PRODUCTION;
+    public function resources(): ResourceCatalogue { return ResourceCatalogue::forGame($this->getGame()); }
+
+    public function getStockpiledQuantity(string $key): string {
+        $resource = $this->resources()->get($key);
+        return Q::parse($this->stockpiles()->where('resource_id', $resource['id'])->value('available_quantity') ?? '0');
     }
 
-    private function getProductionRaw(ResourceType $resourceType): int {
-        return match($resourceType) {
-            ResourceType::RecruitmentPool => $this->getRecruitmentPoolRaw(),
-            default => LaborPoolAllocation::getProduction($this, $resourceType),
-        };
-    }
-
-    public function getStockpiledQuantity(ResourceType $resourceType): float {
-        $stockpileOrNull = $this->stockpiles()->where('resource_type', $resourceType->value)->first();
-
-        if (is_null($stockpileOrNull)) {
-            // No reserve, first turn for this nation or newly introduced resource type.
-
-            return 0;
-        }
-
-        return NationResourceStockpile::notNull($stockpileOrNull)->getAvailableQuantity();
-    }
-
-    public function getStockpiledQuantityRaw(ResourceType $resourceType): int {
-        return floor($this->getStockpiledQuantity($resourceType) * LaborPoolConstants::LABOR_PER_UNIT_OF_PRODUCTION);
-    }
-
-    private function getUpkeepRaw(ResourceType $resourceType): int {
-        $divisionUpkeepCosts = DivisionDetail::getTotalUpkeepCostsByResourceType($this->getNation(), $this->getTurn());
-
-        return $divisionUpkeepCosts[$resourceType->value] * LaborPoolConstants::LABOR_PER_UNIT_OF_PRODUCTION
-            + match($resourceType) {
-                ResourceType::Food => $this->getPopulationSize(),
-                default => 0,
-            };
-    }
-
-    private function getUpkeep(ResourceType $resourceType): float {
-        return floor($this->getUpkeepRaw($resourceType) / LaborPoolConstants::LABOR_PER_UNIT_OF_PRODUCTION * 10_000) / 10_000;
-    }
-
-    private function getExpensesRaw(ResourceType $resourceType): int {
-        $deploymentExpenses = Deployment::getTotalCostsByResourceType($this->getNation(), $this->getTurn());
-        $orderExpenses = Order::getTotalCostsByResourceType($this->getNation(), $this->getTurn());
-
-        return ($deploymentExpenses[$resourceType->value] + $orderExpenses[$resourceType->value]) * LaborPoolConstants::LABOR_PER_UNIT_OF_PRODUCTION;
-    }
-
-    private function getExpenses(ResourceType $resourceType): float {
-        return floor($this->getExpensesRaw($resourceType) / LaborPoolConstants::LABOR_PER_UNIT_OF_PRODUCTION * 10_000) / 10_000;
-    }
-
-    private function getAvailableProduction(ResourceType $resourceType): float {
-        return floor($this->getAvailableProductionRaw($resourceType) / LaborPoolConstants::LABOR_PER_UNIT_OF_PRODUCTION * 10_000) / 10_000;
-    }
-
-    /** Current command budget for one resource without exporting every budget section. */
-    public function getAvailableProductionQuantity(ResourceType $resourceType): float {
-        return $this->getAvailableProduction($resourceType);
-    }
-
-    private function getAvailableProductionRaw(ResourceType $resourceType): int {
-        return max(0, $this->getStockpiledQuantityRaw($resourceType) + $this->getBalanceRaw($resourceType));
-    }
-
-    private function getBalance(ResourceType $resourceType): float {
-        return round($this->getBalanceRaw($resourceType) / LaborPoolConstants::LABOR_PER_UNIT_OF_PRODUCTION, 4);
-    }
-
-    private function getBalanceRaw(ResourceType $resourceType): int {
-        return $this->getProductionRaw($resourceType) - $this->getUpkeepRaw($resourceType) - $this->getExpensesRaw($resourceType);
+    public function getAvailableProductionQuantity(string $key): string {
+        $this->resources()->get($key);
+        return app(ResourceLedger::class)->available($this)[$key];
     }
 
     public function canAffordCosts(array $costs): bool {
-        foreach(ResourceType::cases() as $resourceType) {
-            // Available production is clamped to zero; a zero cost never needs a budget query.
-            if ($costs[$resourceType->value] > 0 && $costs[$resourceType->value] > $this->getAvailableProduction($resourceType)) {
-                return false;
-            }
+        $rows = app(ResourceLedger::class)->available($this);
+        foreach ($costs as $key => $cost) {
+            $this->resources()->get($key);
+            if (Q::cmp($cost, $rows[$key]) > 0) return false;
         }
-
         return true;
     }
 
     public function getMaximumAffordableDeployment(DivisionType $divisionType): int {
         $maximum = PHP_INT_MAX;
-        foreach (DivisionType::getMeta($divisionType)->deploymentCosts as $resourceType => $cost) {
-            if ($cost > 0) {
-                $maximum = min($maximum, (int) floor($this->getAvailableProduction(ResourceType::from($resourceType)) / $cost));
+        $rows = app(ResourceLedger::class)->available($this);
+        foreach ($this->resources()->deploymentCosts($divisionType) as $key => $cost) {
+            if (Q::cmp($cost, '0') > 0) {
+                $count = \Brick\Math\BigDecimal::of($rows[$key])->dividedBy($cost, 0, \Brick\Math\RoundingMode::DOWN);
+                $maximum = min($maximum, $count->isGreaterThan(PHP_INT_MAX) ? PHP_INT_MAX : $count->toInt());
             }
         }
-
-        return $maximum === PHP_INT_MAX ? 0 : max(0, $maximum);
+        return $maximum === PHP_INT_MAX ? 0 : $maximum;
     }
 
-    public function getFreeLabor(): int {
-        $production = $this->getProductionRaw(ResourceType::Capital);
-        return min($production, max(0, $this->getBalanceRaw(ResourceType::Capital) + $this->getStockpiledQuantityRaw(ResourceType::Capital)));
-    }
-
-    public function getRecruitmentPoolRaw(): int {
-        return floor(Metacache::remember($this->getLoyalPopulationSize(...)) / NationDetail::MAX_RECRUITMENT_POOL_PER_LABOR_UNIT);
-    }
+    public function getFreeLabor(): int { return app(ResourceLedger::class)->preview($this)['idle_workers']; }
 
     public function getMaximumRecruitmentPoolExpansion(): int {
-        // return min(
-        //     floor($this->getFreeLabor() / LaborPoolConstants::LABOR_PER_UNIT_OF_PRODUCTION),
-        //     floor(Metacache::remember($this->getLoyalPopulationSize(...)) / NationDetail::MAX_RECRUITMENT_POOL_PER_LABOR_UNIT)
-        // );
-
-        return floor($this->getRecruitmentPoolRaw() / LaborPoolConstants::LABOR_PER_UNIT_OF_PRODUCTION) - $this->getNumberOfDivisions() - $this->deployments()->count();
-    }
-
-    private static function standardLogisticFunction(float $x): float
-    {
-        return 1 / (1 + exp(-$x));
+        return (int) floor((float) $this->getAvailableProductionQuantity($this->resources()->role('recruitment')));
     }
 
     public function getPopulationGrowthMultiplier(): float {
-        $stockpiledFood = $this->getStockpiledQuantity(ResourceType::Food);
-        $foodUpkeep = $this->getUpkeep(ResourceType::Food);
-
-        if ($foodUpkeep <= 0) {
-            return 0.00;
-        }
-
-        if ($stockpiledFood < 0) {
-            return 0.00;
-        }
-
-        $foodSurplusRatio = min(NationDetail::MAX_FOOD_SURPLUS_RATIO, $stockpiledFood / $foodUpkeep);
-
-        return NationDetail::MIN_POPULATION_GROWTH_MULTIPLIER + NationDetail::standardLogisticFunction(($foodSurplusRatio / NationDetail::MAX_FOOD_SURPLUS_RATIO - 0.5) * 6) * (NationDetail::MAX_POPULATION_GROWTH_MULTIPLIER - NationDetail::MIN_POPULATION_GROWTH_MULTIPLIER);
+        $food = app(\App\Services\EconomyService::class)->resolve($this)['resources'][$this->resources()->role('nutrition')];
+        return \App\Domain\Resources\Agriculture::growthMultiplier($food, $this->getGame()->economy_rules);
     }
 
     public function isHostileTerritory(Territory $territory): bool {
         return !$this->hasSafePassageThrough($territory);
-    }
-
-    private function exportBalances(): array {
-        $stockpiles = [];
-        foreach (ResourceType::cases() as $resourceType) {
-            $stockpiles[$resourceType->name] = floor($this->getBalance($resourceType) * 10_000) / 10_000;
-        }
-
-        return $stockpiles;
-    }
-
-    private function exportAvailableProduction(): array {
-        $stockpiles = [];
-        foreach (ResourceType::cases() as $resourceType) {
-            $stockpiles[$resourceType->name] = floor($this->getAvailableProduction($resourceType) * 10_000) / 10_000;
-        }
-
-        return $stockpiles;
-    }
-
-    private function exportExpenses(): array {
-        $stockpiles = [];
-        foreach (ResourceType::cases() as $resourceType) {
-            $stockpiles[$resourceType->name] = floor($this->getExpenses($resourceType) * 10_000) / 10_000;
-        }
-
-        return $stockpiles;
-    }
-
-    private function exportUpkeep(): array {
-        $stockpiles = [];
-        foreach (ResourceType::cases() as $resourceType) {
-            $stockpiles[$resourceType->name] = floor($this->getUpkeep($resourceType) * 10_000) / 10_000;
-        }
-
-        return $stockpiles;
-    }
-
-    private function exportProduction(): array {
-        $stockpiles = [];
-        foreach (ResourceType::cases() as $resourceType) {
-            $stockpiles[$resourceType->name] = round($this->getProduction($resourceType), 6);
-        }
-
-        return $stockpiles;
-    }
-
-    private function exportStockpiles(): array {
-        $stockpiles = [];
-        foreach (ResourceType::cases() as $resourceType) {
-            $stockpiles[$resourceType->name] = round($this->getStockpiledQuantity($resourceType), 6);
-        }
-
-        return $stockpiles;
     }
 
     public function exportTurnSummary(): NationTurnSummary {
@@ -450,196 +303,27 @@ class NationDetail extends Model
         );
     }
 
-    public function exportBudget(): BudgetInfo {
+    public function exportBudget(?array $projection = null): BudgetInfo {
+        $projection ??= app(ResourceLedger::class)->preview($this);
+        $rows = $projection['rows'];
+        $column = fn ($field) => array_map(fn ($row) => $row[$field], $rows);
         return new BudgetInfo(
-            nation_id: $this->getNation()->getId(),
-            turn_number: $this->getTurn()->getNumber(),
-            production: $this->exportProduction(),
-            stockpiles: $this->exportStockpiles(),
-            upkeep: $this->exportUpkeep(),
-            expenses: $this->exportExpenses(),
-            available_production: $this->exportAvailableProduction(),
-            balances: $this->exportBalances(),
-            max_recruitement_pool_expansion: $this->getMaximumRecruitmentPoolExpansion(),
-            labor_facility_allocations: LaborPoolAllocation::exportAllForOwner($this),
-            labor_pools: LaborPool::exportAllForOwner($this),
-            free_labor: $this->getFreeLabor(),
+            nation_id: $this->nation_id, turn_number: $this->getTurn()->getNumber(),
+            production: $column('production'), stockpiles: $column('opening'), upkeep: $column('requested'),
+            expenses: $column('commands'), available_production: $column('available'), balances: $column('balance'),
+            max_recruitement_pool_expansion: (int) floor((float) $rows[$this->resources()->role('recruitment')]['available']),
+            labor_facility_allocations: $projection['facilities'], labor_pools: LaborPool::exportAllForOwner($this, $projection['pools']),
+            free_labor: $projection['idle_workers'],
         );
-    }
-
-    public function onTurnUpkeepEnding(): void {
-        $this->allocateLabor();
     }
 
     public function finalizeNationCreation(): void {
         News::create($this->getTurn(), "The people of " . News::getNationUsualNameTag($this) . "  <b>proclames</b> the " . News::getNationFormalNameTag($this) . ". " . News::getLeaderNameTag($this->getLeaderDetail()) . " will serve as its first " . News::getLeaderTitleTag($this->getLeaderDetail()) . ".");
-        $this->allocateLabor();
-    }
-
-    public function onDeployment(): void {
-        $this->allocateLabor();
-    }
-
-    public function placeProductionBid(ResourceType $resourceType, int $maxQuantity, int $maxLaborAllocationPerUnit): void {
-        $info = ResourceType::getMeta($resourceType);
-
-        if (!$info->canPlaceCommand) {
-            throw new InvalidArgumentException("Can't place a bid for resource type {$resourceType->name}");
-        }
-
-        ProductionBid::setCommandBid($this, $resourceType, $maxQuantity, $maxLaborAllocationPerUnit);
-
-        $this->allocateLabor();
-    }
-
-    /** Raw inputs for a non-authoritative, joint territorial forecast in the client. */
-    public function exportProductionPlanning(): array {
-        return [
-            'resources' => collect(ResourceType::cases())->mapWithKeys(function (ResourceType $type) {
-                $meta = ResourceType::getMeta($type);
-                return [$type->name => [
-                    'upkeep' => $this->getUpkeepRaw($type),
-                    'expenses' => $this->getExpensesRaw($type),
-                    'stock' => $this->getStockpiledQuantityRaw($type),
-                    'produced_by_labor' => $meta->producedByLabor,
-                    'reserve_labor' => $meta->reserveLaborForUpkeep,
-                    'upkeep_priority' => $meta->upkeepBidPriority->value,
-                ]];
-            })->all(),
-            'bid_order' => ProductionBid::getAll($this)->map(fn (ProductionBid $bid) => [
-                'resource_type' => $bid->getResourceType()->name,
-                'upkeep' => $bid->getBidType() === BidType::Upkeep,
-                'priority' => $bid->getPriority(),
-            ])->values()->all(),
-            'facilities' => LaborPoolFacility::getFacilities($this)->map(fn (LaborPoolFacility $facility) => [
-                'territory_id' => $facility->getTerritoryId(),
-                'resource_type' => $facility->getResourceType()->name,
-                'capacity' => $facility->getCapacity(),
-                'productivity' => $facility->getProductivity(),
-            ])->values()->all(),
-            'command_priority' => ProductionBidConstants::HIGHEST_COMMAND_BID_PRIORITY,
-            'capital_priority' => ProductionBidConstants::LOWEST_COMMAND_BID_PRIORITY - 1,
-        ];
-    }
-
-    /** Caller owns the transaction. All bids are written before allocating once. */
-    public function placeProductionPlan(array $bids): void {
-        foreach ($bids as $bid) {
-            $type = ResourceType::fromName($bid['resource_type']);
-            if (!ResourceType::getMeta($type)->canPlaceCommand) {
-                throw new InvalidArgumentException("Can't place a bid for resource type {$type->name}");
-            }
-            ProductionBid::setCommandBid($this, $type, $bid['max_quantity'], $bid['max_labor_allocation_per_unit']);
-        }
-        $this->allocateLabor();
-    }
-
-    private function allocateLabor(): void {
-        $this->attemptAllocateLabor(true);
-
-        if ($this->getStockpiledQuantityRaw(ResourceType::Capital) < -$this->getBalanceRaw(ResourceType::Capital)) {
-            $this->attemptAllocateLabor(false);
-        }
-    }
-
-    private function attemptAllocateLabor(bool $maintainReserveIfActiveCommand): void {
-        $laborPoolsById = LaborPool::getLaborPools($this)->mapWithKeys(fn (LaborPool $lp) => [ $lp->getId() => $lp ]);
-        $laborPoolSizesByPoolId = $laborPoolsById->mapWithKeys(fn (LaborPool $lp) => [ $lp->getId() => $lp->getSize() ])->all();
-        $facilitiesById = LaborPoolFacility::getFacilities($this)->mapWithKeys(fn (LaborPoolFacility $f) => [ $f->getId() => $f ]);
-        $demandRemainingByResourceType = [];
-
-        $resourceInfosByType = ResourceType::getMetas();
-
-        $reservedLabor = 0;
-        foreach(ResourceType::cases() as $resourceType) {
-            $info = $resourceInfosByType[$resourceType->value];
-            assert($info instanceof ResourceTypeMeta);
-
-            if (!$info->producedByLabor) {
-                $demandRemainingByResourceType[$resourceType->value] = 0;
-                continue; 
-            }
-            $upkeep = $this->getUpkeepRaw($resourceType);
-            $expenses = $this->getExpensesRaw($resourceType);
-            $bidOrNull = ProductionBid::getCommandBidOrNull($this, $resourceType);
-            $activeProductionBidForResource = !is_null($bidOrNull) && $bidOrNull->getMaxQuantity() > 0 && $info->canPlaceCommand;
-            if ($activeProductionBidForResource && $maintainReserveIfActiveCommand) {
-                $demandRemainingByResourceType[$resourceType->value] = $upkeep;
-            }
-            else {
-                $reserves = $this->getStockpiledQuantityRaw($resourceType);
-                $surplus = $reserves - $expenses - $upkeep;
-                $demandRemainingByResourceType[$resourceType->value] = $surplus < 0 ? -$surplus : 0;
-            }
-
-            if ($info->reserveLaborForUpkeep) {
-                $reservedLabor += $demandRemainingByResourceType[$resourceType->value];
-            }
-        }
-
-        LaborPoolAllocation::resetAllocations($this);
-
-        foreach ($demandRemainingByResourceType as $resourceType => $quantity) {
-            ProductionBid::setUpkeepBid($this, ResourceType::from($resourceType), $quantity);
-        }
-        
-
-        ProductionBid::setCommandBid($this, ResourceType::Capital, ProductionBidConstants::MAX_QUANTITY_LIMIT, ProductionBidConstants::MAX_LABOR_PER_UNIT_LIMIT, ProductionBidConstants::LOWEST_COMMAND_BID_PRIORITY - 1);
-
-        $allocations = \App\Domain\ProductionAllocation::allocate(
-            $laborPoolSizesByPoolId,
-            $facilitiesById->map(fn (LaborPoolFacility $f) => [
-                'id' => $f->getId(), 'pool' => $f->getLaborPoolId(), 'resource' => $f->getResourceType()->name,
-                'capacity' => $f->getCapacity(), 'productivity' => $f->getProductivity(),
-            ])->values()->all(),
-            ProductionBid::getAll($this)->map(fn (ProductionBid $bid) => [
-                'resource' => $bid->getResourceType()->name, 'priority' => $bid->getPriority(),
-                'upkeep' => $bid->getBidType() === BidType::Upkeep, 'quantity' => $bid->getMaxQuantity(),
-                'max_labor' => $bid->getMaxLaborPerUnit(),
-            ])->all(),
-            $reservedLabor,
-        );
-        foreach ($allocations as $id => $quantity) if ($quantity > 0) $facilitiesById[$id]->addToAllocation($quantity);
     }
 
     public function onNextTurn(NationDetail $current): void {
-        $nation = $this->getNation();
-        $turn = $this->getTurn();
-        $stockpiles = $current->getStockpiles();
-
-        $currentLeaderDetail = LeaderDetail::getForNation($current);
-        $newLeaderDetail = $currentLeaderDetail->replicateForTurn($turn);
-        $newLeaderDetail->onNextTurn($currentLeaderDetail);
-
-        foreach (ResourceType::cases() as $resourceType) {
-            $resourceInfo = ResourceType::getMeta($resourceType);
-
-            if ($resourceInfo->canPlaceCommand) {
-                $bidOrNull = ProductionBid::getCommandBidOrNull($current, $resourceType);
-
-                if (!is_null($bidOrNull) && $bidOrNull->getMaxQuantity() > 0) {
-                    $renewedBid = $bidOrNull->replicateForTurn($turn);
-                    $renewedBid->save();
-                }
-            }
-
-            if (!$resourceInfo->canBeStocked) {
-                continue;
-            }
-
-            if ($stockpiles->has($resourceType->value)) {
-                $stockpile = $stockpiles->get($resourceType->value);
-                assert($stockpile instanceof NationResourceStockpile);
-                $newStockpile = $stockpile->replicateForTurn($turn);
-                $balance = max(-$stockpile->getAvailableQuantity(), $current->getBalance($resourceType));
-                $newStockpile->onNextTurn($balance);
-            }
-            else {
-                $balance = max(0, $current->getBalance($resourceType));
-                $stockpile = NationResourceStockpile::create($nation, $turn, $resourceType, $balance);
-            }
-        }
-
+        $leader = LeaderDetail::getForNation($current);
+        $leader->replicateForTurn($this->getTurn())->onNextTurn($leader);
         $this->save();
     }
 
@@ -679,14 +363,9 @@ class NationDetail extends Model
 
     	$nation_details->save();
 
-        foreach (ResourceType::cases() as $resourceType) {
-            $meta = ResourceType::getMeta($resourceType);
-            if ($meta->startingStock > 0) {
-                NationResourceStockpile::create($nation, $turn, $resourceType, $meta->startingStock);
-            }
+        foreach ($nation_details->resources()->resources as $key => $resource) {
+            if ($resource['kind'] !== 'capacity') NationResourceStockpile::create($nation, $turn, $key, $resource['starting_quantity']);
         }
-
-        $nation_details->allocateLabor();
 
         return $nation_details;
     }

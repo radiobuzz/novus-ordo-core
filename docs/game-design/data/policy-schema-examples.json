@@ -1,0 +1,563 @@
+{
+  "purpose": "Illustrative schema-review records, not an executable seed or accepted balance specification. Effect handler names are proposed, not implemented.",
+  "conventions": {
+    "omitted_fields": "Timestamps and optional descriptive content may be omitted. Context records are stubs for existing or external records.",
+    "decimal_values": "Canonical decimal strings; UI renders fractions as percentages.",
+    "scope": "National only.",
+    "definitions": "No definitions duplicated in expected turn output."
+  },
+  "context": {
+    "games": [
+      {
+        "id": 42,
+        "policy_testing_enabled": true
+      }
+    ],
+    "nations": [
+      {
+        "id": 7,
+        "game_id": 42
+      },
+      {
+        "id": 8,
+        "game_id": 42
+      }
+    ],
+    "turns": [
+      {
+        "id": 4004,
+        "game_id": 42,
+        "number": 4
+      },
+      {
+        "id": 4005,
+        "game_id": 42,
+        "number": 5
+      }
+    ],
+    "source_template": {
+      "id": 10,
+      "kind": "template",
+      "name": "Example starter template",
+      "note": "Provenance stub only; source definitions omitted."
+    }
+  },
+  "tables": {
+    "policy_sets": [
+      {
+        "id": 20,
+        "kind": "game",
+        "game_id": 42,
+        "source_policy_set_id": 10,
+        "name": "Game 42 policy set",
+        "description": "Independent copy; no runtime lookup of template 10.",
+        "edit_counter": 1
+      }
+    ],
+    "policies": [
+      {
+        "id": 101,
+        "policy_set_id": 20,
+        "key": "income_tax",
+        "category_key": "economy",
+        "labels": {
+          "en": "Income tax"
+        },
+        "descriptions": {},
+        "sort_order": 1,
+        "status": "active"
+      },
+      {
+        "id": 102,
+        "policy_set_id": 20,
+        "key": "infrastructure_funding",
+        "category_key": "infrastructure",
+        "labels": {
+          "en": "Infrastructure funding"
+        },
+        "descriptions": {},
+        "sort_order": 2,
+        "status": "active"
+      },
+      {
+        "id": 103,
+        "policy_set_id": 20,
+        "key": "industrial_ownership",
+        "category_key": "economy",
+        "labels": {
+          "en": "Industrial ownership"
+        },
+        "descriptions": {},
+        "sort_order": 3,
+        "status": "active"
+      },
+      {
+        "id": 104,
+        "policy_set_id": 20,
+        "key": "public_industrial_priority",
+        "category_key": "economy",
+        "labels": {
+          "en": "Public industrial priority"
+        },
+        "descriptions": {},
+        "sort_order": 4,
+        "status": "active"
+      }
+    ],
+    "policy_options": [
+      {
+        "id": 1101,
+        "policy_id": 101,
+        "key": "standard",
+        "labels": {
+          "en": "Standard"
+        },
+        "descriptions": {},
+        "is_default": true,
+        "sort_order": 1,
+        "retired_at": null
+      },
+      {
+        "id": 1201,
+        "policy_id": 102,
+        "key": "disabled",
+        "labels": {
+          "en": "Disabled"
+        },
+        "descriptions": {},
+        "is_default": true,
+        "sort_order": 1,
+        "retired_at": null
+      },
+      {
+        "id": 1202,
+        "policy_id": 102,
+        "key": "enabled",
+        "labels": {
+          "en": "Enabled"
+        },
+        "descriptions": {},
+        "is_default": false,
+        "sort_order": 2,
+        "retired_at": null
+      },
+      {
+        "id": 1301,
+        "policy_id": 103,
+        "key": "private",
+        "labels": {
+          "en": "Private"
+        },
+        "descriptions": {},
+        "is_default": true,
+        "sort_order": 1,
+        "retired_at": null
+      },
+      {
+        "id": 1302,
+        "policy_id": 103,
+        "key": "mixed",
+        "labels": {
+          "en": "Mixed"
+        },
+        "descriptions": {},
+        "is_default": false,
+        "sort_order": 2,
+        "retired_at": null
+      },
+      {
+        "id": 1303,
+        "policy_id": 103,
+        "key": "public",
+        "labels": {
+          "en": "Public"
+        },
+        "descriptions": {},
+        "is_default": false,
+        "sort_order": 3,
+        "retired_at": null
+      },
+      {
+        "id": 1401,
+        "policy_id": 104,
+        "key": "none",
+        "labels": {
+          "en": "No public production priority"
+        },
+        "descriptions": {},
+        "is_default": true,
+        "sort_order": 1,
+        "retired_at": null
+      },
+      {
+        "id": 1402,
+        "policy_id": 104,
+        "key": "consumer_goods",
+        "labels": {
+          "en": "Consumer goods"
+        },
+        "descriptions": {},
+        "is_default": false,
+        "sort_order": 2,
+        "retired_at": null
+      },
+      {
+        "id": 1403,
+        "policy_id": 104,
+        "key": "military",
+        "labels": {
+          "en": "Military production"
+        },
+        "descriptions": {},
+        "is_default": false,
+        "sort_order": 3,
+        "retired_at": null
+      }
+    ],
+    "policy_parameters": [
+      {
+        "id": 201,
+        "policy_id": 101,
+        "key": "rate",
+        "labels": {
+          "en": "Tax rate"
+        },
+        "value_type": "decimal",
+        "unit_key": "fraction_of_taxable_income",
+        "default_value": "0.20",
+        "min_value": "0.00",
+        "max_value": "1.00",
+        "step": "0.01",
+        "sort_order": 0
+      },
+      {
+        "id": 202,
+        "policy_id": 102,
+        "key": "funding_ratio",
+        "labels": {
+          "en": "Share of calculated funding requirement"
+        },
+        "value_type": "decimal",
+        "unit_key": "fraction_of_program_requirement",
+        "default_value": "1.00",
+        "min_value": "0.00",
+        "max_value": "1.00",
+        "step": "0.01",
+        "sort_order": 0
+      }
+    ],
+    "policy_effects": [
+      {
+        "id": 1001,
+        "policy_option_id": 1101,
+        "key": "tax_rule",
+        "effect_type": "finance.income_tax",
+        "arguments": {
+          "base": "taxable_income",
+          "rate": {
+            "parameter": "rate"
+          }
+        },
+        "sort_order": 0
+      },
+      {
+        "id": 1002,
+        "policy_option_id": 1202,
+        "key": "program_allocation",
+        "effect_type": "budget.program_funding",
+        "arguments": {
+          "program": "infrastructure",
+          "funding_ratio": {
+            "parameter": "funding_ratio"
+          }
+        },
+        "sort_order": 0
+      },
+      {
+        "id": 1003,
+        "policy_option_id": 1301,
+        "key": "sector_arrangement",
+        "effect_type": "institutions.ownership_arrangement",
+        "arguments": {
+          "sector": "secondary_industry",
+          "arrangement": "private"
+        },
+        "sort_order": 0
+      },
+      {
+        "id": 1004,
+        "policy_option_id": 1302,
+        "key": "sector_arrangement",
+        "effect_type": "institutions.ownership_arrangement",
+        "arguments": {
+          "sector": "secondary_industry",
+          "arrangement": "mixed"
+        },
+        "sort_order": 0
+      },
+      {
+        "id": 1005,
+        "policy_option_id": 1303,
+        "key": "sector_arrangement",
+        "effect_type": "institutions.ownership_arrangement",
+        "arguments": {
+          "sector": "secondary_industry",
+          "arrangement": "public"
+        },
+        "sort_order": 0
+      },
+      {
+        "id": 1006,
+        "policy_option_id": 1402,
+        "key": "public_priority",
+        "effect_type": "allocation.public_industry_priority",
+        "arguments": {
+          "sector": "secondary_industry",
+          "priority": "consumer_goods"
+        },
+        "sort_order": 0
+      },
+      {
+        "id": 1007,
+        "policy_option_id": 1403,
+        "key": "public_priority",
+        "effect_type": "allocation.public_industry_priority",
+        "arguments": {
+          "sector": "secondary_industry",
+          "priority": "military"
+        },
+        "sort_order": 0
+      }
+    ],
+    "policy_conditions": [
+      {
+        "id": 501,
+        "policy_id": 104,
+        "policy_option_id": 1402,
+        "key": "consumer_goods_requires_public_activity",
+        "condition_type": "requires_option",
+        "referenced_policy_id": 103,
+        "arguments": {
+          "option_keys": [
+            "mixed",
+            "public"
+          ]
+        },
+        "message": {
+          "en": "A public industrial priority requires mixed or public industrial ownership."
+        }
+      },
+      {
+        "id": 502,
+        "policy_id": 104,
+        "policy_option_id": 1403,
+        "key": "military_requires_public_activity",
+        "condition_type": "requires_option",
+        "referenced_policy_id": 103,
+        "arguments": {
+          "option_keys": [
+            "mixed",
+            "public"
+          ]
+        },
+        "message": {
+          "en": "A public industrial priority requires mixed or public industrial ownership."
+        }
+      }
+    ],
+    "nation_policy_choices": [
+      {
+        "id": 2001,
+        "game_id": 42,
+        "nation_id": 7,
+        "turn_id": 4004,
+        "policy_id": 101,
+        "policy_option_id": 1101,
+        "parameter_values": {
+          "rate": "0.20"
+        }
+      },
+      {
+        "id": 2002,
+        "game_id": 42,
+        "nation_id": 7,
+        "turn_id": 4004,
+        "policy_id": 102,
+        "policy_option_id": 1202,
+        "parameter_values": {
+          "funding_ratio": "0.80"
+        }
+      },
+      {
+        "id": 2003,
+        "game_id": 42,
+        "nation_id": 7,
+        "turn_id": 4004,
+        "policy_id": 103,
+        "policy_option_id": 1302,
+        "parameter_values": {}
+      },
+      {
+        "id": 2004,
+        "game_id": 42,
+        "nation_id": 7,
+        "turn_id": 4004,
+        "policy_id": 104,
+        "policy_option_id": 1402,
+        "parameter_values": {}
+      },
+      {
+        "id": 2005,
+        "game_id": 42,
+        "nation_id": 8,
+        "turn_id": 4004,
+        "policy_id": 101,
+        "policy_option_id": 1101,
+        "parameter_values": {
+          "rate": "0.10"
+        }
+      },
+      {
+        "id": 2006,
+        "game_id": 42,
+        "nation_id": 8,
+        "turn_id": 4004,
+        "policy_id": 102,
+        "policy_option_id": 1202,
+        "parameter_values": {
+          "funding_ratio": "0.00"
+        }
+      },
+      {
+        "id": 2007,
+        "game_id": 42,
+        "nation_id": 8,
+        "turn_id": 4004,
+        "policy_id": 103,
+        "policy_option_id": 1301,
+        "parameter_values": {}
+      },
+      {
+        "id": 2008,
+        "game_id": 42,
+        "nation_id": 8,
+        "turn_id": 4004,
+        "policy_id": 104,
+        "policy_option_id": 1401,
+        "parameter_values": {}
+      }
+    ],
+    "nation_policy_pending_changes": [
+      {
+        "id": 3001,
+        "game_id": 42,
+        "nation_id": 7,
+        "turn_id": 4004,
+        "policy_id": 101,
+        "policy_option_id": 1101,
+        "parameter_values": {
+          "rate": "0.25"
+        }
+      },
+      {
+        "id": 3002,
+        "game_id": 42,
+        "nation_id": 7,
+        "turn_id": 4004,
+        "policy_id": 103,
+        "policy_option_id": 1301,
+        "parameter_values": {}
+      },
+      {
+        "id": 3003,
+        "game_id": 42,
+        "nation_id": 7,
+        "turn_id": 4004,
+        "policy_id": 104,
+        "policy_option_id": 1401,
+        "parameter_values": {}
+      }
+    ]
+  },
+  "expected_choices_after_boundary": [
+    {
+      "game_id": 42,
+      "nation_id": 7,
+      "turn_id": 4005,
+      "policy_id": 101,
+      "policy_option_id": 1101,
+      "parameter_values": {
+        "rate": "0.25"
+      }
+    },
+    {
+      "game_id": 42,
+      "nation_id": 7,
+      "turn_id": 4005,
+      "policy_id": 102,
+      "policy_option_id": 1202,
+      "parameter_values": {
+        "funding_ratio": "0.80"
+      }
+    },
+    {
+      "game_id": 42,
+      "nation_id": 7,
+      "turn_id": 4005,
+      "policy_id": 103,
+      "policy_option_id": 1301,
+      "parameter_values": {}
+    },
+    {
+      "game_id": 42,
+      "nation_id": 7,
+      "turn_id": 4005,
+      "policy_id": 104,
+      "policy_option_id": 1401,
+      "parameter_values": {}
+    },
+    {
+      "game_id": 42,
+      "nation_id": 8,
+      "turn_id": 4005,
+      "policy_id": 101,
+      "policy_option_id": 1101,
+      "parameter_values": {
+        "rate": "0.10"
+      }
+    },
+    {
+      "game_id": 42,
+      "nation_id": 8,
+      "turn_id": 4005,
+      "policy_id": 102,
+      "policy_option_id": 1202,
+      "parameter_values": {
+        "funding_ratio": "0.00"
+      }
+    },
+    {
+      "game_id": 42,
+      "nation_id": 8,
+      "turn_id": 4005,
+      "policy_id": 103,
+      "policy_option_id": 1301,
+      "parameter_values": {}
+    },
+    {
+      "game_id": 42,
+      "nation_id": 8,
+      "turn_id": 4005,
+      "policy_id": 104,
+      "policy_option_id": 1401,
+      "parameter_values": {}
+    }
+  ],
+  "rollback_expectation": {
+    "delete_turn_id": 4005,
+    "reopen_turn_id": 4004,
+    "effective_choices": "Original turn-4004 nation_policy_choices",
+    "pending_changes": "Original turn-4004 nation_policy_pending_changes are retained",
+    "policy_definitions": "Remain at their current ADMIN-edited values; no historical definition restore."
+  }
+}

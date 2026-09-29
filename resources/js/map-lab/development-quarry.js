@@ -1,4 +1,4 @@
-import { featureHash } from './cartography.js';
+import { featureHash } from '../map/cartography.js';
 
 const ring = (ctx, p, scale, offset = 0) => {
     ctx.beginPath();

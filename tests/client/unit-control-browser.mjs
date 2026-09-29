@@ -58,8 +58,8 @@ try {
     assert.deepEqual(after.deployments.map((d) => d.division_type).sort(), ['Armored', 'Infantry']);
     assert.equal(new Set(after.deployments.map((d) => d.territory_id)).size, 2);
     assert.equal(after.divisions.length, before.divisions.length);
-    assert.equal(after.budget.available_production.Capital, before.budget.available_production.Capital - 8);
-    assert.equal(after.budget.available_production.Ore, before.budget.available_production.Ore - 5);
+    assert.equal(Number(after.budget.available_production.money), Number(before.budget.available_production.money) - 8);
+    assert.equal(Number(after.budget.available_production.ore), Number(before.budget.available_production.ore) - 5);
     await page.getByRole('button', { name: 'Ready', exact: true }).click();
     await expect(page.getByRole('dialog', { name: 'Turn 2 · Briefing' })).toBeVisible({ timeout: 30000 });
     const next = await read();

@@ -198,7 +198,7 @@ export function installDevelopment({ root, state, camera, renderer, updateInspec
             scaleStudy.render();
             const active = developmentActive(state);
             root.querySelector('[data-development-inspector]').hidden = !active;
-            if (active) root.querySelector('[data-legacy-inspector]').hidden = true;
+            if (active) root.querySelector('[data-base-inspector]').hidden = true;
             if (!active) return;
             root.querySelector('[data-development-title]').textContent = site?.name ?? 'No suitable site';
             root.querySelector('[data-development-description]').textContent = site

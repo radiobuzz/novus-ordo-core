@@ -39,7 +39,8 @@ try {
     const home = own.find((t) => t.can_deploy).territory_id;
     const base = (await (await page.request.get(origin + '/territories/base-infos')).json()).data;
     const mapData = await (await page.request.get(origin + '/game/map?game_id=' + before.game_id)).json();
-    const kind = mapData.map ? 'beta' : 'classic';
+    assert.ok(mapData.map, 'Generated geography is required.');
+    const kind = 'generated';
     const command = async (button, path, expected) => {
         const waiting = page.waitForResponse(
             (r) => r.url().endsWith(path) && r.request().method() === 'POST',
@@ -50,7 +51,7 @@ try {
             throw new Error(`Command ${path}: ${response.status()} ${(await response.text()).slice(0, 500)}`);
         if (path === '/ready-for-next-turn')
             await page.getByRole('button', { name: 'Continue playing' }).click();
-        await expect(page.locator('.hud-resources')).toContainText('Capital');
+        await expect(page.locator('.hud-resources')).toContainText('Treasury');
         await expect(page.locator('.world-command-message')).toContainText('latest server state is shown');
         assert.equal(
             await page.evaluate(() => window.liveDataCanvas === document.querySelector('.world-canvas')),

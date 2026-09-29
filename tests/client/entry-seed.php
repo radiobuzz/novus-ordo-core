@@ -1,7 +1,8 @@
 <?php
 $app = require __DIR__ . '/isolated-app.php';
+require_once __DIR__ . '/generated-map-fixture.php';
 Illuminate\Support\Facades\Artisan::call('migrate', ['--force' => true]);
-$game = App\Models\Game::getCurrentOrNull() ?? App\Models\Game::createNew();
+$game = App\Models\Game::where('is_active', true)->first() ?? App\Models\Game::createNew(generatedMapFixture());
 foreach (['entry-player', 'entry-recovery', 'entry-legacy'] as $name) {
     if (!App\Models\User::where('name', $name)->exists()) {
         $user = new App\Models\User();

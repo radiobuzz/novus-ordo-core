@@ -1,6 +1,6 @@
 import { builtPlots } from './development.js';
 import { segmentDistance } from './living-settlement.js';
-import { featureHash } from './cartography.js';
+import { featureHash } from '../map/cartography.js';
 import { architecture } from './development-complexes.js';
 
 export const developmentSurfaceKey = (development, enabled) =>

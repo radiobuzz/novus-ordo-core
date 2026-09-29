@@ -23,12 +23,13 @@ readonly class TerritoryData {
         public float $usableLandRatio,
         public bool $hasSeaAccess,
         public array $connections,
+        public array $geographicPotential,
     )
     {
-        if ($x < 0 || $x > MapData::WIDTH) {
+        if ($x < 0) {
             throw new LogicException("x coordinate is invalid: $x");
         }
-        if ($y < 0 || $y > MapData::HEIGHT) {
+        if ($y < 0) {
             throw new LogicException("y coordinate is invalid: $y");
         }
         if ($usableLandRatio < 0 || $usableLandRatio > 1) {
@@ -38,13 +39,11 @@ readonly class TerritoryData {
 }
 
 readonly class MapData {
-    public const WIDTH = 30;
-    public const HEIGHT = 20;
-    public const HEIGHT_PIXELS_PER_TILE = 20;
-    public const WIDTH_PIXELS_PER_TILE = 30;
-    
     public function __construct(
         public array $territories,
+        public int $regionColumns,
+        public int $regionRows,
+        public int $cellsPerRegion,
     )
     {
         

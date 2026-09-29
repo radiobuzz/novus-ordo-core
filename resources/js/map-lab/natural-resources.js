@@ -1,5 +1,5 @@
 import { geographyPoint } from './geography.js';
-import { featureHash } from './cartography.js';
+import { featureHash } from '../map/cartography.js';
 
 export const RESOURCE_KINDS = ['Oil', 'Iron', 'Copper', 'Coal', 'Timber'];
 export const RESOURCE_DEFAULTS = Object.freeze({ abundance: 50, concentration: 50, richness: 100 });

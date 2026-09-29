@@ -4,7 +4,7 @@
     <meta charset="utf-8">
     <meta name="viewport" content="width=device-width, initial-scale=1">
     <meta name="color-scheme" content="dark">
-    <title>Novus Ordo · Map beta</title>
+    <title>Novus Ordo · World generator</title>
     @vite('resources/js/client/map-generation.js')
 </head>
 <body class="map-generation-page">

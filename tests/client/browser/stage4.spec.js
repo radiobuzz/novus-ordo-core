@@ -119,7 +119,8 @@ test('background turn attention flashes, acknowledges on return, and cleans up o
     await expect(attention).toHaveCount(0);
     await expect(page.locator('link[rel="icon"]')).toHaveAttribute('href', original);
     const news = page.getByRole('button', { name: 'Continue playing', exact: true });
-    if (await news.isVisible()) await news.click();
+    await expect(news).toBeVisible();
+    await news.click();
     await page.emulateMedia({ reducedMotion: 'reduce' });
     await page.evaluate(() => (window.testHidden = true));
     turn = 3;
@@ -128,7 +129,8 @@ test('background turn attention flashes, acknowledges on return, and cleans up o
     const still = await attention.getAttribute('href');
     await page.clock.runFor(2200);
     await expect(attention).toHaveAttribute('href', still);
-    if (await news.isVisible()) await news.click();
+    await expect(news).toBeVisible();
+    await news.click();
     await page.getByLabel('Game menu', { exact: true }).click();
     await page.getByRole('button', { name: 'Games', exact: true }).click();
     await expect(attention).toHaveCount(0);

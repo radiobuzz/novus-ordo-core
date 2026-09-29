@@ -35,6 +35,7 @@ test('turn overlay blocks input, survives failed reads, retries and hands over t
     const zoom = await page.locator('.zoom-value').textContent();
     await expect(page.locator('.turn-transition')).not.toBeVisible();
     turn = 2;
+    await page.evaluate(() => window.dispatchEvent(new Event('focus')));
     const overlay = page.locator('.turn-transition');
     await expect(overlay).toBeVisible({ timeout: 5000 });
     await expect(overlay).toContainText('A new turn is taking shape');

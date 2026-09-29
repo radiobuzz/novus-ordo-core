@@ -11,7 +11,7 @@ import {
 } from '../../resources/js/client/ui/map/unitLayout.js';
 import { recolorUnitPixels, unitPalette } from '../../resources/js/client/ui/map/unitPalette.js';
 import { Camera } from '../../resources/js/client/ui/map/Camera.js';
-import { MapPicker } from '../../resources/js/client/ui/map/MapPicker.js';
+import { HexMapPicker } from '../../resources/js/client/ui/map/GeneratedMap.js';
 import { fixtures } from './fixtures.js';
 
 const data = fixtures('/client/gameplay');
@@ -25,7 +25,7 @@ const draft = [
     { division_type: 'Armored', territory_id: 156 },
     { division_type: 'Fighter', territory_id: 157 },
 ];
-assert.deepEqual(deploymentDraft(data, snapshot, draft).costs, { Capital: 15, RecruitmentPool: 2, Ore: 6 });
+assert.deepEqual(deploymentDraft(data, snapshot, draft).costs, { money: 15, recruitment: 2, ore: 6 });
 assert.equal(deploymentDraft(data, snapshot, draft).valid, true);
 assert.equal(remainingDeploymentMaximum(data, snapshot, draft, 'Armored'), 0);
 assert.equal(remainingDeploymentMaximum(data, snapshot, draft, 'Infantry'), 5);
@@ -34,11 +34,25 @@ assert.equal(deploymentDraft(data, snapshot, [{ ...draft[0], territory_id: 999 }
 assert.equal(deploymentDraft(data, snapshot, []).valid, false);
 assert.equal(deploymentDraft(data, snapshot, Array(101).fill(draft[0])).valid, false);
 assert.equal(remainingDeploymentMaximum({ ...data, budget: {} }, snapshot, [], 'Infantry'), null);
-assert.equal(data.budget.available_production.Capital, 30);
+assert.equal(data.budget.available_production.money, 30);
 
-const definition = { width: 900, height: 600, tileWidth: 30, tileHeight: 30 };
+const region = { territoryId: 156, x: 165, y: 165, cellIds: ['a', 'b', 'c'] };
+const cells = [
+    { id: 'a', regionId: 'region-156', x: 165, y: 165, terrain: 'plains' },
+    { id: 'b', regionId: 'region-156', x: 150, y: 165, terrain: 'plains' },
+    { id: 'c', regionId: 'region-156', x: 180, y: 165, terrain: 'plains' },
+];
+const model = {
+    offsetX: 165,
+    offsetY: 165,
+    cellSize: 15,
+    regions: [region],
+    cellById: new Map(cells.map((cell) => [cell.id, cell])),
+    regionById: new Map([['region-156', region]]),
+};
+const definition = { width: 900, height: 600, model };
 const territories = [{ territory_id: 156, x: 5, y: 5 }];
-const context = { definition, territories, picker: new MapPicker(territories, definition) };
+const context = { definition, territories, picker: new HexMapPicker(territories, definition) };
 const camera = new Camera(900, 600);
 camera.resize(900, 600);
 camera.zoom = 1;

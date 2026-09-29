@@ -33,18 +33,18 @@ class GameController extends Controller
         })->all()])->header('Cache-Control', 'private, no-store');
     }
 
-    #[Summary('Returns the immutable experimental geography, or null for a classic map.')]
+    #[Summary('Returns the immutable generated geography for the selected game.')]
     #[Response(GameMapInfo::class)]
     #[QueryParameter('game_id', 'int', 'Required. The game whose geography is being loaded.')]
     public function map(Request $request, PublicGameContext $context): JsonResponse {
         $query = $request->validate(['game_id' => 'required|integer|min:1']);
         $game = $context->getGame();
         if ((int) $query['game_id'] !== $game->getId()) abort(409, 'The selected game changed. Reload the world.');
-        $map = $game->map()->first();
+        $map = $game->map()->firstOrFail();
         return response()->json(new GameMapInfo(
             game_id: $game->getId(),
-            fingerprint: $map?->getFingerprint(),
-            map: $map?->getSnapshot(),
+            fingerprint: $map->getFingerprint(),
+            map: $map->getSnapshot(),
         ));
     }
 
@@ -56,6 +56,7 @@ class GameController extends Controller
             $game->getId(), $game->getCurrentTurn()->getNumber(),
             \App\Models\NationColorAssignment::exportForGame($game),
             $game->turn_context_revision, (bool) $game->diplomacy_enabled, (bool) ($game->guard_enabled ?? false),
+            \App\Services\Resources\ResourceCatalogue::forGame($game)->mapDefinitions(),
         ))->header('Cache-Control', 'no-store');
     }
 

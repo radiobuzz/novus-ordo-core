@@ -78,7 +78,7 @@ export class DiplomacyService {
         return [...this.drafts.values()].some((draft) => draft.text.trim() || draft.quantity);
     }
     draft(id) {
-        if (!this.drafts.has(id)) this.drafts.set(id, { text: '', resource: 'Capital', quantity: '' });
+        if (!this.drafts.has(id)) this.drafts.set(id, { text: '', resource: this.world.snapshot.nation.definitions.resources.find(r => r.grantable)?.resource_key ?? '', quantity: '' });
         return this.drafts.get(id);
     }
     select(id, before = null) {

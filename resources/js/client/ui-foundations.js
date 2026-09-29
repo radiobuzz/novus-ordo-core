@@ -69,6 +69,69 @@ const header = el(
         theme.element,
     ),
 );
+const mapLayersHost = el('dialog', {
+    id: 'map-layers-experiment',
+    class: 'map-layers-dialog',
+    'aria-label': 'Map layers experiment',
+});
+const mapLayersButton = new Button({ label: 'Open map layers experiment', icon: 'layers' });
+let mapLayers;
+const updateMapLayersLabel = () =>
+    mapLayersButton.setLabel(
+        locale.value === 'fr'
+            ? mapLayers
+                ? 'Fermer l’expérience des couches'
+                : 'Ouvrir l’expérience des couches'
+            : mapLayers
+              ? 'Close map layers experiment'
+              : 'Open map layers experiment',
+    );
+scope.listen(mapLayersButton.element, 'click', async () => {
+    if (mapLayersButton.pending) return;
+    mapLayersButton.setPending(true);
+    try {
+        if (mapLayers) {
+            await mapLayers.destroy();
+            mapLayers = null;
+            mapLayersHost.close();
+        } else {
+            const { MapLayersLab } = await import('./experiments/map-layers/MapLayersLab.js');
+            if (scope.closed) return;
+            mapLayersHost.showModal();
+            mapLayers = new MapLayersLab(locale.value, {
+                onClose: () => mapLayersButton.element.click(),
+                onLocale: (value) => {
+                    locale.value = value;
+                    locale.dispatchEvent(new Event('change'));
+                },
+            });
+            await mapLayers.mount(mapLayersHost);
+        }
+    } catch (error) {
+        await mapLayers?.destroy();
+        mapLayers = null;
+        mapLayersHost.close();
+        log.textContent = error.message;
+    } finally {
+        mapLayersButton.setPending(false);
+        updateMapLayersLabel();
+        if (!mapLayers) mapLayersButton.element.focus();
+    }
+});
+scope.listen(mapLayersHost, 'cancel', (e) => {
+    e.preventDefault();
+    mapLayersButton.element.click();
+});
+scope.own(() => mapLayers?.destroy());
+const mapLayersSection = panel(
+    { title: 'Map layers · interface experiment', headingLevel: 2 },
+    el('p', {
+        text: 'Bottom icon dock, grouped analysis and independent map details. Generated geography; clearly labelled national fixtures. No game connection.',
+    }),
+    mapLayersButton.element,
+    mapLayersHost,
+);
+mapLayersSection.id = 'map-layers';
 const buttons = ['primary', 'secondary', 'quiet', 'danger'].map(
     (variant) =>
         new Button({
@@ -227,6 +290,8 @@ const language = () => {
     quantity.label.textContent = fr ? 'Quantité demandée' : 'Quantity';
     quantity.setHelp(fr ? 'Unités entières, de 0 à 10.' : 'Whole units, from 0 to 10.');
     save.setLabel(fr ? 'Simuler un enregistrement local' : 'Simulate local save');
+    updateMapLayersLabel();
+    mapLayers?.setLocale(locale.value);
 };
 scope.listen(locale, 'change', language);
 const range = new RangeField({
@@ -270,6 +335,7 @@ for (const choice of imageChoices)
     });
 root.append(
     header,
+    mapLayersSection,
     el(
         'div',
         { class: 'gallery-sections' },
@@ -367,6 +433,8 @@ root.append(
         text: 'Shared semantic CSS variables · Native controls · Owned interactions · No game data or commands',
     }),
 );
+if (location.hash === '#map-layers') mapLayersButton.element.click();
+scope.listen(window, 'pagehide', () => void scope.dispose());
 Object.defineProperty(window, 'novusFoundationDiagnostics', {
     value: () => Scope.diagnostics(),
     configurable: true,

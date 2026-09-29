@@ -48,12 +48,12 @@ try {
     }
     assert.equal(selected.length, options.required_territories);
     const session = await (await page.request.get(origin + '/client/session')).json();
-    const noCsrf = await page.request.post(origin + '/create-nation', {
+    const noCsrf = await page.request.post(origin + '/client/setup/nation', {
         headers: { Accept: 'application/json' },
         data: {},
     });
     assert.equal(noCsrf.status(), 419, 'real CSRF protection');
-    const invalid = await page.request.post(origin + '/create-nation', {
+    const invalid = await page.request.post(origin + '/client/setup/nation', {
         headers: { Accept: 'application/json', 'X-CSRF-TOKEN': session.csrfToken, 'X-Client-Locale': 'fr' },
         data: { nation_name: 'x', leader_name: '', territory_ids_as_json: '[]' },
     });
@@ -76,10 +76,10 @@ try {
             flag_design: JSON.stringify(recipe),
         };
         const headers = { Accept: 'application/json', 'X-CSRF-TOKEN': session.csrfToken };
-        const missingPng = await page.request.post(origin + '/create-nation', { headers, multipart: fields });
+        const missingPng = await page.request.post(origin + '/client/setup/nation', { headers, multipart: fields });
         assert.equal(missingPng.status(), 422);
         assert.ok((await missingPng.json()).errors.nation_flag);
-        const wrongSize = await page.request.post(origin + '/create-nation', {
+        const wrongSize = await page.request.post(origin + '/client/setup/nation', {
             headers,
             multipart: {
                 ...fields,
@@ -88,7 +88,7 @@ try {
         });
         assert.equal(wrongSize.status(), 422);
         assert.ok((await wrongSize.json()).errors.nation_flag);
-        const unsafeRecipe = await page.request.post(origin + '/create-nation', {
+        const unsafeRecipe = await page.request.post(origin + '/client/setup/nation', {
             headers,
             multipart: {
                 ...fields,
@@ -113,7 +113,7 @@ try {
     await page.getByRole('button', { name: 'Continue', exact: true }).click();
     await page.screenshot({ path: 'test-results/client/entry-real-review.png' });
     const responsePromise = page.waitForResponse(
-        (r) => r.url().endsWith('/create-nation') && r.request().method() === 'POST',
+        (r) => r.url().endsWith('/client/setup/nation') && r.request().method() === 'POST',
     );
     await page.getByRole('button', { name: 'Found your nation', exact: true }).click();
     const response = await responsePromise;
@@ -121,7 +121,7 @@ try {
     await page.getByRole('heading', { name: 'A nation is born' }).waitFor();
     const final = await (await page.request.get(origin + '/client/setup')).json();
     assert.equal(final.status, 'FinishedSetup');
-    const duplicate = await page.request.post(origin + '/create-nation', {
+    const duplicate = await page.request.post(origin + '/client/setup/nation', {
         headers: { Accept: 'application/json', 'X-CSRF-TOKEN': session.csrfToken },
         multipart: {
             nation_name: 'Integration Aurelia',

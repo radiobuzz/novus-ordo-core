@@ -72,7 +72,7 @@ final class NationCommands
         if ($owned->count() !== $details->pluck('territory_id')->unique()->count()) {
             abort(422, 'Guard units must be standing in territory their nation controls.');
         }
-        $costs = $this->guardCosts($newDivisions);
+        $costs = $this->guardCosts($nation, $newDivisions);
         if (!$nation->getDetail($turn)->canAffordCosts($costs)) abort(422, 'Not enough resources for these guard orders.');
         $created = $newDivisions->mapWithKeys(function ($division) use ($nation, $game) {
             $division->setRelation('nation', $nation);
@@ -83,11 +83,12 @@ final class NationCommands
         return array_map(fn ($id) => $result->get($id), $ids);
     }
 
-    private function guardCosts(\Illuminate\Support\Collection $divisions): array {
-        $costs = array_fill_keys(array_map(fn ($type) => $type->value, \App\Domain\ResourceType::cases()), 0.0);
+    private function guardCosts(Nation $nation, \Illuminate\Support\Collection $divisions): array {
+        $catalogue = \App\Services\Resources\ResourceCatalogue::forGame($nation->getGame());
+        $costs = $catalogue->zero();
         foreach ($divisions as $division) {
-            foreach (DivisionType::getMeta($division->getDivisionType())->attackCosts as $resource => $cost) {
-                $costs[$resource] += $cost * Order::GUARD_READINESS_COST_FACTOR;
+            foreach ($catalogue->costs('operation', $division->getDivisionType()) as $resource => $cost) {
+                $costs[$resource] = \App\Domain\Resources\Quantity::add($costs[$resource], \App\Domain\Resources\Quantity::mul($cost, (string) Order::GUARD_READINESS_COST_FACTOR));
             }
         }
         return $costs;
@@ -160,7 +161,7 @@ final class NationCommands
             $prepared[] = [$division, $type, $engaging ? $rebase : $destination, $engaging ? $destination : null];
         }
         // Validate the entire batch and its reservation before replacing any existing order.
-        if (!$detail->canAffordCosts(DivisionType::calculateTotalAttackCostsByResourceType(...$types))) abort(422, 'Not enough resources for these attacks.');
+        if (!$detail->canAffordCosts($detail->resources()->costs('operation', ...$types))) abort(422, 'Not enough resources for these attacks.');
         if ($existing->isNotEmpty()) Order::whereIn('id', $existing->modelKeys())->delete();
         return array_map(function ($row) use ($nation, $game, $turn, $owners) {
             [$division, $type, $destination, $target] = $row;

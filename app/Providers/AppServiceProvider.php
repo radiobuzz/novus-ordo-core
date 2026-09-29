@@ -15,7 +15,7 @@ class AppServiceProvider extends ServiceProvider
      */
     public function register(): void
     {
-        // Removable V1Experimental bridge; core models depend only on GameParticipants.
+        // Core models depend only on the participant lifecycle, not an automation strategy.
         $this->app->bind(\App\Services\GameParticipants::class, \App\Integrations\AIPlayers\GameAdapter::class);
     }
 

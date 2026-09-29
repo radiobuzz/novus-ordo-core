@@ -1,0 +1,290 @@
+{
+  "name": "Policy foundation \u2014 configuration examples",
+  "description": "Four examples for exercising the policy machinery. Economic consumers and balanced outcomes are not yet implemented.",
+  "policies": [
+    {
+      "key": "income_tax",
+      "category_key": "economy",
+      "labels": {
+        "en": "Income tax"
+      },
+      "descriptions": {},
+      "sort_order": 1,
+      "status": "active",
+      "options": [
+        {
+          "key": "standard",
+          "labels": {
+            "en": "Standard"
+          },
+          "descriptions": {},
+          "is_default": true,
+          "sort_order": 1,
+          "retired": false,
+          "effects": [
+            {
+              "key": "tax_rule",
+              "effect_type": "finance.income_tax",
+              "arguments": {
+                "base": "taxable_income",
+                "rate": {
+                  "parameter": "rate"
+                }
+              },
+              "sort_order": 0
+            }
+          ]
+        }
+      ],
+      "parameters": [
+        {
+          "key": "rate",
+          "labels": {
+            "en": "Tax rate"
+          },
+          "value_type": "decimal",
+          "unit_key": "fraction_of_taxable_income",
+          "default_value": "0.20",
+          "min_value": "0.00",
+          "max_value": "1.00",
+          "step": "0.01",
+          "sort_order": 0
+        }
+      ],
+      "conditions": []
+    },
+    {
+      "key": "infrastructure_funding",
+      "category_key": "infrastructure",
+      "labels": {
+        "en": "Infrastructure funding"
+      },
+      "descriptions": {},
+      "sort_order": 2,
+      "status": "active",
+      "options": [
+        {
+          "key": "disabled",
+          "labels": {
+            "en": "Disabled"
+          },
+          "descriptions": {},
+          "is_default": true,
+          "sort_order": 1,
+          "retired": false,
+          "effects": []
+        },
+        {
+          "key": "enabled",
+          "labels": {
+            "en": "Enabled"
+          },
+          "descriptions": {},
+          "is_default": false,
+          "sort_order": 2,
+          "retired": false,
+          "effects": [
+            {
+              "key": "program_allocation",
+              "effect_type": "budget.program_funding",
+              "arguments": {
+                "program": "infrastructure",
+                "funding_ratio": {
+                  "parameter": "funding_ratio"
+                }
+              },
+              "sort_order": 0
+            }
+          ]
+        }
+      ],
+      "parameters": [
+        {
+          "key": "funding_ratio",
+          "labels": {
+            "en": "Share of calculated funding requirement"
+          },
+          "value_type": "decimal",
+          "unit_key": "fraction_of_program_requirement",
+          "default_value": "1.00",
+          "min_value": "0.00",
+          "max_value": "1.00",
+          "step": "0.01",
+          "sort_order": 0
+        }
+      ],
+      "conditions": []
+    },
+    {
+      "key": "industrial_ownership",
+      "category_key": "economy",
+      "labels": {
+        "en": "Industrial ownership"
+      },
+      "descriptions": {},
+      "sort_order": 3,
+      "status": "active",
+      "options": [
+        {
+          "key": "private",
+          "labels": {
+            "en": "Private"
+          },
+          "descriptions": {},
+          "is_default": true,
+          "sort_order": 1,
+          "retired": false,
+          "effects": [
+            {
+              "key": "sector_arrangement",
+              "effect_type": "institutions.development_ownership",
+              "arguments": {
+                "sector": "production",
+                "arrangement": "private"
+              },
+              "sort_order": 0
+            }
+          ]
+        },
+        {
+          "key": "mixed",
+          "labels": {
+            "en": "Mixed"
+          },
+          "descriptions": {},
+          "is_default": false,
+          "sort_order": 2,
+          "retired": false,
+          "effects": [
+            {
+              "key": "sector_arrangement",
+              "effect_type": "institutions.development_ownership",
+              "arguments": {
+                "sector": "production",
+                "arrangement": "mixed"
+              },
+              "sort_order": 0
+            }
+          ]
+        },
+        {
+          "key": "public",
+          "labels": {
+            "en": "Public"
+          },
+          "descriptions": {},
+          "is_default": false,
+          "sort_order": 3,
+          "retired": false,
+          "effects": [
+            {
+              "key": "sector_arrangement",
+              "effect_type": "institutions.development_ownership",
+              "arguments": {
+                "sector": "production",
+                "arrangement": "public"
+              },
+              "sort_order": 0
+            }
+          ]
+        }
+      ],
+      "parameters": [],
+      "conditions": []
+    },
+    {
+      "key": "public_industrial_priority",
+      "category_key": "economy",
+      "labels": {
+        "en": "Public industrial priority"
+      },
+      "descriptions": {},
+      "sort_order": 4,
+      "status": "active",
+      "options": [
+        {
+          "key": "none",
+          "labels": {
+            "en": "No public production priority"
+          },
+          "descriptions": {},
+          "is_default": true,
+          "sort_order": 1,
+          "retired": false,
+          "effects": []
+        },
+        {
+          "key": "consumer_goods",
+          "labels": {
+            "en": "Consumer goods"
+          },
+          "descriptions": {},
+          "is_default": false,
+          "sort_order": 2,
+          "retired": false,
+          "effects": [
+            {
+              "key": "public_priority",
+              "effect_type": "production.development_funding",
+              "arguments": {
+                "resource": "role:nutrition",
+                "funding_ratio": "0.5"
+              },
+              "sort_order": 0
+            }
+          ]
+        },
+        {
+          "key": "military",
+          "labels": {
+            "en": "Military production"
+          },
+          "descriptions": {},
+          "is_default": false,
+          "sort_order": 3,
+          "retired": false,
+          "effects": [
+            {
+              "key": "public_priority",
+              "effect_type": "production.development_funding",
+              "arguments": {
+                "resource": "role:nutrition",
+                "funding_ratio": "0.5"
+              },
+              "sort_order": 0
+            }
+          ]
+        }
+      ],
+      "parameters": [],
+      "conditions": [
+        {
+          "key": "consumer_goods_requires_public_activity",
+          "option": "consumer_goods",
+          "condition_type": "requires_option",
+          "referenced_policy": "industrial_ownership",
+          "option_keys": [
+            "mixed",
+            "public"
+          ],
+          "message": {
+            "en": "A public industrial priority requires mixed or public industrial ownership."
+          }
+        },
+        {
+          "key": "military_requires_public_activity",
+          "option": "military",
+          "condition_type": "requires_option",
+          "referenced_policy": "industrial_ownership",
+          "option_keys": [
+            "mixed",
+            "public"
+          ],
+          "message": {
+            "en": "A public industrial priority requires mixed or public industrial ownership."
+          }
+        }
+      ]
+    }
+  ]
+}

@@ -1,92 +1,55 @@
 import { Component } from '../../runtime/Component.js';
 import { el } from '../../ui/dom.js';
 import { Button } from '../../ui/Button.js';
-import { RangeField } from '../../ui/RangeField.js';
-import { Tooltip } from '../../ui/Tooltip.js';
-import { CompactMessage } from '../../ui/CompactMessage.js';
-import { resourceIcon } from '../../ui/resourceVisuals.js';
-import {
-    productionPlanBids,
-    productionPlanPreview,
-    productionProductivity,
-} from '../../services/production.js';
+import { FieldShell } from '../../ui/FieldShell.js';
+import { resourceIcon, resourceName } from '../../ui/resourceVisuals.js';
+import { MetricTable } from './MetricTable.js';
+import { acquisitionPlan } from '../../services/production.js';
 
 class ProductionPlanner extends Component {
     render() {
         this.snapshot = this.services.world.snapshot;
-        this.t = (key, params) => this.services.i18n.t(`planner.${key}`, params);
-        this.number = (value) => this.services.i18n.number(value, { maximumFractionDigits: 3 });
         this.rows = new Map();
-        this.metrics = new Map();
-        this.help = new Tooltip({ scope: this.scope });
-        this.context = el('span');
-        const overview = el('dl', { class: 'planner-overview' });
-        for (const key of ['workforce', 'automatic', 'discretionary', 'demand', 'capital']) {
-            const label = el('dt'),
-                value = el('dd');
-            this.metrics.set(key, { label, value });
-            overview.append(el('div', { 'data-planner-metric': key }, label, value));
-        }
-        this.hint = el('span');
+        this.generation = 0;
+        this.t = (key) => this.services.i18n.t(`planner.${key}`);
+        this.hint = el('p', { class: 'planner-caption' });
+        this.food = el('p', { class: 'planner-caption', 'data-food-plan': '' });
         this.resources = el('div', { class: 'planner-resources' });
-        this.materialSummary = el('summary');
-        this.material = el('details', { class: 'planner-secondary' }, this.materialSummary);
-        this.advancedSummary = el('summary');
-        this.advanced = el('details', { class: 'planner-advanced' }, this.advancedSummary);
-        this.breakdownSummary = el('summary');
-        this.breakdownBody = el('tbody');
-        this.breakdownHead = el('thead');
-        this.breakdown = el(
-            'details',
-            { class: 'planner-breakdown' },
-            this.breakdownSummary,
-            el(
-                'div',
-                { class: 'game-table-scroll', tabindex: 0 },
-                el('table', { class: 'game-table' }, this.breakdownHead, this.breakdownBody),
-            ),
-        );
-        this.scope.listen(this.breakdown, 'toggle', () => this.updateBreakdown());
-        this.warning = new CompactMessage(this.scope);
-        this.status = new CompactMessage(this.scope);
-        this.apply = new Button({ type: 'submit', variant: 'primary', icon: 'save' });
-        this.reset = new Button({ icon: 'reset' });
+        this.status = el('p', { role: 'status' });
+        this.apply = new Button({ type: 'submit', variant: 'primary' });
+        this.reset = new Button();
         this.refresh = new Button({ icon: 'refresh' });
-        this.review = new Button({ variant: 'quiet' });
+        this.review = new Button();
         this.form = el(
             'form',
-            { class: 'production-planner', novalidate: true },
-            el('div', { class: 'planner-context' }, this.context, this.help.element),
-            overview,
-            el('p', { class: 'planner-caption' }, this.hint),
+            { class: 'production-planner' },
+            this.hint,
+            this.food,
             this.resources,
-            this.material,
-            this.advanced,
-            this.breakdown,
-            this.warning.element,
+            this.status,
             el(
                 'footer',
-                { class: 'planner-footer' },
-                this.status.element,
-                el(
-                    'div',
-                    { class: 'ui-panel-actions' },
-                    this.refresh.element,
-                    this.review.element,
-                    this.reset.element,
-                    this.apply.element,
-                ),
+                { class: 'ui-panel-actions' },
+                this.refresh.element,
+                this.review.element,
+                this.reset.element,
+                this.apply.element,
             ),
         );
         this.element.append(this.form);
+        this.scope.own(() => {
+            clearTimeout(this.timer);
+            this.request?.abort();
+            this.generation++;
+        });
         this.scope.listen(this.form, 'submit', (event) => {
             event.preventDefault();
             void this.submit();
         });
         this.scope.listen(this.reset.element, 'click', () => {
-            if (!this.snapshot || this.services.gameplay.busy) return;
             const drafts = this.services.gameplay.drafts(this.snapshot);
-            for (const resource of this.rows.keys()) delete drafts[resource];
+            for (const key of this.rows.keys()) delete drafts[key];
+            this.services.gameplay.notifyEconomicDraft();
             this.update();
         });
         this.scope.listen(this.refresh.element, 'click', () => void this.services.world.refresh());
@@ -96,262 +59,252 @@ class ProductionPlanner extends Component {
                 void this.services.closeProductionPlanner();
                 return;
             }
-            if (!this.services.world.same(this.snapshot, state.snapshot)) this.contextChanged = true;
             this.snapshot = state.snapshot;
             this.update();
         });
-        this.services.gameplay.changed.subscribe(this.scope, () => this.update());
+        this.services.gameplay.economicDraftChanged.subscribe(this.scope, () => this.schedule());
+        this.services.gameplay.changed.subscribe(this.scope, () => this.controls());
         this.services.i18n.changed.subscribe(this.scope, () => this.update());
     }
-    createRow(resource) {
+    createRow(key) {
+        const quantity = el('input', {
+            type: 'text',
+            inputmode: 'decimal',
+            required: true,
+            pattern: '[0-9]{1,14}(\\.[0-9]{1,6})?',
+        });
+        const spending_limit = quantity.cloneNode();
+        const priority = el('input', { type: 'number', min: 0, max: 2147483647, step: 1, required: true });
         const name = el('h3'),
-            current = el('span'),
-            forecast = el('strong'),
-            balance = el('strong'),
-            labor = el('span');
-        const productionLabel = el('span'),
-            balanceLabel = el('span'),
-            laborLabel = el('span');
-        const quantity = new RangeField({
-            scope: this.scope,
-            label: '',
-            value: 0,
-            min: 0,
-            max: 10,
-            step: 0.01,
-            helpLabel: this.services.i18n.t('common.help'),
-            onChange: () => this.remember(resource),
-        });
-        const productivity = new RangeField({
-            scope: this.scope,
-            label: '',
-            value: 0,
-            min: 0,
-            max: 4,
-            step: 0.1,
-            helpLabel: this.services.i18n.t('common.help'),
-            onChange: () => this.remember(resource),
-        });
-        const warning = new CompactMessage(this.scope);
+            forecast = el('div', { class: 'planner-comparison' });
+        const q = new FieldShell({ control: quantity, label: '' });
+        const p = new FieldShell({ control: spending_limit, label: '' });
+        const order = new FieldShell({ control: priority, label: '' });
+        const icon = resourceIcon(
+            this.snapshot.nation.definitions.resources.find((r) => r.resource_key === key)?.icon_key,
+        );
         const card = el(
             'section',
-            { class: 'planner-row', 'data-production-resource': resource },
-            el(
-                'header',
-                {},
-                el('img', { src: resourceIcon(resource), alt: '', width: 24, height: 24 }),
-                name,
-            ),
-            el('div', { class: 'planner-figure' }, productionLabel, el('div', {}, current, ' → ', forecast)),
-            quantity.element,
-            el('div', { class: 'planner-figure' }, laborLabel, labor),
-            el('div', { class: 'planner-figure' }, balanceLabel, balance),
-            warning.element,
+            { class: 'planner-row', 'data-production-resource': key },
+            el('header', {}, icon ? el('img', { src: icon, width: 24, height: 24, alt: '' }) : null, name),
+            q.element,
+            p.element,
+            order.element,
+            forecast,
         );
-        (resource === 'Material' ? this.material : this.resources).append(card);
-        this.advanced.append(productivity.element);
+        for (const input of [quantity, spending_limit, priority])
+            this.scope.listen(input, 'input', () => {
+                this.services.gameplay.drafts(this.snapshot)[key] = {
+                    quantity: quantity.value,
+                    spending_limit: spending_limit.value,
+                    priority: priority.value,
+                };
+                this.services.gameplay.notifyEconomicDraft();
+            });
+        this.resources.append(card);
+        const comparison = new MetricTable();
+        const current = el('p', { class: 'planner-current' });
+        const reasons = el('p', { class: 'planner-caption' });
+        const help = el('p', { class: 'planner-caption' });
+        const progress = el('p', { class: 'planner-preview-status', role: 'status' });
+        forecast.append(
+            current,
+            el('div', { class: 'game-table-scroll' }, comparison.element),
+            reasons,
+            help,
+        );
+        card.insertBefore(progress, forecast);
         const row = {
             card,
             name,
-            current,
-            forecast,
-            balance,
-            labor,
             quantity,
-            productivity,
-            productionLabel,
-            balanceLabel,
-            laborLabel,
-            warning,
+            spending_limit,
+            q,
+            p,
+            priority,
+            order,
+            forecast,
+            comparison,
+            current,
+            reasons,
+            help,
+            progress,
         };
-        this.rows.set(resource, row);
+        this.rows.set(key, row);
         return row;
-    }
-    remember(resource) {
-        const row = this.rows.get(resource);
-        this.services.gameplay.drafts(this.snapshot)[resource] = {
-            quantity: row.quantity.input.value,
-            productivity: row.productivity.input.value,
-        };
-        this.preview();
     }
     update() {
         if (this.scope.closed || !this.snapshot?.nation) return;
         const data = this.snapshot.nation,
             drafts = this.services.gameplay.drafts(this.snapshot);
-        const unit = data.definitions.labor_per_unit;
-        this.context.textContent = this.t('context', { turn: this.snapshot.turn_number });
-        this.help.setText(this.t('help'));
-        this.help.setLabel(this.services.i18n.t('common.helpFor', { name: this.t('title') }));
-        this.hint.textContent = this.t('hint');
-        this.advancedSummary.textContent = this.t('advanced');
-        this.breakdownSummary.textContent = this.t('territories');
-        this.materialSummary.textContent = this.t('materials', {
-            value: this.number(
-                Number(
-                    drafts.Material?.quantity ??
-                        (data.bids.find((bid) => bid.resource_type === 'Material')?.max_quantity ?? 0) / unit,
-                ),
-            ),
-        });
+        this.hint.textContent = this.t('resourceHint');
         this.apply.setLabel(this.t('apply'));
         this.reset.setLabel(this.t('reset'));
-        this.refresh.setLabel(this.services.i18n.t('common.retry'));
+        this.refresh.setLabel(this.services.i18n.t('common.refresh'));
         this.review.setLabel(this.t('review'));
-        for (const resource of [...data.definitions.bid_resources].sort(
-            (a, b) => (a === 'Material') - (b === 'Material'),
-        )) {
-            const row = this.rows.get(resource) ?? this.createRow(resource);
-            const name = this.services.i18n.t(`command.resource.${resource}`);
-            const bid = data.bids.find((candidate) => candidate.resource_type === resource);
-            const quantity = drafts[resource]?.quantity ?? (bid?.max_quantity ?? 0) / unit;
-            const productivity =
-                drafts[resource]?.productivity ?? productionProductivity(bid, data.definitions);
-            const facilities =
-                data.production_planning?.facilities.filter((f) => f.resource_type === resource) ?? [];
-            const ceiling = facilities.reduce((sum, f) => sum + (f.capacity * f.productivity) / unit, 0);
-            row.name.textContent = name;
-            row.productionLabel.textContent = this.t('production');
-            row.balanceLabel.textContent = this.t('net');
-            row.laborLabel.textContent = this.t('labor');
-            row.quantity.setLabel(this.t('target', { resource: name }), this.t('slider', { resource: name }));
-            row.quantity.setBounds({
-                min: 0,
-                max: Math.max(1, Math.ceil(ceiling), Number(quantity) || 0),
-                step: 0.01,
-                help: this.t('targetHelp'),
-            });
-            row.quantity.input.max = Number.MAX_SAFE_INTEGER / unit;
-            row.quantity.input.step = 'any';
-            row.productivity.setLabel(this.t('cutoff', { resource: name }));
-            row.productivity.setBounds({
-                min: 0,
-                max: Math.max(4, ...facilities.map((f) => f.productivity), Number(productivity) || 0),
-                step: 0.1,
-                help: this.t('cutoffHelp'),
-            });
-            row.productivity.input.step = 'any';
-            // Setting the same input value can disturb a caret; ordinary refreshes leave it alone.
-            if (row.quantity.input.value !== String(quantity)) row.quantity.setValue(quantity);
-            if (row.productivity.input.value !== String(productivity))
-                row.productivity.setValue(productivity);
-            row.current.textContent = this.number(data.budget.production[resource]);
+        for (const [key, row] of this.rows)
+            if (!data.definitions.acquisition_resources.includes(key)) {
+                row.card.remove();
+                this.rows.delete(key);
+            }
+        for (const key of data.definitions.acquisition_resources) {
+            const row = this.rows.get(key) ?? this.createRow(key),
+                saved = data.acquisitions.find((b) => b.resource_key === key);
+            const meta = data.definitions.resources.find((r) => r.resource_key === key);
+            const units = meta?.unit_labels?.[this.services.i18n.locale] ?? meta?.unit_labels?.en;
+            row.name.textContent = resourceName(data, key, this.services.i18n) + (units ? ` · ${units}` : '');
+            row.q.label.textContent = this.t('requestedQuantity');
+            row.p.label.textContent = this.t('spendingLimit');
+            row.order.label.textContent = this.t('priority');
+            row.priority.title = this.t('priorityHelp');
+            const priority = String(drafts[key]?.priority ?? saved?.priority ?? 100);
+            if (row.priority.value !== priority) row.priority.value = priority;
+            const quantity = drafts[key]?.quantity ?? saved?.quantity ?? '0';
+            const spending_limit = drafts[key]?.spending_limit ?? saved?.spending_limit ?? '0';
+            if (row.quantity.value !== quantity) row.quantity.value = quantity;
+            if (row.spending_limit.value !== spending_limit) row.spending_limit.value = spending_limit;
         }
-        this.preview();
+        const context = this.services.gameplay.policyDraft(this.snapshot).key;
+        if (context !== this.forecastContext) {
+            this.forecastContext = context;
+            this.displayPlan = null;
+        }
+        for (const [key, row] of this.rows) this.renderForecast(key, row, this.displayPlan);
+        this.schedule();
     }
-    preview() {
-        const { gameplay, world } = this.services,
-            data = this.snapshot.nation,
-            unit = data.definitions.labor_per_unit;
-        this.valid = [...this.rows.values()].every(
-            (row) => row.quantity.input.validity.valid && row.productivity.input.validity.valid,
-        );
+    schedule() {
+        clearTimeout(this.timer);
+        this.request?.abort();
+        this.generation++;
+        this.plan = null;
+        if (!this.displayPlan) this.food.textContent = this.t('foodPolicyManaged');
         try {
-            this.bids = productionPlanBids(data, gameplay.drafts(this.snapshot));
-            this.plan = this.valid ? productionPlanPreview(data, this.bids) : null;
+            this.acquisitions = acquisitionPlan(
+                this.snapshot.nation,
+                this.services.gameplay.drafts(this.snapshot),
+            );
+            this.valid = true;
         } catch {
             this.valid = false;
-            this.plan = null;
         }
-        const plan = this.plan;
-        const materialBid = this.bids?.find((bid) => bid.resource_type === 'Material');
-        this.materialSummary.textContent = this.t('materials', {
-            value: materialBid ? this.number(materialBid.max_quantity / unit) : '—',
-        });
-        const values = plan && {
-            workforce: plan.total,
-            automatic: plan.automatic + plan.reserved,
-            discretionary: plan.discretionary,
-            demand: plan.requested,
-            capital: plan.rows.Capital.balance,
-        };
-        for (const [key, metric] of this.metrics) {
-            metric.label.textContent = this.t(key);
-            metric.value.textContent = values ? this.number(values[key] / unit) : '—';
-            metric.value.dataset.tone =
-                plan &&
-                ((key === 'capital' && values.capital < 0) ||
-                    (key === 'demand' && plan.requested > plan.discretionary))
-                    ? 'warning'
-                    : '';
-        }
-        for (const [resource, row] of this.rows) {
-            const estimate = plan?.rows[resource];
-            row.forecast.textContent = estimate ? this.number(estimate.production / unit) : '—';
-            row.balance.textContent = estimate ? this.number(estimate.balance / unit) : '—';
-            row.labor.textContent = estimate ? this.number(estimate.labor / unit) : '—';
-            row.balance.dataset.tone = estimate?.balance < 0 ? 'warning' : 'ready';
-            row.warning.show(
-                estimate?.shortfall > 1
-                    ? this.t('shortfall', { value: this.number(estimate.shortfall / unit) })
-                    : '',
-                this.t('shortfallHelp'),
+        this.error = '';
+        this.controls();
+        if (this.valid && this.services.world.current)
+            this.timer = setTimeout(() => void this.preview(), 300);
+    }
+    async preview() {
+        const generation = this.generation,
+            snapshot = this.snapshot;
+        this.request = new AbortController();
+        try {
+            const result = await this.services.gameplay.previewProduction(
+                snapshot,
+                this.acquisitions,
+                this.request.signal,
             );
+            if (generation !== this.generation || this.scope.closed) return;
+            this.plan = result;
+            this.displayPlan = result;
+            const food = result.rows[this.snapshot.nation.definitions.roles.nutrition];
+            const nutrition = food.acquisition;
+            const formatFood = (v) => this.services.i18n.number(Number(v), { maximumFractionDigits: 2 });
+            this.food.textContent = `${this.t('foodPolicyManaged')} ${this.t('output')}: ${formatFood(food.production)} · ${this.t('closingStock')}: ${formatFood(food.closing)} · ${this.t('foodReserveTarget')}: ${formatFood(nutrition.reserve_target)} · ${this.t('unmetDemand')}: ${formatFood(nutrition.civilian.unmet)}`;
+            for (const [key, row] of this.rows) this.renderForecast(key, row, result);
+        } catch (error) {
+            if (generation === this.generation && !this.scope.closed && error.name !== 'AbortError')
+                this.error = error.message;
         }
-        const short = !this.valid
-            ? 'invalid'
-            : !plan
-              ? 'unavailable'
-              : !world.current
-                ? 'stale'
-                : this.contextChanged
-                  ? 'newTurn'
-                  : plan.usesReserves
-                    ? 'reserves'
-                    : '';
-        this.warning.show(short ? this.t(short) : '');
-        const isPlanOutcome = gameplay.lastCommand === 'applyProductionPlan' || gameplay.needsReview;
-        this.status.show(isPlanOutcome ? gameplay.notice : '');
+        if (generation === this.generation && !this.scope.closed) this.controls();
+    }
+    renderForecast(key, row, result) {
+        const saved = this.snapshot.nation.production_planning;
+        const sources = [
+            saved.last_resources?.[key],
+            saved.rows[key]?.acquisition,
+            result?.rows[key]?.acquisition,
+        ];
+        const format = (value) =>
+            value == null ? '—' : this.services.i18n.number(Number(value), { maximumFractionDigits: 3 });
+        const fields = [
+            ['effectiveRequest', (r) => r.acquisition_requested],
+            ['referencePrice', (r) => r.price],
+            ['publicOutput', (r) => r.production.government],
+            ['privateOutput', (r) => r.production.producer],
+            ['publicDelivery', (r) => r.public_delivery],
+            ['privateDelivery', (r) => r.private_delivery],
+            ['purchaseCost', (r) => r.purchase_spending],
+            ['deliveryCost', (r) => r.public_delivery_cost],
+            ['unmetDemand', (r) => r.acquisition_unmet],
+            ['closingStock', (r) => r.government_closing],
+            ['publicDevelopment', (r) => r.development.government],
+            ['privateDevelopment', (r) => r.development.producer],
+        ];
+        row.comparison.update(
+            ['metric', 'lastActual', 'savedEstimate', 'draftEstimate'].map((k) => this.t(k)),
+            fields.map(([key, value]) => ({
+                key,
+                label: this.t(key),
+                values: sources.map((r) => {
+                    const amount = r ? value(r) : null;
+                    return {
+                        text: format(amount),
+                        tone: key === 'unmetDemand' && Number(amount) > 0 ? 'danger' : 'neutral',
+                    };
+                }),
+            })),
+        );
+        const r = (result ?? saved).rows[key];
+        const reasons = r.acquisition.constraints.map((c) => this.t(`constraint_${c}`));
+        row.current.textContent = `${this.t('governmentStock')}: ${format(r.opening)} · ${this.t('committed')}: ${format(r.commands)} · ${this.t('available')}: ${format(r.available)}`;
+        row.reasons.textContent = `${this.t('constraints')}: ${reasons.length ? reasons.join(' · ') : this.t('noConstraints')}`;
+        row.help.textContent = this.t('costHelp');
+    }
+    controls() {
+        if (this.scope.closed) return;
+        const { gameplay, world } = this.services;
         this.apply.setPending(gameplay.busy);
-        this.apply.setDisabled(!world.current || gameplay.needsReview || !this.valid || !plan);
+        this.apply.setDisabled(!world.current || gameplay.needsReview || !this.valid || !this.plan);
         this.reset.setDisabled(gameplay.busy);
-        this.refresh.element.hidden = world.current && Boolean(plan || !this.valid);
         this.refresh.setDisabled(gameplay.busy);
         this.review.element.hidden = !gameplay.needsReview;
         this.review.setDisabled(!world.current || gameplay.busy);
-        this.updateBreakdown();
-    }
-    updateBreakdown() {
-        if (!this.breakdown.open || !this.plan) return;
-        this.breakdownHead.replaceChildren(
-            el(
-                'tr',
-                {},
-                ['territory', 'resource', 'productivity', 'labor', 'output'].map((key) =>
-                    el('th', { scope: 'col', text: this.t(key) }),
-                ),
-            ),
-        );
-        this.breakdownBody.replaceChildren(
-            ...this.plan.facilities.map((f) =>
-                el(
-                    'tr',
-                    {},
-                    [
-                        this.snapshot.territories.find((t) => t.territory_id === f.territory_id)?.name ??
-                            `#${f.territory_id}`,
-                        this.services.i18n.t(`command.resource.${f.resource_type}`),
-                        this.number(f.productivity),
-                        this.number(f.allocation / this.snapshot.nation.definitions.labor_per_unit),
-                        this.number(
-                            (f.allocation * f.productivity) / this.snapshot.nation.definitions.labor_per_unit,
-                        ),
-                    ].map((text) => el('td', { text })),
-                ),
-            ),
-        );
+        for (const row of this.rows.values()) {
+            row.forecast.setAttribute(
+                'aria-busy',
+                String(!this.plan && this.valid && !this.error && world.current),
+            );
+            row.progress.textContent = this.plan
+                ? ''
+                : this.displayPlan
+                  ? this.t('previousEstimate')
+                  : this.t('calculating');
+            row.progress.dataset.tone = this.error || !this.valid || !world.current ? 'danger' : 'warning';
+        }
+        this.status.textContent =
+            this.error ||
+            (!this.valid
+                ? this.t('invalid')
+                : !world.current
+                  ? this.t('stale')
+                  : !this.plan
+                    ? this.t('calculating')
+                    : gameplay.lastCommand === 'applyProductionPlan'
+                      ? gameplay.notice
+                      : '');
     }
     async submit() {
         if (!this.valid || !this.plan || !this.services.world.current || this.services.gameplay.busy) return;
-        this.contextChanged = false;
         try {
-            await this.services.gameplay.command('applyProductionPlan', { bids: this.bids }, this.snapshot);
+            await this.services.gameplay.command(
+                'applyProductionPlan',
+                { acquisitions: this.acquisitions },
+                this.snapshot,
+            );
         } catch {
-            /* Service owns rejection/uncertainty, draft retention and reconciliation. */
+            /* GameplayService retains rejected drafts and reconciles accepted commands. */
         }
     }
 }
-
 export function createInstance(options) {
     return new ProductionPlanner(options);
 }
