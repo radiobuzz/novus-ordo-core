@@ -1,5 +1,11 @@
 # Economic simulation foundations — first proposal
 
+**2026-10-01 playable checkpoint:** [civilian live integration](civilian-economy-live-integration.md) now extends the transactional runtime, default fresh-game catalogue and economy panel. The prior isolated checkpoint below remains historical evidence. Full trade/resource/investment ambitions below are still proposals.
+
+**2026-10-01 implementation checkpoint:** the authorized [civilian economy milestone](civilian-economy-milestone.md) now exercises recurring civilian consumption, subsistence, production inputs and asset upkeep through the shared transactional ledger. Five isolated scenarios run for 80 seasons each. This is not a live cutover, a policy-schema replacement or implementation of the full proposal below.
+
+**2026-09-30 decision open:** the [indicator-led alternative](indicator-economy-alternative.md) preserves a possible aggregate-income approach with all eight NO2 indices plus unrest/informal activity and distinct public/private development. The user has not selected it; improving the current transactional economy remains an option. This alternative does not supersede the current system or authorize removing civilian accounts. Broader demographic and trade ambitions remain future work.
+
 **2026-09-28 implementation checkpoint:** the narrower [first playable seasonal economy](seasonal-economy-first-playable.md) is now implemented for new games. The broader resource, demographic and trade systems below remain future work.
 
 Status: high-level local-economy concept accepted on 2026-09-24; detailed systems, coefficients, and schema remain proposals for discussion. No gameplay implementation is authorized by this document.

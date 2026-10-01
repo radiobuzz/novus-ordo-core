@@ -45,6 +45,60 @@ foreach (['0','1','0.5'] as $share) {
     $again = Season::resolve($resources, $result['state'], $plan, $rules);
     $eq($cashTotal($again['state']), $cashTotal($seed), 'Next season never replenishes cash');
 }
+// Maintenance is shared nationally before any region receives improvements.
+$maintenanceResources = $resources;
+$maintenanceResources['food']['rules']['demand.population']['per_million'] = '0';
+$maintenanceSeed = $fixture();
+$maintenanceSeed['territories']['second'] = $maintenanceSeed['territories']['core'];
+$maintenancePlan = ['investors'=>[], 'settings'=>['budget.program_funding'=>['infrastructure'=>'1']]];
+$regionalUpkeep = Q::mul('0.6', Season::defaults()['infrastructure_upkeep']);
+$maintenanceSeed['accounts']['government']['cash'] = Q::mul('2', $regionalUpkeep); // Exactly two regions' upkeep.
+$r = Season::resolve($maintenanceResources, $maintenanceSeed, $maintenancePlan, $rules);
+foreach ($r['report']['infrastructure'] as $row) {
+    $eq($row['maintenance_paid'], $regionalUpkeep, 'Every region receives affordable maintenance first');
+    $eq($row['improvement_paid'], '0.000000', 'No improvement spends another region maintenance');
+}
+$maintenanceSeed['accounts']['government']['cash'] = $regionalUpkeep;
+$r = Season::resolve($maintenanceResources, $maintenanceSeed, $maintenancePlan, $rules);
+foreach ($r['report']['infrastructure'] as $row) $eq($row['maintenance_paid'], Q::mul('0.5', $regionalUpkeep), 'Scarce maintenance shared proportionally');
+$check(in_array('maintenance_shortfall', array_column($r['warnings'], 'type')), 'Unfunded maintenance warns');
+$maintenanceSeed['accounts']['government']['cash'] = '20';
+$maintenancePlan['settings']['budget.program_funding']['infrastructure'] = '0.5';
+$r = Season::resolve($maintenanceResources, $maintenanceSeed, $maintenancePlan, $rules);
+$check(in_array('maintenance_shortfall', array_column($r['warnings'], 'type')), 'Low chosen funding warns even when entirely paid');
+$check(!in_array('infrastructure_shortfall', array_column($r['warnings'], 'type')), 'Chosen half-budget was fully paid');
+$maintenancePlan['settings']['budget.program_funding']['infrastructure'] = '1';
+$maintenanceSeed['territories']['second']['workforce'] = '0';
+$r = Season::resolve($maintenanceResources, $maintenanceSeed, $maintenancePlan, $rules);
+$check(Q::cmp($r['report']['infrastructure']['core']['improvement_paid'], '0') > 0, 'Local worker shortage does not block affordable improvements elsewhere');
+$check(in_array('maintenance_shortfall', array_column($r['warnings'], 'type')), 'Local worker shortage still reports unperformed upkeep');
+// Impossible orders do not finance phantom purchases.
+$noSupply = $fixture();
+$noSupply['accounts']['government']['cash'] = '0';
+$noSupply['accounts']['lender'] = ['kind'=>'lender', 'cash'=>'100'];
+$noSupply['fiscal'] = ['receipts'=>['10']];
+$noSupply['debts'] = ['government'=>['lender'=>'0']];
+$noSupply['territories']['core']['capacity']['producer']['ore'] = '0';
+$r = Season::resolve($resources, $noSupply, $plan, $rules);
+$eq($r['report']['fiscal']['borrowing'], '0.000000', 'No loan for an unavailable good');
+$eq($r['resources']['ore']['acquisition_unmet'], '2.000000', 'Impossible acquisition stays visible');
+$noSupply['territories']['core']['capacity']['producer']['ore'] = '8';
+$noSupply['accounts']['producer']['cash'] = '0';
+$noSupply['accounts']['household']['cash'] = '0';
+$r = Season::resolve($resources, $noSupply, $plan, $rules);
+$eq($r['report']['fiscal']['borrowing'], '4.000000', 'Potentially feasible purchase initially financed');
+$eq($r['report']['fiscal']['principal_repaid'], '4.000000', 'Unspent loan returned even below treasury reserve');
+$eq($r['report']['fiscal']['closing_debt'], '0.000000', 'Failed purchase leaves no unnecessary debt');
+$eq($cashTotal($r['state']), $cashTotal($noSupply), 'Returning unused loan conserves cash');
+$limitedPublic = $fixture('1');
+$limitedPublic['accounts']['government']['cash'] = '0';
+$limitedPublic['accounts']['lender'] = ['kind'=>'lender', 'cash'=>'100'];
+$limitedPublic['fiscal'] = ['receipts'=>['10']];
+$limitedPublic['debts'] = ['government'=>['lender'=>'0']];
+$limitedPublic['territories']['core']['capacity']['government']['food'] = '1';
+$r = Season::resolve($resources, $limitedPublic, ['investors'=>[]], $rules);
+$eq($r['report']['fiscal']['borrowing'], Q::parse($resources['food']['rules']['production.operating']['wage_per_unit']), 'Public wage envelope bounded by installed capacity');
+
 // Generic catalogue identities and reduced optional goods.
 $renamed = $resources; $renamed['nutrition_test'] = $renamed['food']; unset($renamed['food']);
 $renamed['synthetic'] = $renamed['ore']; $renamed['synthetic']['role'] = null;

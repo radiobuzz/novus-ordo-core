@@ -1,5 +1,7 @@
 .production-planner-dialog {
-    width: min(1120px, calc(100vw - 48px));
+    --panel-padding: var(--space-4);
+    width: min(860px, calc(100vw - 48px));
+    height: min(740px, calc(100dvh - 48px));
     max-width: none;
     max-height: calc(100dvh - 48px);
     padding: 0;
@@ -12,7 +14,8 @@
         background: var(--glass);
     }
     .surface-header {
-        padding: 12px 24px;
+        flex-shrink: 0;
+        padding: var(--space-3) var(--panel-padding);
         border-bottom: 1px solid var(--border-default);
     }
     .surface-header h2 {
@@ -27,9 +30,16 @@
     }
     .surface-body {
         padding: 0;
-        overflow: auto;
-        scrollbar-gutter: stable;
+        overflow: hidden;
+        display: flex;
+        min-height: 0;
         flex: 1;
+    }
+    .feature-slot {
+        display: flex;
+        flex: 1;
+        min-width: 0;
+        min-height: 0;
     }
     &[open] {
         display: flex;
@@ -37,22 +47,45 @@
     }
 }
 .production-planner {
-    padding: 12px 24px;
+    padding: 0 var(--panel-padding);
+    display: flex;
+    flex-direction: column;
+    min-width: 0;
+    min-height: 0;
+    width: 100%;
+    flex: 1;
     font-size: var(--font-body-size);
+    > .planner-caption {
+        margin-block: var(--space-3);
+        flex-shrink: 0;
+    }
+    .planner-scroll {
+        flex: 1;
+        overflow: auto;
+        scrollbar-gutter: stable;
+        min-height: 0;
+    }
     .planner-caption {
         color: var(--text-muted);
     }
     .planner-row {
         display: grid;
-        grid-template-columns: minmax(120px, 1fr) minmax(150px, 1fr) minmax(180px, 1fr) minmax(100px, 0.7fr);
+        grid-template-columns: minmax(0, 1fr) minmax(0, 1fr) minmax(0, 0.7fr);
         align-items: center;
-        gap: 16px;
-        padding: 16px 0;
-        border-bottom: 1px solid var(--border-default);
+        gap: var(--space-3);
+        padding: var(--space-3) 0;
     }
     .planner-comparison {
         grid-column: 1 / -1;
         min-width: 0;
+    }
+    .planner-investment {
+        grid-column: 1 / -1;
+        border-top: 1px solid var(--border-default);
+        padding-top: var(--space-3);
+        p {
+            margin-bottom: 0;
+        }
     }
     .planner-preview-status {
         grid-column: 1 / -1;
@@ -74,11 +107,18 @@
             overflow-wrap: anywhere;
         }
     }
-    > [role='status'] {
-        min-height: 1.5em;
-    }
     .planner-current {
         color: var(--text-primary);
+    }
+    .planner-current,
+    .planner-outlook,
+    .planner-comparison > .planner-caption {
+        margin: 0 0 var(--space-3);
+    }
+    .planner-details > summary {
+        cursor: pointer;
+        color: var(--accent-command);
+        padding-block: var(--space-2);
     }
     .planner-comparison th {
         text-align: start;
@@ -88,6 +128,7 @@
         font-variant-numeric: tabular-nums;
     }
     .planner-row header {
+        grid-column: 1 / -1;
         display: flex;
         align-items: center;
         gap: 8px;
@@ -110,9 +151,20 @@
     .ui-field-error:empty {
         display: none;
     }
-    footer {
-        padding-block: 12px;
-        flex-wrap: wrap;
+    .planner-footer {
+        flex-shrink: 0;
+        padding-block: var(--space-3);
+        border-top: 1px solid var(--border-default);
+        .ui-panel-actions {
+            flex-wrap: wrap;
+        }
+        p {
+            margin: 0 0 var(--space-2);
+            font-size: var(--font-small);
+        }
+        [role='status'] {
+            min-height: 2.5em;
+        }
     }
     @media (max-width: 850px) {
         .planner-row {
@@ -124,15 +176,22 @@
         }
     }
     @media (max-width: 520px) {
-        padding: 12px;
-        .planner-row {
-            grid-template-columns: 1fr;
+        .planner-footer .ui-panel-actions {
+            display: grid;
+            grid-template-columns: repeat(2, minmax(0, 1fr));
+            > :last-child {
+                grid-column: 1 / -1;
+            }
+            .ui-button {
+                padding-inline: var(--space-2);
+            }
         }
     }
 }
 @media (max-width: 600px) {
     .production-planner-dialog {
         width: calc(100vw - 12px);
+        height: min(740px, calc(100dvh - 12px));
         max-height: calc(100dvh - 12px);
     }
     .production-planner-dialog .surface-header {

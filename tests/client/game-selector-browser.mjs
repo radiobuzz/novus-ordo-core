@@ -205,6 +205,7 @@ try {
     const newcomer = await browser.newContext();
     const entry = await newcomer.newPage();
     await entry.goto(`${origin}/client/entry`);
+    await entry.locator('.entry-enter').click();
     await entry.getByLabel('Username', { exact: true }).fill('multi-joiner');
     await entry.getByLabel('Password', { exact: true }).fill('fixture-password');
     await entry.getByRole('button', { name: 'Enter the world', exact: true }).click();

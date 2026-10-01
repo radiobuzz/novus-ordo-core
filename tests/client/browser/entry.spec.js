@@ -1,6 +1,6 @@
 import { test, expect } from '@playwright/test';
 import { baseTerritories, fixtures } from '../fixtures.js';
-async function setup(page) {
+async function setup(page, { reveal = true } = {}) {
     let authenticated = false;
     await page.route('**/client/session', (route) =>
         route.fulfill({
@@ -47,6 +47,7 @@ async function setup(page) {
         }),
     );
     await page.goto('/client/entry?game_id=1');
+    if (reveal) await page.locator('.entry-enter').click();
 }
 async function login(page) {
     await page.getByLabel('Username', { exact: true }).fill('fixture-player');
@@ -54,6 +55,43 @@ async function login(page) {
     await page.getByRole('button', { name: 'Enter the world', exact: true }).click();
     await expect(page.getByRole('heading', { name: 'Give your nation a name' })).toBeVisible();
 }
+test('title screen reveals login immediately and retains fields when dismissed', async ({ page }) => {
+    await setup(page, { reveal: false });
+    const enter = page.locator('.entry-enter');
+    const username = page.getByLabel('Username', { exact: true });
+    const password = page.getByLabel('Password', { exact: true });
+    await expect(enter).toBeVisible();
+    await expect(username).toBeHidden();
+    await expect(page.locator('.language-selector')).toBeVisible();
+    await expect(page.locator('.music-controls')).toBeVisible();
+    await page.screenshot({ path: 'test-results/client/entry-title-screen.png' });
+    await enter.focus();
+    await page.keyboard.press('Enter');
+    await expect(username).toBeFocused();
+    await username.fill('remember-me');
+    await password.fill('temporary-draft');
+    const input = await username.elementHandle();
+    await page.keyboard.press('Escape');
+    await expect(enter).toBeFocused();
+    await expect(username).toBeHidden();
+    await enter.click();
+    await expect(username).toHaveValue('remember-me');
+    await expect(password).toHaveValue('temporary-draft');
+    expect(await username.evaluate((node, original) => node === original, input)).toBe(true);
+    await page.getByRole('button', { name: 'Back to slideshow', exact: true }).click();
+    await page.setViewportSize({ width: 390, height: 844 });
+    await page.emulateMedia({ reducedMotion: 'reduce' });
+    await page.locator('.language-selector').selectOption('fr');
+    await expect(enter).toHaveText('Entrer dans le monde');
+    await enter.click();
+    await expect(page.getByLabel('Nom d’utilisateur', { exact: true })).toHaveValue('remember-me');
+    expect(
+        await page.locator('.entry-login-panel').evaluate((node) => getComputedStyle(node).animationName),
+    ).toBe('none');
+    expect(await page.evaluate(() => document.documentElement.scrollWidth <= innerWidth)).toBe(true);
+    await page.getByRole('button', { name: 'Revenir au diaporama', exact: true }).click();
+    await expect(enter).toBeFocused();
+});
 test('numbered slideshow holds each image, holds the last longer, fades to black and loops', async ({
     page,
 }) => {
@@ -109,6 +147,7 @@ test('reduced motion keeps a still image and broken slideshow images fall back s
     await expect(page.locator('.atmosphere')).toHaveAttribute('data-slide', '1');
     await page.route(/\/res\/bundled\/entry\/2026-09-26-\d{2}-.*\.png$/, (route) => route.abort());
     await page.reload();
+    await page.locator('.entry-enter').click();
     await expect(page.locator('.atmosphere')).toHaveAttribute('data-phase', 'fallback');
     await expect(page.locator('.atmosphere-image.is-visible')).toHaveAttribute(
         'src',
@@ -138,6 +177,7 @@ test('cinematic entry, locale persistence, wizard draft/uploads, full submission
     await page.locator('.language-selector').selectOption('fr');
     await expect(page.getByLabel('Nom d’utilisateur', { exact: true })).toHaveValue('preserved');
     await page.reload();
+    await page.locator('.entry-enter').click();
     await expect(page.getByRole('heading', { name: 'Bienvenue' })).toBeVisible();
     await page.getByRole('combobox').selectOption('en');
     await login(page);

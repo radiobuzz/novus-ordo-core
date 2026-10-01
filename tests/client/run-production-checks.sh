@@ -4,10 +4,12 @@ set -euo pipefail
 cd "$(dirname "$0")/../.."
 case "${1:-lifecycle}" in
  lifecycle) production_suite=production-lifecycle; production_browser=production-lifecycle-browser ;;
+ civilian) production_suite=civilian-lifecycle; production_browser=production-lifecycle-browser ;;
+ capacity) production_suite=resource-calibration-lifecycle; production_browser='' ;;
  state) production_suite=production-state; production_browser='' ;;
  policies) production_suite=policy-foundation; production_browser=policy-http ;;
  resources) production_suite=resource-foundation; production_browser=resource-browser ;;
- *) echo 'Usage: bash tests/client/run-production-checks.sh [lifecycle|state|policies|resources] [--browser]' >&2; exit 2 ;;
+ *) echo 'Usage: bash tests/client/run-production-checks.sh [capacity|civilian|lifecycle|state|policies|resources] [--browser]' >&2; exit 2 ;;
 esac
 if [ -n "${2:-}" ] && [ "$2" != --browser ]; then exit 2; fi
 production_test_root=$(mktemp -d /tmp/no7-entry-db-XXXXXXXX)
@@ -24,6 +26,14 @@ for attempt in $(seq 1 100); do
 done
 mariadb --no-defaults --socket="$production_test_root/mysql.sock" -uroot -e 'CREATE DATABASE no7_entry_test'
 php8.3 "tests/client/$production_suite.php"
+if [ "$production_suite" = resource-calibration-lifecycle ]; then php8.3 tests/client/resource-capacity.php; fi
+if [ "$production_suite" = civilian-lifecycle ]; then
+ php8.3 tests/client/civilian-production.php
+ php8.3 tests/client/public-industry.php
+ php8.3 tests/client/civilian-maintenance.php
+ php8.3 tests/client/civilian-homeland.php
+ php8.3 tests/client/civilian-balance.php
+fi
 if [ "$production_suite" = resource-foundation ]; then
  php8.3 tests/client/resource-accounting.php
  php8.3 tests/client/resource-grants.php

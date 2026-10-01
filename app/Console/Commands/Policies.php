@@ -10,10 +10,10 @@ use Illuminate\Support\Facades\DB;
 
 /** Initial authoring tooling; the same catalogue services back the future editor. */
 final class Policies extends Command {
-    protected $signature = 'app:policies {action : list|example|create|export|import|clone|attach|testing}
+    protected $signature = 'app:policies {action : list|example|create|export|import|clone|attach|testing|public-investment}
         {id? : Policy set ID, or game ID for testing}
         {--file= : JSON document to create/import}
-        {--counter= : Required current edit counter for import}
+        {--counter= : Required current edit counter for import or public-investment}
         {--game= : Existing test game for attach}
         {--name= : Name for a cloned template}
         {--enabled= : 0 or 1 for testing}';
@@ -28,6 +28,7 @@ final class Policies extends Command {
                 'create' => $catalogues->createTemplate($this->document()),
                 'export' => $catalogues->load($id)['document'],
                 'import' => $catalogues->edit($id, $this->counter(), $this->document()),
+                'public-investment' => $this->publicInvestment($catalogues, $id),
                 'clone' => $catalogues->cloneSet($id, name: $this->option('name')),
                 'attach' => $this->attach($catalogues, $id),
                 'testing' => $this->testing($id),
@@ -50,9 +51,15 @@ final class Policies extends Command {
         return $document;
     }
 
+    private function publicInvestment(PolicyCatalogue $catalogues, int $id): array {
+        $catalogue = $catalogues->load($id);
+        $game = Game::findOrFail($catalogue['set']['game_id']);
+        return $catalogues->installPublicInvestment($game, $this->counter());
+    }
+
     private function counter(): int {
         $counter = filter_var($this->option('counter'), FILTER_VALIDATE_INT);
-        if (!$counter || $counter < 1) throw new \InvalidArgumentException('Import requires --counter from the current policy set.');
+        if (!$counter || $counter < 1) throw new \InvalidArgumentException('This operation requires --counter from the current policy set.');
         return $counter;
     }
 

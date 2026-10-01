@@ -12,6 +12,7 @@ const designedFlag = process.env.NO7_TEST_DESIGNED_FLAG === '1';
 const origin = 'http://127.0.0.1:8792'; // Fixed isolated server, never the active host.
 try {
     await page.goto(origin + '/client/entry?game_id=1');
+    await page.locator('.entry-enter').click();
     await page.getByRole('heading', { name: 'Welcome back' }).waitFor();
     await page.getByRole('combobox').selectOption('fr');
     await page.getByLabel('Nom d’utilisateur', { exact: true }).fill('entry-player');

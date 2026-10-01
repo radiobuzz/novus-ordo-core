@@ -2,9 +2,10 @@ import { Component } from '../../runtime/Component.js';
 import { el } from '../../ui/dom.js';
 import { Button } from '../../ui/Button.js';
 import { FieldShell } from '../../ui/FieldShell.js';
-import { resourceIcon, resourceName } from '../../ui/resourceVisuals.js';
+import { Tabs } from '../../ui/Tabs.js';
+import { resourceIcon, resourceName, productionConstraint } from '../../ui/resourceVisuals.js';
 import { MetricTable } from './MetricTable.js';
-import { acquisitionPlan } from '../../services/production.js';
+import { acquisitionPlan, publicInvestmentControl } from '../../services/production.js';
 
 class ProductionPlanner extends Component {
     render() {
@@ -15,6 +16,8 @@ class ProductionPlanner extends Component {
         this.hint = el('p', { class: 'planner-caption' });
         this.food = el('p', { class: 'planner-caption', 'data-food-plan': '' });
         this.resources = el('div', { class: 'planner-resources' });
+        this.tabs = new Tabs(this.scope);
+        this.budget = el('p', { class: 'planner-budget' });
         this.status = el('p', { role: 'status' });
         this.apply = new Button({ type: 'submit', variant: 'primary' });
         this.reset = new Button();
@@ -24,16 +27,21 @@ class ProductionPlanner extends Component {
             'form',
             { class: 'production-planner' },
             this.hint,
-            this.food,
-            this.resources,
-            this.status,
+            this.tabs.element,
+            el('div', { class: 'planner-scroll' }, this.resources, this.food),
             el(
                 'footer',
-                { class: 'ui-panel-actions' },
-                this.refresh.element,
-                this.review.element,
-                this.reset.element,
-                this.apply.element,
+                { class: 'planner-footer' },
+                this.budget,
+                this.status,
+                el(
+                    'div',
+                    { class: 'ui-panel-actions' },
+                    this.refresh.element,
+                    this.review.element,
+                    this.reset.element,
+                    this.apply.element,
+                ),
             ),
         );
         this.element.append(this.form);
@@ -49,6 +57,9 @@ class ProductionPlanner extends Component {
         this.scope.listen(this.reset.element, 'click', () => {
             const drafts = this.services.gameplay.drafts(this.snapshot);
             for (const key of this.rows.keys()) delete drafts[key];
+            const policyDraft = this.services.gameplay.policyDraft(this.snapshot);
+            policyDraft.changes = null;
+            policyDraft.base = null;
             this.services.gameplay.notifyEconomicDraft();
             this.update();
         });
@@ -62,7 +73,10 @@ class ProductionPlanner extends Component {
             this.snapshot = state.snapshot;
             this.update();
         });
-        this.services.gameplay.economicDraftChanged.subscribe(this.scope, () => this.schedule());
+        this.services.gameplay.economicDraftChanged.subscribe(this.scope, () => {
+            this.syncInvestment();
+            this.schedule();
+        });
         this.services.gameplay.changed.subscribe(this.scope, () => this.controls());
         this.services.i18n.changed.subscribe(this.scope, () => this.update());
     }
@@ -80,6 +94,24 @@ class ProductionPlanner extends Component {
         const q = new FieldShell({ control: quantity, label: '' });
         const p = new FieldShell({ control: spending_limit, label: '' });
         const order = new FieldShell({ control: priority, label: '' });
+        const investment = el('input', {
+            type: 'number',
+            min: 0,
+            max: 100,
+            step: 1,
+            required: true,
+            'data-public-investment': key,
+        });
+        const investmentField = new FieldShell({ control: investment, label: '' });
+        const investmentHelp = el('p', { class: 'planner-caption' });
+        const investmentStatus = el('p', { class: 'planner-caption', 'data-public-investment-status': key });
+        const investmentSection = el(
+            'div',
+            { class: 'planner-investment' },
+            investmentField.element,
+            investmentHelp,
+            investmentStatus,
+        );
         const icon = resourceIcon(
             this.snapshot.nation.definitions.resources.find((r) => r.resource_key === key)?.icon_key,
         );
@@ -90,6 +122,7 @@ class ProductionPlanner extends Component {
             q.element,
             p.element,
             order.element,
+            investmentSection,
             forecast,
         );
         for (const input of [quantity, spending_limit, priority])
@@ -102,17 +135,42 @@ class ProductionPlanner extends Component {
                 this.services.gameplay.notifyEconomicDraft();
             });
         this.resources.append(card);
+        this.scope.listen(investment, 'input', () => {
+            const control = publicInvestmentControl(
+                this.snapshot.nation,
+                key,
+                this.services.gameplay.policyDraft(this.snapshot).changes,
+            );
+            if (!control) return;
+            try {
+                this.services.gameplay.setPolicyParameter(
+                    this.snapshot,
+                    control.policy,
+                    control.parameter.key,
+                    investment.value === ''
+                        ? ''
+                        : String(Number((Number(investment.value) / 100).toFixed(6))),
+                );
+            } catch (error) {
+                this.error = error.message;
+                this.controls();
+            }
+        });
         const comparison = new MetricTable();
         const current = el('p', { class: 'planner-current' });
         const reasons = el('p', { class: 'planner-caption' });
         const help = el('p', { class: 'planner-caption' });
         const progress = el('p', { class: 'planner-preview-status', role: 'status' });
-        forecast.append(
-            current,
-            el('div', { class: 'game-table-scroll' }, comparison.element),
-            reasons,
+        const summary = el('summary');
+        const detail = el(
+            'details',
+            { class: 'planner-details' },
+            summary,
+            el('div', { class: 'game-table-scroll', tabindex: 0 }, comparison.element),
             help,
         );
+        const outlook = el('p', { class: 'planner-outlook' });
+        forecast.append(current, outlook, reasons, detail);
         card.insertBefore(progress, forecast);
         const row = {
             card,
@@ -129,9 +187,35 @@ class ProductionPlanner extends Component {
             reasons,
             help,
             progress,
+            summary,
+            detail,
+            outlook,
+            investment,
+            investmentField,
+            investmentHelp,
+            investmentSection,
+            investmentStatus,
         };
         this.rows.set(key, row);
         return row;
+    }
+    syncInvestment() {
+        const draft = this.services.gameplay.policyDraft(this.snapshot);
+        for (const [key, row] of this.rows) {
+            const control = publicInvestmentControl(this.snapshot.nation, key, draft.changes);
+            row.investmentControl = control;
+            row.investmentSection.hidden = !control;
+            row.investment.disabled = !control;
+            if (!control) continue;
+            row.investmentField.label.textContent = this.t('publicInvestment');
+            row.investmentHelp.textContent = this.t('publicInvestmentHelp');
+            row.investment.min = String(Number(control.parameter.min_value ?? 0) * 100);
+            row.investment.max = String(Number(control.parameter.max_value ?? 1) * 100);
+            row.investment.step = String(Number(control.parameter.step ?? 0.01) * 100);
+            const value = control.value === '' ? '' : String(Number(control.value) * 100);
+            if (document.activeElement !== row.investment && row.investment.value !== value)
+                row.investment.value = value;
+        }
     }
     update() {
         if (this.scope.closed || !this.snapshot?.nation) return;
@@ -142,6 +226,7 @@ class ProductionPlanner extends Component {
         this.reset.setLabel(this.t('reset'));
         this.refresh.setLabel(this.services.i18n.t('common.refresh'));
         this.review.setLabel(this.t('review'));
+        this.tabs.setLabel(this.t('resources'));
         for (const [key, row] of this.rows)
             if (!data.definitions.acquisition_resources.includes(key)) {
                 row.card.remove();
@@ -157,6 +242,7 @@ class ProductionPlanner extends Component {
             row.p.label.textContent = this.t('spendingLimit');
             row.order.label.textContent = this.t('priority');
             row.priority.title = this.t('priorityHelp');
+            row.summary.textContent = this.t('accountingDetails');
             const priority = String(drafts[key]?.priority ?? saved?.priority ?? 100);
             if (row.priority.value !== priority) row.priority.value = priority;
             const quantity = drafts[key]?.quantity ?? saved?.quantity ?? '0';
@@ -170,6 +256,7 @@ class ProductionPlanner extends Component {
             this.displayPlan = null;
         }
         for (const [key, row] of this.rows) this.renderForecast(key, row, this.displayPlan);
+        this.syncInvestment();
         this.schedule();
     }
     schedule() {
@@ -183,7 +270,9 @@ class ProductionPlanner extends Component {
                 this.snapshot.nation,
                 this.services.gameplay.drafts(this.snapshot),
             );
-            this.valid = true;
+            this.valid = [...this.rows.values()].every(
+                (row) => !row.investmentControl || row.investment.validity.valid,
+            );
         } catch {
             this.valid = false;
         }
@@ -230,6 +319,9 @@ class ProductionPlanner extends Component {
             ['referencePrice', (r) => r.price],
             ['publicOutput', (r) => r.production.government],
             ['privateOutput', (r) => r.production.producer],
+            ['industryRequested', (r) => r.public_industry_requested],
+            ['industryDelivery', (r) => r.public_industry_delivery],
+            ['industryRevenue', (r) => r.public_industry_revenue],
             ['publicDelivery', (r) => r.public_delivery],
             ['privateDelivery', (r) => r.private_delivery],
             ['purchaseCost', (r) => r.purchase_spending],
@@ -238,6 +330,7 @@ class ProductionPlanner extends Component {
             ['closingStock', (r) => r.government_closing],
             ['publicDevelopment', (r) => r.development.government],
             ['privateDevelopment', (r) => r.development.producer],
+            ['publicDevelopmentBudget', (r) => r.development_budget],
         ];
         row.comparison.update(
             ['metric', 'lastActual', 'savedEstimate', 'draftEstimate'].map((k) => this.t(k)),
@@ -254,10 +347,78 @@ class ProductionPlanner extends Component {
             })),
         );
         const r = (result ?? saved).rows[key];
-        const reasons = r.acquisition.constraints.map((c) => this.t(`constraint_${c}`));
+        row.investmentStatus.textContent =
+            r.acquisition.public_development_permitted === false
+                ? this.t('publicInvestmentBlocked')
+                : r.acquisition.public_development_available != null &&
+                    Number(r.acquisition.public_development_available) === 0
+                  ? this.t('publicInvestmentNoCapacity')
+                  : '';
+        const reasons = r.acquisition.constraints.map((c) =>
+            productionConstraint(this.snapshot.nation, c, this.services.i18n),
+        );
         row.current.textContent = `${this.t('governmentStock')}: ${format(r.opening)} · ${this.t('committed')}: ${format(r.commands)} · ${this.t('available')}: ${format(r.available)}`;
         row.reasons.textContent = `${this.t('constraints')}: ${reasons.length ? reasons.join(' · ') : this.t('noConstraints')}`;
         row.help.textContent = this.t('costHelp');
+        row.outlook.textContent = `${this.t(result ? 'draftEstimate' : 'savedEstimate')} · ${this.t('closingStock')}: ${format(r.acquisition.government_closing)} · ${this.t('unmetDemand')}: ${format(r.acquisition.acquisition_unmet)}`;
+    }
+    updateTabs() {
+        const data = this.snapshot.nation;
+        const drafts = this.services.gameplay.drafts(this.snapshot);
+        // Compare exact decimal text without losing precision to Number conversion.
+        const canonical = (value) =>
+            String(value)
+                .replace(/^0+(?=\d)/, '')
+                .replace(/(\.\d*?)0+$/, '$1')
+                .replace(/\.$/, '');
+        this.tabs.setItems(
+            data.definitions.acquisition_resources.map((key) => {
+                const row = this.rows.get(key);
+                const saved = data.acquisitions.find((r) => r.resource_key === key);
+                const draft = drafts[key];
+                const investmentDirty =
+                    row.investmentControl &&
+                    Object.hasOwn(
+                        this.services.gameplay.policyDraft(this.snapshot).changes ?? {},
+                        row.investmentControl.policy,
+                    );
+                const dirty =
+                    investmentDirty ||
+                    (draft &&
+                        ['quantity', 'spending_limit', 'priority'].some(
+                            (field) =>
+                                canonical(draft[field]) !==
+                                canonical(saved?.[field] ?? (field === 'priority' ? 100 : '0')),
+                        ));
+                const invalid =
+                    !/^\d+$/.test(row.priority.value) ||
+                    [row.quantity, row.spending_limit, row.priority, row.investment].some(
+                        (input) => !input.disabled && !input.validity.valid,
+                    );
+                // Only a current valid preview can classify the proposed order as short.
+                const short = Number(this.plan?.rows[key]?.acquisition.acquisition_unmet) > 0;
+                const labels = [
+                    invalid ? this.t('invalidResource') : short ? this.t('orderShortfall') : '',
+                    dirty ? this.t('unsaved') : '',
+                ].filter(Boolean);
+                return {
+                    key,
+                    panel: row.card,
+                    label: resourceName(data, key, this.services.i18n),
+                    icon: resourceIcon(
+                        data.definitions.resources.find((r) => r.resource_key === key)?.icon_key,
+                    ),
+                    iconOnly: true,
+                    badge: labels.length
+                        ? {
+                              text: invalid || short ? '!' : '•',
+                              tone: invalid ? 'danger' : short ? 'warning' : 'accent',
+                              label: labels.join(' · '),
+                          }
+                        : null,
+                };
+            }),
+        );
     }
     controls() {
         if (this.scope.closed) return;
@@ -268,6 +429,11 @@ class ProductionPlanner extends Component {
         this.refresh.setDisabled(gameplay.busy);
         this.review.element.hidden = !gameplay.needsReview;
         this.review.setDisabled(!world.current || gameplay.busy);
+        this.updateTabs();
+        const report = this.plan?.forecast?.expected;
+        const format = (value) =>
+            value == null ? '—' : this.services.i18n.number(Number(value), { maximumFractionDigits: 3 });
+        this.budget.textContent = `${this.t('wholePlan')} · ${this.t('totalSpending')}: ${format(report?.treasury_outflows)} · ${this.t('treasuryAfter')}: ${format(report?.closing_treasury)}`;
         for (const row of this.rows.values()) {
             row.forecast.setAttribute(
                 'aria-busy',

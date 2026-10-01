@@ -35,23 +35,57 @@ class LoginInstance extends Component {
             if (error) feedback.show(i18n.error(error));
         };
         form.append(user.element, password.element, feedback.element, submit);
-        this.element.append(
-            glassPanel(
-                el('div', { class: 'panel-insignia', 'aria-hidden': 'true', text: 'N' }),
-                i18n.bind(this.scope, el('p', { class: 'entry-eyebrow' }), 'entry.edition'),
-                i18n.bind(this.scope, el('h1'), 'entry.welcome'),
-                i18n.bind(this.scope, el('p', { class: 'panel-intro' }), 'entry.intro'),
-                form,
-                el(
-                    'details',
-                    { class: 'login-note' },
-                    i18n.bind(this.scope, el('summary'), 'entry.install'),
-                    i18n.bind(this.scope, el('p'), 'entry.installBody'),
-                    el('code', { text: 'php artisan app:provision-admin ADMIN_NAME' }),
-                ),
-                i18n.bind(this.scope, el('p', { class: 'login-note' }), 'entry.account'),
+        const panel = glassPanel(
+            el('div', { class: 'panel-insignia', 'aria-hidden': 'true', text: 'N' }),
+            i18n.bind(this.scope, el('p', { class: 'entry-eyebrow' }), 'entry.edition'),
+            i18n.bind(this.scope, el('h1'), 'entry.welcome'),
+            i18n.bind(this.scope, el('p', { class: 'panel-intro' }), 'entry.intro'),
+            form,
+            el(
+                'details',
+                { class: 'login-note' },
+                i18n.bind(this.scope, el('summary'), 'entry.install'),
+                i18n.bind(this.scope, el('p'), 'entry.installBody'),
+                el('code', { text: 'php artisan app:provision-admin ADMIN_NAME' }),
             ),
+            i18n.bind(this.scope, el('p', { class: 'login-note' }), 'entry.account'),
         );
+        panel.classList.add('entry-login-panel');
+        panel.id = `${this.id}-login-panel`;
+        const enter = new Button({ variant: 'primary', icon: 'action', className: 'entry-enter' });
+        const close = new Button({ variant: 'quiet', icon: 'close', className: 'entry-login-close' });
+        const landing = el(
+            'section',
+            { class: 'entry-title-screen' },
+            el('h1', { text: 'NOVUS ORDO' }),
+            enter.element,
+        );
+        enter.element.setAttribute('aria-controls', panel.id);
+        const reveal = (open, focus = true) => {
+            if (pending) return;
+            panel.hidden = !open;
+            landing.hidden = open;
+            enter.element.setAttribute('aria-expanded', String(open));
+            if (focus) (open ? user.input : enter.element).focus({ preventScroll: true });
+        };
+        const labels = () => {
+            enter.setLabel(i18n.t('entry.login'));
+            close.setLabel(i18n.t('entry.hideLogin'));
+            close.element.title = i18n.t('entry.hideLogin');
+        };
+        labels();
+        i18n.changed.subscribe(this.scope, labels);
+        panel.prepend(close.element);
+        this.element.append(landing, panel);
+        reveal(Boolean(this.inputs.revealed), false);
+        this.scope.listen(enter.element, 'click', () => reveal(true));
+        this.scope.listen(close.element, 'click', () => reveal(false));
+        this.scope.listen(panel, 'keydown', (event) => {
+            if (event.key === 'Escape' && !pending) {
+                event.preventDefault();
+                reveal(false);
+            }
+        });
         i18n.changed.subscribe(this.scope, update);
         update();
         this.scope.own(() => {
@@ -61,6 +95,7 @@ class LoginInstance extends Component {
             event.preventDefault();
             if (pending) return;
             pending = true;
+            close.setDisabled(true);
             submitControl.setPending(true);
             error = null;
             feedback.show('');
@@ -81,6 +116,7 @@ class LoginInstance extends Component {
             } finally {
                 if (!this.scope.closed) {
                     pending = false;
+                    close.setDisabled(false);
                     submitControl.setPending(false);
                     update();
                 }

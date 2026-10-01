@@ -5,6 +5,7 @@ import { panel } from './ui/Panel.js';
 import { StatusBadge } from './ui/StatusBadge.js';
 import { MetricCard, cardStrip } from './ui/MetricCard.js';
 import { FieldShell } from './ui/FieldShell.js';
+import { Tabs } from './ui/Tabs.js';
 import { RangeField } from './ui/RangeField.js';
 import { Tooltip } from './ui/Tooltip.js';
 import { CompactMessage } from './ui/CompactMessage.js';
@@ -185,6 +186,46 @@ const metrics = cardStrip(
     new MetricCard({ label: 'Pending orders', value: 0, detail: 'Zero is a valid value' }),
     new MetricCard({ label: 'Unavailable value', value: null, detail: 'Unknown is not zero' }),
 );
+const sampleTabs = new Tabs(scope, { label: 'Sample local sections' });
+const tabPanels = [
+    el(
+        'section',
+        {},
+        new FieldShell({ control: el('input', { value: 'Retained tab draft' }), label: 'Tab draft' }).element,
+    ),
+    el('section', {}, el('p', { text: 'Three synthetic orders need review. No game data.' })),
+    el('section', {}, el('p', { text: 'Synthetic supply warning. No game data.' })),
+    el('section', {}, el('p', { text: 'Unavailable example' })),
+];
+const updateTabs = () => {
+    const fr = locale.value === 'fr';
+    sampleTabs.setItems([
+        { key: 'overview', label: fr ? 'Vue d’ensemble des opérations' : 'Overview', panel: tabPanels[0] },
+        {
+            key: 'orders',
+            label: fr ? 'Ordres à examiner' : 'Orders',
+            panel: tabPanels[1],
+            badge: { text: '3', label: fr ? '3 ordres à examiner' : '3 orders need review' },
+        },
+        {
+            key: 'supplies',
+            label: fr ? 'Approvisionnement et réserves' : 'Supplies',
+            panel: tabPanels[2],
+            badge: {
+                text: '!',
+                tone: 'warning',
+                label: fr ? 'Livraison insuffisante' : 'Delivery shortfall',
+            },
+        },
+        {
+            key: 'disabled',
+            label: fr ? 'Indisponible' : 'Unavailable section',
+            panel: tabPanels[3],
+            disabled: true,
+        },
+    ]);
+};
+updateTabs();
 const name = new FieldShell({
     control: el('input', { id: 'sample-name', required: true, value: 'Archipelago', autocomplete: 'off' }),
     label: 'World name',
@@ -275,6 +316,10 @@ scope.listen(swap.element, 'click', async () => {
         log.textContent = 'Temporary scope owns this listener.';
     });
     temporary.replaceChildren(control.element);
+    const tabs = new Tabs(child, { label: 'Temporary tabs' });
+    const pane = el('section', {}, 'Temporary panel');
+    tabs.setItems([{ key: 'one', label: 'Temporary tab', panel: pane }]);
+    temporary.append(tabs.element, pane);
     swap.setLabel('Unmount temporary control');
 });
 scope.own(() => child?.dispose());
@@ -291,6 +336,7 @@ const language = () => {
     quantity.setHelp(fr ? 'Unités entières, de 0 à 10.' : 'Whole units, from 0 to 10.');
     save.setLabel(fr ? 'Simuler un enregistrement local' : 'Simulate local save');
     updateMapLayersLabel();
+    updateTabs();
     mapLayers?.setLocale(locale.value);
 };
 scope.listen(locale, 'change', language);
@@ -340,6 +386,7 @@ root.append(
         'div',
         { class: 'gallery-sections' },
         metrics,
+        panel({ title: 'Tabs and attention badges' }, sampleTabs.element, ...tabPanels),
         panel(
             { title: 'Buttons & action states', tone: 'accent' },
             el(

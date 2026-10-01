@@ -83,7 +83,7 @@
           "geographic": true
         },
         "demand.population": {
-          "per_million": "1",
+          "per_million": "0.35",
           "priority": 0
         },
         "production.operating": {

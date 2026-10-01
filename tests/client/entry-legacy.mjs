@@ -10,6 +10,7 @@ try {
     const page = await browser.newPage({ viewport: { width: 1440, height: 900 } });
     await page.goto('http://127.0.0.1:8792/');
     await expect(page).toHaveURL(/\/client\/entry(?:#\/login)?$/);
+    await page.locator('.entry-enter').click();
     await expect(page.getByRole('heading', { name: 'Welcome back', exact: true })).toBeVisible();
     await expect(page.getByText('Try the new home screen', { exact: false })).toHaveCount(0);
     await page.screenshot({ path: 'test-results/client/stage5-default-entry.png', fullPage: true });

@@ -2,6 +2,8 @@
 
 Production/development **Packages A–F** deliver the coordinated economy, player presentation and retirement of the old calculators/bids/facilities. See [the runtime contract](docs/game-design/production-lifecycle-contract.md), [player presentation](docs/game-design/production-presentation-contract.md) and [cleanup, verification and fresh-world rollout](docs/game-design/production-retirement-results.md).
 
+The [playable civilian economy](docs/game-design/civilian-economy-live-integration.md) connects recurring demand, subsistence, input chains and productive upkeep to fresh games, actual turns and Budget & Policies. It includes the isolated laboratory, 20-turn lifecycle evidence, rollout details and remaining limits.
+
 Novus Ordo is an online strategy game. This repository contains its continuous development history.
 
 The playable Version 7 checkpoint is preserved by the `v7.0.0` Git tag. Current development continues from that checkpoint toward Version 7.1, introducing the political system, microcell world model, revised economy and commerce incrementally.

@@ -15,12 +15,14 @@ final class ProductionEconomySeason
 
     public static function defaults(): array
     {
-        return ['stock_buffer' => '0', 'capacity_buffer' => '0.2', 'profit_distribution' => '0.8',
-            'private_investment' => '0.2', 'operating_reserve' => '1', 'construction_labor_share' => '0.1', 'minimum_margin' => '0.05',
-            'service_wage' => '0.00001', 'service_price' => '0.00002', 'service_demand_per_person' => '0.25',
+        return ['stock_buffer' => '0', 'input_stock_buffer' => '0.2', 'capacity_buffer' => '0.2', 'profit_distribution' => '0.8',
+            'private_investment' => '0.2', 'operating_reserve' => '0.75', 'construction_labor_share' => '0.1', 'minimum_margin' => '0.05',
+            'service_wage' => '0.00001', 'service_price' => '0.00002', 'service_demand_per_person' => '0.4',
             'evasion_rise' => '0.75', 'compliance_recovery' => '0.1', 'interest_rate' => '0.015',
             'credit_multiple' => '3', 'treasury_reserve' => '20', 'debt_relief' => '0.5', 'credit_lock_seasons' => 4,
-            'infrastructure_upkeep' => '4', 'infrastructure_point_cost' => '100', 'infrastructure_growth' => '0.02',
+            // A fully funded peaceful infrastructure network must not consume the
+            // entire ordinary tax base before the player has built an army.
+            'infrastructure_upkeep' => '1', 'infrastructure_point_cost' => '100', 'infrastructure_growth' => '0.005',
             'infrastructure_decay' => '0.015', 'infrastructure_workers_per_currency' => '10000'];
     }
 
@@ -43,7 +45,7 @@ final class ProductionEconomySeason
         foreach ($rules as $key => &$value) {
             if ($key === 'credit_lock_seasons') { if (!is_int($value) || $value < 0) throw new DomainException('Invalid credit lock.'); continue; }
             $value = Q::parse($value);
-            if (in_array($key, ['stock_buffer','capacity_buffer','profit_distribution','private_investment','construction_labor_share','minimum_margin','evasion_rise','compliance_recovery','interest_rate','debt_relief','infrastructure_growth','infrastructure_decay'], true)) self::ratio($value);
+            if (in_array($key, ['stock_buffer','input_stock_buffer','capacity_buffer','profit_distribution','private_investment','construction_labor_share','minimum_margin','evasion_rise','compliance_recovery','interest_rate','debt_relief','infrastructure_growth','infrastructure_decay'], true)) self::ratio($value);
         } unset($value);
         if (Q::cmp($rules['service_price'], '0') <= 0) throw new DomainException('Service price must be positive.');
         $plan += ['settings' => [], 'acquisitions' => [], 'committed_goods' => [], 'military' => [], 'public_payroll' => '0',
@@ -66,8 +68,17 @@ final class ProductionEconomySeason
             $defs[$key] = ['kind' => 'stock', 'price' => Q::parse($r['exchange.reference_price']['price']),
                 'wage' => Q::parse($r['production.operating']['wage_per_unit']), 'workers' => '1',
                 'capital_cost' => Q::parse($r['development.capacity']['capital_cost']), 'construction_workers' => Q::parse($r['development.capacity']['construction_workers'])];
+            if (isset($r['production.inputs'])) $defs[$key]['inputs'] = $r['production.inputs']['resources'];
         }
         foreach (['production.development_funding', 'allocation.production_priority'] as $type) foreach ($plan['settings'][$type] ?? [] as $key => $_) if (!isset($defs[$key])) throw new DomainException('Unknown production policy target.');
+        foreach ($defs as &$definition) {
+            $definition['unit_cost'] = $definition['wage'];
+            foreach ($definition['inputs'] ?? [] as $input => $rate) {
+                if (!isset($defs[$input])) throw new DomainException('Unknown recipe input.');
+                $definition['unit_cost'] = Q::add($definition['unit_cost'], Q::mul($rate, $defs[$input]['price']));
+            }
+        }
+        unset($definition);
         foreach (['acquisitions', 'military', 'committed_goods', 'release_limits'] as $field) foreach ($plan[$field] as $key => $_) if (!isset($defs[$key])) throw new DomainException('Unknown or non-stock plan target.');
         foreach ($state['territories'] as $id => &$territory) {
             if ($territory['government'] !== 'government' || !is_int($territory['population']) || $territory['population'] < 0) throw new DomainException('Invalid domestic territory.');
@@ -90,7 +101,9 @@ final class ProductionEconomySeason
             foreach ($defs as $key => $definition) {
                 $physical = GeographicProduction::facility($resources[$key]['rules']['production.territorial_labor'], $key, $territory['geography'], $territory['terrain'], (int) $workers);
                 $rate = Q::mul($physical['productivity'], Q::mul(Q::add('0.5', Q::mul('0.5', $s['infrastructure'])), Q::sub('1', Q::mul('0.9', $s['unrest']))));
-                $potential = Q::max('0', Q::calculated((float) ($territory['geography']['resources'][$key]['capacity'] ?? 0)));
+                $potential = GeographicProduction::potential($resources[$key]['rules'], $key, $territory['geography'], $territory['population']);
+                // Population loss cannot erase installed assets. It limits workers, not past construction.
+                $potential = Q::max($potential, self::sum(array_map(fn ($c) => Q::parse($c[$key] ?? '0'), $territory['capacity'])));
                 $territory['potential'][$key] = $potential;
                 if (Q::cmp($rate, '0') > 0) $territory['workers_per_unit'][$key] = self::div('1000000', $rate, RoundingMode::UP);
                 $installed = self::sum(array_map(fn ($c) => Q::parse($c[$key] ?? '0'), $territory['capacity']));
@@ -102,6 +115,7 @@ final class ProductionEconomySeason
         } unset($territory);
         $formal = $population ? self::div($formalPopulation, (string) $population) : '1.000000';
         $state['accounts']['producer']['taxable_fraction'] = $state['accounts']['household']['taxable_fraction'] = $formal;
+        $civilianProduction = CivilianProduction::prepare($resources, $defs, $state);
         $programs = []; $privateTargets = []; $publicTargets = [];
         foreach ($defs as $key => $definition) {
             $r = $resources[$key];
@@ -119,34 +133,50 @@ final class ProductionEconomySeason
             $caps = ['government' => self::Z, 'producer' => self::Z];
             foreach ($state['territories'] as $t) foreach ($caps as $owner => $_) if (isset($t['workers_per_unit'][$key])) $caps[$owner] = Q::add($caps[$owner], Q::parse($t['capacity'][$owner][$key] ?? '0'));
             $all = self::sum($caps); $share = Q::cmp($all, '0') > 0 ? self::div($caps['government'], $all) : self::Z;
-            $householdNeed = self::positive(Q::sub($civilian, Q::parse($state['inventories']['household'][$key]['quantity'] ?? '0')));
+            $householdNeed = self::positive(Q::sub(Q::sub($civilian, $civilianProduction['subsistence_total'][$key] ?? '0'), Q::parse($state['inventories']['household'][$key]['quantity'] ?? '0')));
             $openingPrivate = Q::parse($state['inventories']['producer'][$key]['quantity'] ?? '0');
-            $publicCivilian = Q::mul(self::positive(Q::sub($householdNeed, $openingPrivate)), $share);
+            $publicCivilian = Q::min($caps['government'], Q::mul(self::positive(Q::sub($householdNeed, $openingPrivate)), $share));
             $publicRequest = Q::min($request['quantity'], self::positive(Q::sub($caps['government'], $publicCivilian)));
             if (Q::cmp($definition['wage'], '0') > 0) $publicRequest = Q::min($publicRequest, self::div($request['spending_limit'], $definition['wage']));
             $publicTargets[$key] = Q::add($publicCivilian, $publicRequest);
             $privateTargets[$key] = Q::add(Q::sub($householdNeed, $publicCivilian), Q::sub($request['quantity'], $publicRequest));
+            // Replace this season's inputs and carry next season's supply plus safety stock.
+            // Newly produced inputs cannot be used until the next season; exactly one
+            // season of closing stock perpetually trails growing population/maintenance.
+            $privateTargets[$key] = Q::add($privateTargets[$key], Q::mul($civilianProduction['industry'][$key], Q::add('2', $rules['input_stock_buffer'])));
+            // Fund only the private surplus that could remain after civilian needs. Requested
+            // quantities remain visible even when the current economy cannot supply them.
+            $privateSurplus = self::positive(Q::sub(Q::add($openingPrivate, $caps['producer']), Q::sub($householdNeed, $publicCivilian)));
+            $purchaseLimit = Q::min(self::positive(Q::sub($request['spending_limit'], Q::mul($publicRequest, $definition['wage']))),
+                Q::mul(Q::min(Q::sub($request['quantity'], $publicRequest), $privateSurplus), $definition['price']));
             $funding = self::ratio($plan['settings']['production.development_funding'][$key] ?? '0');
             $programs[$key] = in_array('government', $plan['investors'], true) ? Q::mul(Q::mul(self::sum(array_column($growth, $key)), $definition['capital_cost']), $funding) : self::Z;
             $rows[$key] = ['price' => $definition['price'], 'civilian_requested' => $civilian, 'reserve_target' => $reserveTarget,
                 'acquisition_requested' => $request['quantity'], 'spending_limit' => $request['spending_limit'], 'priority' => min($request['priority'], $r['rules']['demand.population']['priority'] ?? 2147483647),
-                'public_planned' => $publicRequest, 'production' => ['government' => self::Z, 'producer' => self::Z], 'attempts' => [], 'constraints' => [], 'development' => ['government' => self::Z, 'producer' => self::Z],
+                'public_planned' => $publicRequest, 'public_civilian_planned' => $publicCivilian, 'purchase_limit' => $purchaseLimit, 'production' => ['government' => self::Z, 'producer' => self::Z], 'attempts' => [], 'constraints' => [], 'development' => ['government' => self::Z, 'producer' => self::Z],
                 'military_requested' => $military, 'private_opening' => Q::parse($state['inventories']['producer'][$key]['quantity'] ?? '0'), 'government_opening' => $stock];
+            $rows[$key]['industrial_requested'] = $civilianProduction['industry'][$key];
+            $rows[$key]['public_development_available'] = self::sum(array_column($growth, $key));
+            $rows[$key]['public_development_permitted'] = in_array('government', $plan['investors'], true);
         }
+        PublicIndustrySupply::plan($state, $defs, $civilianProduction, $rules, $rows, $publicTargets);
         uasort($rows, fn ($a, $b) => $a['priority'] <=> $b['priority']); // Initial lexical key order is the tie-break.
         foreach ($state['territories'] as $id => &$territory) {
             $opportunity = Q::cmp($infrastructure[$id]['requested'], '0') > 0;
             foreach ($defs as $key => $definition) if (Q::cmp($growth[$id][$key], '0') > 0 &&
-                (Q::cmp($programs[$key], '0') > 0 || (in_array('producer', $plan['investors'], true) && Q::cmp(Q::add($rows[$key]['civilian_requested'], $rows[$key]['acquisition_requested']), '0') > 0 && self::profitable($definition, $rules)))) $opportunity = true;
+                (Q::cmp($programs[$key], '0') > 0 || (in_array('producer', $plan['investors'], true) && Q::cmp(self::sum([$rows[$key]['civilian_requested'], $rows[$key]['acquisition_requested'], $rows[$key]['industrial_requested']]), '0') > 0 && self::profitable($definition, $rules)))) $opportunity = true;
             if ($opportunity) $territory['construction_reserve'] = self::whole(Q::mul(Q::parse($territory['workforce']), $rules['construction_labor_share']));
         } unset($territory);
         $a = new ProductionAccounts($defs, $state);
+        PublicIndustrySupply::reserve($a, $rows, $defs);
         // Accepted mobilization/operation cash pays military service wages before discretionary budgets.
         $committedPayroll = Q::parse($plan['committed_payroll']);
         if (Q::cmp($committedPayroll, $a->availableCash('government')) > 0) throw new DomainException('Accepted actions exceed opening government cash.');
         $a->publicPayroll('government', 'household', $committedPayroll);
-        $publicOperations = self::sum(array_map(fn ($key) => Q::mul($publicTargets[$key], $defs[$key]['wage']), array_keys($defs)));
-        $purchaseNeed = self::sum(array_map(fn ($key) => Q::min(self::positive(Q::sub($rows[$key]['spending_limit'], Q::mul($rows[$key]['public_planned'], $defs[$key]['wage']))), Q::mul(Q::sub($rows[$key]['acquisition_requested'], $rows[$key]['public_planned']), $defs[$key]['price'])), array_keys($defs)));
+        $publicOperations = self::sum(array_map(fn ($key) => Q::mul($publicTargets[$key], $defs[$key]['unit_cost']), array_keys($defs)));
+        foreach ($civilianProduction['maintenance'] as $m) if ($m['owner'] === 'government')
+            $publicOperations = Q::add($publicOperations, Q::mul($m['required'], Q::add($m['wage'], $defs[$m['input']]['price'])));
+        $purchaseNeed = self::sum(array_column($rows, 'purchase_limit'));
         $payroll = Q::parse($plan['public_payroll']); $support = Q::parse($plan['income_support']);
         $infraRequested = self::sum(array_column($infrastructure, 'requested'));
         $requestedBudget = self::sum([$publicOperations, $purchaseNeed, self::sum($programs), $payroll, $support, $infraRequested]);
@@ -155,7 +185,7 @@ final class ProductionEconomySeason
         $paidSupport = Q::min($support, $a->availableCash('government')); $a->support('government', 'household', $paidSupport);
         $availableForPlans = self::positive(Q::sub($a->availableCash('government'), $publicOperations));
         foreach ($rows as $key => &$row) {
-            $budget = Q::min($availableForPlans, Q::min(self::positive(Q::sub($row['spending_limit'], Q::mul($row['public_planned'], $defs[$key]['wage']))), Q::mul(Q::sub($row['acquisition_requested'], $row['public_planned']), $defs[$key]['price'])));
+            $budget = Q::min($availableForPlans, $row['purchase_limit']);
             $row['purchase_budget'] = $budget; $availableForPlans = Q::sub($availableForPlans, $budget);
             $a->reserve('buy:' . $key, 'government', $budget);
             // Unfunded government wishes are not purchasing power for private producers.
@@ -175,15 +205,25 @@ final class ProductionEconomySeason
             $a->reserve('develop:' . $key, 'government', $row['development_budget']);
         } unset($row);
         $usedCapacity = [];
+        CivilianProduction::buyInputs($a, $state, $defs, $privateTargets, $publicTargets, $civilianProduction);
+        CivilianProduction::work($a, $civilianProduction);
+        // A bounded replacement pipeline goes before discretionary production, regardless
+        // of procurement priority. All recipes still consume opening inputs only.
+        foreach (CivilianProduction::order($defs) as $key) {
+            $need = $civilianProduction['essential'][$key];
+            if (Q::cmp($need, '0') <= 0 || !self::profitable($defs[$key], $rules)) continue;
+            $target = self::positive(Q::sub(Q::mul($need, Q::add('2', $rules['input_stock_buffer'])), $rows[$key]['private_opening']));
+            self::produce($a, $state, $defs[$key], $key, 'producer', $target, $usedCapacity, $rows[$key]);
+        }
         foreach ($rows as $key => &$row) {
-            $privateTarget = self::positive(Q::sub(Q::add($privateTargets[$key], Q::mul($row['civilian_requested'], $rules['stock_buffer'])), $row['private_opening']));
+            $privateTarget = self::positive(Q::sub(Q::sub(Q::add($privateTargets[$key], Q::mul($row['civilian_requested'], $rules['stock_buffer'])), $row['private_opening']), $row['production']['producer']));
             self::produce($a, $state, $defs[$key], $key, 'government', $publicTargets[$key], $usedCapacity, $row);
             if (self::profitable($defs[$key], $rules)) self::produce($a, $state, $defs[$key], $key, 'producer', $privateTarget, $usedCapacity, $row);
             // One bounded spillover pass lets the other sector cover civilian supply missing from the first allocation.
-            $supply = self::sum([$row['private_opening'], $row['production']['producer'], $row['production']['government']]);
+            $supply = self::sum([$row['private_opening'], $row['production']['producer'], $row['production']['government'], $a->availableStock('household', $key)]);
             $gap = self::positive(Q::sub($row['civilian_requested'], $supply));
             if (self::profitable($defs[$key], $rules)) self::produce($a, $state, $defs[$key], $key, 'producer', $gap, $usedCapacity, $row);
-            $gap = self::positive(Q::sub($row['civilian_requested'], self::sum([$row['private_opening'], ...array_values($row['production'])])));
+            $gap = self::positive(Q::sub($row['civilian_requested'], self::sum([$row['private_opening'], ...array_values($row['production']), $a->availableStock('household', $key)])));
             self::produce($a, $state, $defs[$key], $key, 'government', $gap, $usedCapacity, $row);
         } unset($row);
         // Residual activity uses the same remaining workers and opening operating cash.
@@ -194,8 +234,11 @@ final class ProductionEconomySeason
             $made = $a->prepareService((string) $id, $owner, $serviceNeed, $rules['service_wage'], 'household');
             $serviceNeed = Q::sub($serviceNeed, $made); $serviceWork[] = ['territory' => (string) $id, 'owner' => $owner, 'quantity' => $made];
         }
+        PublicIndustrySupply::exchange($a, $rows, $defs);
         foreach ($rows as $key => &$row) {
             $need = $row['civilian_requested'];
+            $marketNeed = self::positive(Q::sub($need, $a->availableStock('household', $key)));
+            $affordable = Q::min($marketNeed, self::div($a->availableCash('household'), $defs[$key]['price']));
             $private = $a->purchase('household', 'producer', $key, self::positive(Q::sub($need, $a->availableStock('household', $key))));
             $public = $a->purchase('household', 'government', $key, Q::min($row['production']['government'], self::positive(Q::sub($need, $a->availableStock('household', $key)))));
             // Opening state goods are not normal sale inventory. Only explicit support can unlock them.
@@ -203,8 +246,12 @@ final class ProductionEconomySeason
             if (Q::cmp($release, '0') > 0) $a->releaseStock('opening:' . $key);
             $demand = $a->consumeDemand('household', $key, $need, [], 'government', $release);
             $row['civilian'] = $demand + ['shortage_reason' => Q::cmp($demand['unmet'], '0') > 0 ? (Q::cmp(Q::add($a->availableStock('producer', $key), $a->availableStock('government', $key)), '0') > 0 ? 'purchasing_power' : 'supply') : null, 'private_purchase' => $private, 'public_purchase' => $public];
-            $row['public_delivery'] = Q::min($row['acquisition_requested'], self::positive(Q::sub(Q::sub($row['production']['government'], $public), $demand['released'])));
-            $bought = $a->purchase('government', 'producer', $key, Q::sub($row['acquisition_requested'], $row['public_delivery']), 'buy:' . $key);
+            $row['civilian']['unaffordable'] = Q::min($demand['unmet'], self::positive(Q::sub($marketNeed, $affordable)));
+            $row['civilian']['unavailable'] = Q::sub($demand['unmet'], $row['civilian']['unaffordable']);
+            $row['public_delivery'] = Q::min($row['acquisition_requested'], self::positive(Q::sub(Q::sub(Q::sub($row['production']['government'], $row['public_industry_delivery']), $public), $demand['released'])));
+            // Tomorrow's business inputs are not surplus for state stockpiling.
+            $surplus = self::positive(Q::sub($a->availableStock('producer', $key), Q::mul($row['industrial_requested'], Q::add('1', $rules['input_stock_buffer']))));
+            $bought = $a->purchase('government', 'producer', $key, Q::min($surplus, Q::sub($row['acquisition_requested'], $row['public_delivery'])), 'buy:' . $key);
             $row['public_delivery_cost'] = Q::mul($row['public_delivery'], $defs[$key]['wage']);
             $row['private_delivery'] = $bought; $row['purchase_spending'] = Q::mul($bought, $defs[$key]['price']);
             $row['acquisition_unmet'] = Q::sub(Q::sub($row['acquisition_requested'], $row['public_delivery']), $bought);
@@ -212,10 +259,11 @@ final class ProductionEconomySeason
         $servicesDelivered = self::Z;
         foreach ($serviceWork as $work) $servicesDelivered = Q::add($servicesDelivered, $a->purchaseService($work['territory'], 'household', $work['owner'], $work['quantity'], $rules['service_price']));
         $position = $a->position();
-        $privateOperating = self::sum(array_map(fn ($e) => $e['owner'] === 'producer' && in_array($e['type'], ['production', 'service_work'], true) ? $e['cost'] : self::Z,
+        $privateOperating = self::sum(array_map(fn ($e) => $e['owner'] === 'producer' && in_array($e['type'], ['production', 'service_work', 'maintenance'], true) ? $e['cost'] : self::Z,
             array_filter($position['events'], fn ($e) => isset($e['owner']))));
         $distribution = $a->distributeProfit('producer', 'household', Q::mul($position['profits']['producer'], $rules['profit_distribution']));
         $privateBudget = Q::mul(self::positive(Q::sub($a->availableCash('producer'), Q::mul($privateOperating, $rules['operating_reserve']))), $rules['private_investment']);
+        if (in_array('producer', $plan['investors'], true)) CivilianProduction::rebuild($a, $civilianProduction, $defs, $privateBudget);
         $a->release('infrastructure');
         $infraPriority = $plan['settings']['allocation.infrastructure_priority']['infrastructure'] ?? 'regional';
         if (!in_array($infraPriority, ['regional', 'population', 'concentration'], true)) throw new DomainException('Unknown infrastructure priority.');
@@ -224,10 +272,7 @@ final class ProductionEconomySeason
             'population' => $t['population'], 'concentration' => (float) ($t['economy']['capacity'] ?? '1'), default => 1 - (float) $t['economy']['infrastructure'],
         };
         uasort($infraOrder, fn ($x, $y) => $weight($y) <=> $weight($x));
-        foreach ($infraOrder as $id => $territory) {
-            $paid = $a->publicWorks((string) $id, 'government', 'household', Q::min($infraBudget, $infrastructure[$id]['requested']), $rules['infrastructure_workers_per_currency']);
-            $infraBudget = Q::sub($infraBudget, $paid); $infrastructure[$id]['paid'] = $paid;
-        }
+        $infrastructure = self::infrastructure($a, $infrastructure, $infraOrder, $infraBudget, $rules);
         foreach ($rows as $key => &$row) {
             $a->release('develop:' . $key);
             $priority = $plan['settings']['allocation.production_priority'][$key] ?? 'potential';
@@ -237,14 +282,28 @@ final class ProductionEconomySeason
             if (in_array('producer', $plan['investors'], true) && self::profitable($defs[$key], $rules)) {
                 $affordableUnmet = Q::min($row['civilian']['unmet'], self::div($a->availableCash('household'), $defs[$key]['price']));
                 $demand = Q::add(Q::add($row['civilian']['fulfilled'], $affordableUnmet), Q::add($row['public_planned'], self::div($row['purchase_budget'], $defs[$key]['price'])));
+                $industrial = Q::cmp($row['industrial_requested'], '0') > 0;
+                if ($industrial) $demand = Q::add(self::positive(Q::sub($demand, $row['production']['government'])), $row['industrial_requested']);
                 $installed = self::Z;
-                foreach ($state['territories'] as $territory) $installed = Q::add($installed, self::sum(array_map(fn ($c) => Q::parse($c[$key] ?? '0'), $territory['capacity'])));
+                // Realized public output offsets demand above; idle public capacity
+                // alone must not prevent investment in the private input pipeline.
+                foreach ($state['territories'] as $territory) $installed = Q::add($installed, $industrial
+                    ? Q::parse($territory['capacity']['producer'][$key] ?? '0')
+                    : self::sum(array_map(fn ($c) => Q::parse($c[$key] ?? '0'), $territory['capacity'])));
                 $headroom = self::positive(Q::sub(Q::mul($demand, Q::add('1', $rules['capacity_buffer'])), $installed));
-                if (Q::cmp($a->availableStock('producer', $key), Q::mul($demand, $rules['stock_buffer'])) > 0) $headroom = self::Z;
+                // Required input inventories are a pipeline, not unsold consumer surplus.
+                if (!$industrial && Q::cmp($a->availableStock('producer', $key), Q::mul($demand, $rules['stock_buffer'])) > 0) $headroom = self::Z;
                 self::develop($a, $state, $defs[$key], $key, 'producer', $privateBudget, $growth, 'opportunity', $headroom, $row);
             }
         } unset($row);
-        $result = $a->close(isset($state['accounts']['lender']) ? ['government' => ['lender' => 'lender', 'reserve' => $rules['treasury_reserve']]] : []);
+        // A financing envelope is not a bill. Return the unused part of this season's
+        // loan before applying the normal treasury-reserve rule for surplus repayment.
+        $spent = self::sum(array_map(fn ($e) => $e['amount'], array_filter($a->position()['events'],
+            fn ($e) => $e['type'] === 'cash' && $e['from'] === 'government' && !in_array($e['reason'], ['interest', 'principal_repayment'], true))));
+        $spent = self::positive(Q::sub($spent, $committedPayroll));
+        $unusedLoan = Q::min($fiscal['borrowing'], self::positive(Q::sub($requestedBudget, $spent)));
+        $result = $a->close(isset($state['accounts']['lender']) ? ['government' => ['lender' => 'lender', 'reserve' => $rules['treasury_reserve'], 'minimum_repayment' => $unusedLoan]] : []);
+        $civilianReport = CivilianProduction::finish($result, $civilianProduction);
         $report = self::report($opening, $result);
         $recurringReceipts = Q::add($report['tax_receipts'], $report['public_sales']);
         $fiscal['receipts'] = array_slice([...($state['fiscal']['receipts'] ?? []), $recurringReceipts], -4);
@@ -274,18 +333,61 @@ final class ProductionEconomySeason
             if (Q::cmp($row['acquisition_unmet'], '0') > 0) $warnings[] = ['type' => 'acquisition_shortfall', 'resource' => $key];
             if (Q::cmp($row['military_requested'], $row['military_fulfilled']) > 0) $warnings[] = ['type' => 'military_goods_shortfall', 'resource' => $key];
         } unset($row);
+        if (array_filter($infrastructure, fn ($r) => Q::cmp($r['maintenance_paid'], $r['maintenance']) < 0)) $warnings[] = ['type' => 'maintenance_shortfall'];
+        if (Q::cmp($civilianReport['maintenance_delivered'], $civilianReport['maintenance_required']) < 0) $warnings[] = ['type' => 'productive_maintenance_shortfall'];
         if (Q::cmp(self::sum(array_column($infrastructure, 'paid')), $infraRequested) < 0) $warnings[] = ['type' => 'infrastructure_shortfall'];
         if ($fiscal['default_episode']) $warnings[] = ['type' => 'default'];
         if (Q::cmp($paidPayroll, $payroll) < 0) $warnings[] = ['type' => 'payroll_shortfall'];
         if (Q::cmp($debt, Q::mul($fiscal['credit_limit'], '0.8')) > 0) $warnings[] = ['type' => 'credit_low'];
         return $result + ['opening_territories' => $state['territories'], 'resources' => $rows, 'report' => $report + ['population' => $population, 'services_delivered' => $servicesDelivered,
             'command_costs' => $committedPayroll, 'profit_distribution' => $distribution, 'public_payroll_requested' => $payroll, 'public_payroll_paid' => $paidPayroll,
-            'support_requested' => $support, 'support_paid' => $paidSupport, 'infrastructure' => $infrastructure, 'food_shortage_ratio' => $foodShortage, 'fiscal' => $fiscal], 'warnings' => $warnings];
+            'support_requested' => $support, 'support_paid' => $paidSupport, 'infrastructure' => $infrastructure, 'food_shortage_ratio' => $foodShortage, 'fiscal' => $fiscal,
+            'civilian' => $civilianReport + ['production' => array_map(fn ($row) => self::sum($row['production']), $rows),
+                'constraints' => array_map(fn ($row) => $row['constraints'], $rows),
+                'public_industry' => array_map(fn ($row) => ['requested' => $row['public_industry_requested'], 'planned' => $row['public_industry_planned'], 'delivered' => $row['public_industry_delivery'], 'revenue' => $row['public_industry_revenue']], $rows),
+                'consumption' => array_map(fn ($row) => $row['civilian'], array_filter($rows, fn ($row) => Q::cmp($row['civilian_requested'], '0') > 0))]], 'warnings' => $warnings];
+    }
+
+    /** Share scarce maintenance funds by need before applying the improvement priority. */
+    private static function infrastructure(ProductionAccounts $a, array $rows, array $order, string $budget, array $rules): array
+    {
+        $needs = [];
+        foreach ($rows as $id => &$row) {
+            $row['paid'] = $row['maintenance_paid'] = $row['improvement_paid'] = self::Z;
+            $needs[$id] = Q::min($row['maintenance'], $row['requested']);
+        } unset($row);
+        $remainingNeed = self::sum($needs);
+        $remainingBudget = Q::min($budget, $remainingNeed);
+        foreach ($needs as $id => $need) {
+            $allocation = Q::cmp($remainingNeed, '0') > 0
+                ? Q::min($need, self::div(Q::mul($remainingBudget, $need), $remainingNeed)) : self::Z;
+            $paid = $a->publicWorks((string) $id, 'government', 'household', $allocation, $rules['infrastructure_workers_per_currency']);
+            $rows[$id]['paid'] = $rows[$id]['maintenance_paid'] = $paid;
+            $remainingBudget = Q::sub($remainingBudget, $allocation);
+            $remainingNeed = Q::sub($remainingNeed, $need); $budget = Q::sub($budget, $paid);
+        }
+        // Redistribute any allocation that lacked local workers, within maintenance targets.
+        foreach ($needs as $id => $need) {
+            $due = Q::sub($need, $rows[$id]['maintenance_paid']);
+            if (Q::cmp($due, '0') <= 0 || Q::cmp($budget, '0') <= 0) continue;
+            $paid = $a->publicWorks((string) $id, 'government', 'household', Q::min($due, $budget), $rules['infrastructure_workers_per_currency']);
+            $rows[$id]['paid'] = $rows[$id]['maintenance_paid'] = Q::add($rows[$id]['paid'], $paid);
+            $budget = Q::sub($budget, $paid);
+        }
+        // If local labor cannot perform some upkeep, other regions may still use
+        // remaining funds within their own improvement requests; the upkeep warning remains.
+        foreach ($order as $id => $_) {
+            $request = Q::min($budget, self::positive(Q::sub($rows[$id]['requested'], $rows[$id]['paid'])));
+            $paid = $a->publicWorks((string) $id, 'government', 'household', $request, $rules['infrastructure_workers_per_currency']);
+            $rows[$id]['improvement_paid'] = $paid;
+            $rows[$id]['paid'] = Q::add($rows[$id]['paid'], $paid); $budget = Q::sub($budget, $paid);
+        }
+        return $rows;
     }
 
     private static function profitable(array $definition, array $rules): bool
     {
-        return Q::cmp($definition['price'], Q::mul($definition['wage'], Q::add('1', $rules['minimum_margin']))) > 0;
+        return Q::cmp($definition['price'], Q::mul($definition['unit_cost'] ?? $definition['wage'], Q::add('1', $rules['minimum_margin']))) > 0;
     }
 
     private static function produce(ProductionAccounts $a, array $state, array $definition, string $key, string $owner, string $request, array &$used, array &$row): void
@@ -364,8 +466,10 @@ final class ProductionEconomySeason
         foreach ($result['events'] as $e) {
             if ($e['type'] === 'wages') $out['wages'] = Q::add($out['wages'], $e['gross']);
             if ($e['type'] === 'earnings') $out['realized_profit'] = Q::add($out['realized_profit'], $e['realized_profit']);
-            if (in_array($e['type'], ['production', 'service_work'], true) && $e['owner'] === 'government') $out['public_operations'] = Q::add($out['public_operations'], $e['cost']);
-            if ($e['type'] === 'investment') { $field = $e['owner'] === 'government' ? 'public_development' : 'private_development'; $out[$field] = Q::add($out[$field], $e['cost']); }
+            // Input basis is not a second cash payment: purchases are reported separately.
+            if ($e['type'] === 'wages' && $e['owner'] === 'government' && !in_array($e['activity'], ['construction', 'rebuilding', 'infrastructure', 'public_payroll'], true))
+                $out['public_operations'] = Q::add($out['public_operations'], $e['gross']);
+            if (in_array($e['type'], ['investment', 'rebuilding'], true)) { $field = $e['owner'] === 'government' ? 'public_development' : 'private_development'; $out[$field] = Q::add($out[$field], $e['cost']); }
             if ($e['type'] === 'cash') {
                 if ($e['to'] === 'government') $out['treasury_inflows'] = Q::add($out['treasury_inflows'], $e['amount']);
                 if ($e['from'] === 'government') $out['treasury_outflows'] = Q::add($out['treasury_outflows'], $e['amount']);

@@ -35,9 +35,10 @@ final class ProductionEconomyInput
         foreach ($territories as $territory) {
             if ($territory['owner_nation_id'] !== $nationId) continue;
             $economy = $territory['economy_state'];
-            unset($economy['background_capacity']);
+            unset($economy['background_capacity'], $economy['productive_condition']);
             $state['territories'][(string) $territory['territory_id']] = [
                 'government' => 'government', 'population' => $territory['population_size'], 'workforce' => Q::parse($territory['workers']),
+                'productive_condition' => $territory['economy_state']['productive_condition'] ?? [],
                 'geography' => $territory['geography'], 'terrain' => $territory['terrain'], 'economy' => array_map(fn ($v) => is_float($v) ? Q::calculated($v) : Q::parse($v), $economy), 'capacity' => [],
             ];
         }

@@ -1,5 +1,7 @@
 # Economy and policies — philosophical foundation
 
+**2026-09-30 follow-up:** retain the discussion of NO2's eight development indices plus unrest/informal activity, distinct loyalty, and viable public/private development. The [indicator-led alternative](indicator-economy-alternative.md) records one possible implementation. After discussion with a friend experienced in macroeconomics, the user remains undecided and wants to preserve the current system while exploring whether it can be improved. Removing civilian wallets and adopting aggregate income are not settled decisions. UI design is deferred; no implementation occurs in this documentation update.
+
 Discussion captured: 2026-09-23.
 
 Expanded to include the subsequent discussion of trade, civilian demand, services, policy inheritance, and the V2 world foundation.

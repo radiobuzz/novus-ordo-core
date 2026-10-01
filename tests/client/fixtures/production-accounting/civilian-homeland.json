@@ -1,0 +1,1207 @@
+{
+  "description": "Read-only game 27 nation 49 snapshots: original homeland and turn-10 civilian shortage. No player identities or credentials.",
+  "rules": {
+    "stock_buffer": "0",
+    "capacity_buffer": "0.2",
+    "profit_distribution": "0.8",
+    "private_investment": "0.2",
+    "operating_reserve": "1",
+    "construction_labor_share": "0.1",
+    "minimum_margin": "0.05",
+    "service_wage": "0.00001",
+    "service_price": "0.00002",
+    "service_demand_per_person": "0.4",
+    "evasion_rise": "0.75",
+    "compliance_recovery": "0.1",
+    "interest_rate": "0.015",
+    "credit_multiple": "3",
+    "treasury_reserve": "20",
+    "debt_relief": "0.5",
+    "credit_lock_seasons": 4,
+    "infrastructure_upkeep": "2",
+    "infrastructure_point_cost": "100",
+    "infrastructure_growth": "0.005",
+    "infrastructure_decay": "0.015",
+    "infrastructure_workers_per_currency": "10000"
+  },
+  "founding": {
+    "state": {
+      "accounts": {
+        "government": {
+          "kind": "government",
+          "cash": "20.000000",
+          "tax_rate": "0"
+        },
+        "household": {
+          "kind": "household",
+          "cash": "50.000000",
+          "treasury": "government"
+        },
+        "producer": {
+          "kind": "producer",
+          "cash": "50.000000",
+          "treasury": "government"
+        },
+        "lender": {
+          "kind": "lender",
+          "cash": "1000000"
+        }
+      },
+      "inventories": {
+        "government": {
+          "food": {
+            "quantity": "0.000000",
+            "cost": "0.000000"
+          },
+          "material": {
+            "quantity": "0.000000",
+            "cost": "0.000000"
+          },
+          "ore": {
+            "quantity": "10.000000",
+            "cost": "0.000000"
+          },
+          "oil": {
+            "quantity": "10.000000",
+            "cost": "0.000000"
+          },
+          "equipment": {
+            "quantity": "0.000000",
+            "cost": "0.000000"
+          },
+          "household_goods": {
+            "quantity": "0.000000",
+            "cost": "0.000000"
+          }
+        },
+        "producer": {
+          "food": {
+            "quantity": "0.000000",
+            "cost": "0.000000"
+          },
+          "material": {
+            "quantity": "1.000000",
+            "cost": "1.000000"
+          },
+          "ore": {
+            "quantity": "1.000000",
+            "cost": "1.000000"
+          },
+          "oil": {
+            "quantity": "0.000000",
+            "cost": "0.000000"
+          },
+          "equipment": {
+            "quantity": "0.750000",
+            "cost": "1.500000"
+          },
+          "household_goods": {
+            "quantity": "1.000000",
+            "cost": "2.000000"
+          }
+        }
+      },
+      "territories": {
+        "20297": {
+          "government": "government",
+          "population": 1000000,
+          "workforce": "1000000.000000",
+          "productive_condition": [],
+          "geography": {
+            "landFraction": 0.9473684210526312,
+            "agriculturalSuitability": 0.3476068980285947,
+            "terrainFractions": {
+              "Plain": 0.631578947368421,
+              "Forest": 0.2631578947368421,
+              "Water": 0.05263157894736842,
+              "Mountain": 0.05263157894736842
+            },
+            "climate": {
+              "temperature": 0.9164148612532029,
+              "rainfall": 0.44568662910136764,
+              "moisture": 0.5012421846569233
+            },
+            "resources": {
+              "food": {
+                "quantity": 32.18428547797426,
+                "capacity": 1.1315984182167604,
+                "terrainWeights": {
+                  "Plain": 0.1848042774913881,
+                  "Forest": 0.1365975227125289,
+                  "Mountain": 0.00044105457582555485
+                }
+              },
+              "material": {
+                "quantity": 63.157894736842096,
+                "capacity": 0.3778807880674673,
+                "terrainWeights": {
+                  "Plain": 0.42631578947368426,
+                  "Forest": 0.16315789473684209,
+                  "Mountain": 0.042105263157894736
+                }
+              },
+              "ore": {
+                "quantity": 60.242968522888766,
+                "capacity": 0.039909144544726646,
+                "terrainWeights": {
+                  "Plain": 0.03349691603565687,
+                  "Forest": 0.016705557733417115
+                }
+              }
+            }
+          },
+          "terrain": "Plain",
+          "economy": {
+            "capacity": "1.000000",
+            "infrastructure": "0.650000",
+            "unrest": "0.030000",
+            "informal": "0.100000"
+          },
+          "capacity": {
+            "government": {
+              "food": "0.169740",
+              "material": "0.056682",
+              "ore": "0.005986",
+              "oil": "0.000000",
+              "equipment": "0.000000",
+              "household_goods": "0.000000"
+            },
+            "producer": {
+              "food": "0.509219",
+              "material": "0.170047",
+              "ore": "0.017959",
+              "oil": "0.000000",
+              "equipment": "0.240000",
+              "household_goods": "0.360000"
+            }
+          },
+          "background_capacity": {
+            "producer": "1000000.000000",
+            "government": "0"
+          }
+        },
+        "20337": {
+          "government": "government",
+          "population": 1000000,
+          "workforce": "1000000.000000",
+          "productive_condition": [],
+          "geography": {
+            "landFraction": 0.9999999999999996,
+            "agriculturalSuitability": 0.6149589245507098,
+            "terrainFractions": {
+              "Forest": 0.6842105263157894,
+              "Plain": 0.2631578947368421,
+              "Desert": 0.05263157894736842
+            },
+            "climate": {
+              "temperature": 0.9315624264041962,
+              "rainfall": 0.5316525310458827,
+              "moisture": 0.577968320519567
+            },
+            "resources": {
+              "food": {
+                "quantity": 60.95824643535821,
+                "capacity": 2.2190424919595695,
+                "terrainWeights": {
+                  "Forest": 0.4127957522149899,
+                  "Plain": 0.16993563375631218,
+                  "Desert": 0.02685107838228012
+                }
+              },
+              "material": {
+                "quantity": 51.57894736842108,
+                "capacity": 0.46003254215365175,
+                "terrainWeights": {
+                  "Forest": 0.35789473684210515,
+                  "Plain": 0.13157894736842105,
+                  "Desert": 0.02631578947368421
+                }
+              },
+              "ore": {
+                "quantity": 157.60103111801948,
+                "capacity": 0.11856065567231487,
+                "terrainWeights": {
+                  "Forest": 0.07584374872557842,
+                  "Plain": 0.044410022662011,
+                  "Desert": 0.011080421210760163
+                }
+              }
+            }
+          },
+          "terrain": "Forest",
+          "economy": {
+            "capacity": "1.000000",
+            "infrastructure": "0.650000",
+            "unrest": "0.030000",
+            "informal": "0.100000"
+          },
+          "capacity": {
+            "government": {
+              "food": "0.332856",
+              "material": "0.069005",
+              "ore": "0.017784",
+              "oil": "0.000000",
+              "equipment": "0.000000",
+              "household_goods": "0.000000"
+            },
+            "producer": {
+              "food": "0.998569",
+              "material": "0.207015",
+              "ore": "0.053353",
+              "oil": "0.000000",
+              "equipment": "0.240000",
+              "household_goods": "0.360000"
+            }
+          },
+          "background_capacity": {
+            "producer": "1000000.000000",
+            "government": "0"
+          }
+        },
+        "20338": {
+          "government": "government",
+          "population": 1000000,
+          "workforce": "1000000.000000",
+          "productive_condition": [],
+          "geography": {
+            "landFraction": 0.9473684210526312,
+            "agriculturalSuitability": 0.5313467771208719,
+            "terrainFractions": {
+              "Desert": 0.6842105263157894,
+              "Plain": 0.21052631578947367,
+              "Forest": 0.05263157894736842,
+              "Water": 0.05263157894736842
+            },
+            "climate": {
+              "temperature": 0.9215605788404683,
+              "rainfall": 0.3689348981991448,
+              "moisture": 0.401157120421367
+            },
+            "resources": {
+              "food": {
+                "quantity": 53.13467771208718,
+                "capacity": 2.012459612964907,
+                "terrainWeights": {
+                  "Desert": 0.3554086758935254,
+                  "Plain": 0.1326775487154429,
+                  "Forest": 0.04326055251190349
+                }
+              },
+              "material": {
+                "quantity": 47.368421052631604,
+                "capacity": 0.4476032542216692,
+                "terrainWeights": {
+                  "Desert": 0.3421052631578947,
+                  "Plain": 0.10526315789473684,
+                  "Forest": 0.02631578947368421
+                }
+              },
+              "ore": {
+                "quantity": 226.47337691630443,
+                "capacity": 0.17864005532708419,
+                "terrainWeights": {
+                  "Desert": 0.1343181799894148,
+                  "Plain": 0.04644784726334976,
+                  "Forest": 0.007961786844155804
+                }
+              },
+              "oil": {
+                "quantity": 42.38752630432635,
+                "capacity": 0.03313597494625016,
+                "terrainWeights": {
+                  "Plain": 0.004926472321450428,
+                  "Desert": 0.030396466265488194
+                }
+              }
+            }
+          },
+          "terrain": "Plain",
+          "economy": {
+            "capacity": "1.000000",
+            "infrastructure": "0.650000",
+            "unrest": "0.030000",
+            "informal": "0.100000"
+          },
+          "capacity": {
+            "government": {
+              "food": "0.301869",
+              "material": "0.067141",
+              "ore": "0.026796",
+              "oil": "0.004971",
+              "equipment": "0.000000",
+              "household_goods": "0.000000"
+            },
+            "producer": {
+              "food": "0.905607",
+              "material": "0.201421",
+              "ore": "0.080388",
+              "oil": "0.014911",
+              "equipment": "0.240000",
+              "household_goods": "0.360000"
+            }
+          },
+          "background_capacity": {
+            "producer": "1000000.000000",
+            "government": "0"
+          }
+        },
+        "20377": {
+          "government": "government",
+          "population": 1000000,
+          "workforce": "1000000.000000",
+          "productive_condition": [],
+          "geography": {
+            "landFraction": 0.8421052631578945,
+            "agriculturalSuitability": 0.39802679287426634,
+            "terrainFractions": {
+              "Plain": 0.3157894736842105,
+              "Forest": 0.21052631578947367,
+              "Water": 0.15789473684210525,
+              "Desert": 0.3157894736842105
+            },
+            "climate": {
+              "temperature": 0.9024074008373829,
+              "rainfall": 0.43336495831636823,
+              "moisture": 0.46336495831636826
+            },
+            "resources": {
+              "food": {
+                "quantity": 38.30602781663966,
+                "capacity": 1.3672551647497189,
+                "terrainWeights": {
+                  "Plain": 0.17690785205292936,
+                  "Forest": 0.05460870761998093,
+                  "Desert": 0.15154371849348633
+                }
+              },
+              "material": {
+                "quantity": 46.842105263157904,
+                "capacity": 0.39341251284837825,
+                "terrainWeights": {
+                  "Plain": 0.15789473684210525,
+                  "Forest": 0.1526315789473684,
+                  "Desert": 0.15789473684210525
+                }
+              },
+              "ore": {
+                "quantity": 304.88492203812933,
+                "capacity": 0.20875794631120384,
+                "terrainWeights": {
+                  "Plain": 0.07863736015474677,
+                  "Forest": 0.09823516767018631,
+                  "Desert": 0.07719824054017478
+                }
+              },
+              "oil": {
+                "quantity": 0.2980616771181338,
+                "capacity": 0.00022602916765280967,
+                "terrainWeights": {
+                  "Plain": 0.00024838473093177814
+                }
+              }
+            }
+          },
+          "terrain": "Plain",
+          "economy": {
+            "capacity": "1.000000",
+            "infrastructure": "0.650000",
+            "unrest": "0.030000",
+            "informal": "0.100000"
+          },
+          "capacity": {
+            "government": {
+              "food": "0.205088",
+              "material": "0.059012",
+              "ore": "0.031314",
+              "oil": "0.000034",
+              "equipment": "0.000000",
+              "household_goods": "0.000000"
+            },
+            "producer": {
+              "food": "0.615265",
+              "material": "0.177036",
+              "ore": "0.093941",
+              "oil": "0.000102",
+              "equipment": "0.240000",
+              "household_goods": "0.360000"
+            }
+          },
+          "background_capacity": {
+            "producer": "1000000.000000",
+            "government": "0"
+          }
+        },
+        "20378": {
+          "government": "government",
+          "population": 1000000,
+          "workforce": "1000000.000000",
+          "productive_condition": [],
+          "geography": {
+            "landFraction": 0.5789473684210527,
+            "agriculturalSuitability": 0.26393346554582825,
+            "terrainFractions": {
+              "Water": 0.42105263157894735,
+              "Forest": 0.10526315789473684,
+              "Plain": 0.47368421052631576
+            },
+            "climate": {
+              "temperature": 0.9086084320309497,
+              "rainfall": 0.4396970960720011,
+              "moisture": 0.4942425506174557
+            },
+            "resources": {
+              "food": {
+                "quantity": 25.20890440580503,
+                "capacity": 0.8636323110591239,
+                "terrainWeights": {
+                  "Forest": 0.0439260680672664,
+                  "Plain": 0.2081629759907839
+                }
+              },
+              "material": {
+                "quantity": 32.10526315789474,
+                "capacity": 0.2635722601227477,
+                "terrainWeights": {
+                  "Forest": 0.05263157894736842,
+                  "Plain": 0.26842105263157895
+                }
+              },
+              "ore": {
+                "quantity": 185.79149384290264,
+                "capacity": 0.1272098215706285,
+                "terrainWeights": {
+                  "Forest": 0.02807373323397578,
+                  "Plain": 0.12675251163510975
+                }
+              },
+              "oil": {
+                "quantity": 142.31189134818555,
+                "capacity": 0.07575414517263454,
+                "terrainWeights": {
+                  "Water": 0.04361119220292649,
+                  "Forest": 0.010149871884769367,
+                  "Plain": 0.06483217870245878
+                }
+              }
+            }
+          },
+          "terrain": "Plain",
+          "economy": {
+            "capacity": "1.000000",
+            "infrastructure": "0.650000",
+            "unrest": "0.030000",
+            "informal": "0.100000"
+          },
+          "capacity": {
+            "government": {
+              "food": "0.129545",
+              "material": "0.039536",
+              "ore": "0.019082",
+              "oil": "0.011363",
+              "equipment": "0.000000",
+              "household_goods": "0.000000"
+            },
+            "producer": {
+              "food": "0.388634",
+              "material": "0.118607",
+              "ore": "0.057244",
+              "oil": "0.034089",
+              "equipment": "0.240000",
+              "household_goods": "0.360000"
+            }
+          },
+          "background_capacity": {
+            "producer": "1000000.000000",
+            "government": "0"
+          }
+        }
+      },
+      "fiscal": {
+        "receipts": [],
+        "credit_lock": 0,
+        "default_episode": false
+      },
+      "debts": {
+        "government": {
+          "lender": "0"
+        }
+      }
+    },
+    "acquisitions": [],
+    "settings": {
+      "food.emergency_release": {
+        "nutrition": "1"
+      },
+      "institutions.development_ownership": {
+        "production": "mixed"
+      },
+      "finance.income_tax": {
+        "taxable_income": "0.25"
+      },
+      "budget.program_funding": {
+        "infrastructure": "1"
+      },
+      "allocation.infrastructure_priority": {
+        "infrastructure": "regional"
+      },
+      "food.reserve_target": {
+        "nutrition": "0.5"
+      },
+      "production.development_funding": {
+        "food": "0.1",
+        "material": "0",
+        "ore": "0",
+        "oil": "0",
+        "equipment": "0",
+        "household_goods": "0"
+      },
+      "allocation.production_priority": {
+        "food": "potential",
+        "material": "potential",
+        "ore": "potential",
+        "oil": "potential",
+        "equipment": "potential",
+        "household_goods": "potential"
+      }
+    }
+  },
+  "recovery": {
+    "state": {
+      "accounts": {
+        "government": {
+          "kind": "government",
+          "cash": "29.613139",
+          "tax_rate": "0"
+        },
+        "household": {
+          "kind": "household",
+          "cash": "13.114366",
+          "treasury": "government"
+        },
+        "producer": {
+          "kind": "producer",
+          "cash": "77.272495",
+          "treasury": "government"
+        },
+        "lender": {
+          "kind": "lender",
+          "cash": "1000000.000000"
+        }
+      },
+      "inventories": {
+        "government": {
+          "food": {
+            "quantity": "0.947499",
+            "cost": "0.947499"
+          },
+          "material": {
+            "quantity": "0.000000",
+            "cost": "0.000000"
+          },
+          "ore": {
+            "quantity": "10.000000",
+            "cost": "0.000000"
+          },
+          "oil": {
+            "quantity": "10.000000",
+            "cost": "0.000000"
+          },
+          "equipment": {
+            "quantity": "0.000000",
+            "cost": "0.000000"
+          },
+          "household_goods": {
+            "quantity": "0.000000",
+            "cost": "0.000000"
+          }
+        },
+        "producer": {
+          "food": {
+            "quantity": "0.000000",
+            "cost": "0.000000"
+          },
+          "material": {
+            "quantity": "0.273341",
+            "cost": "0.273341"
+          },
+          "ore": {
+            "quantity": "0.302885",
+            "cost": "0.302885"
+          },
+          "oil": {
+            "quantity": "0.000000",
+            "cost": "0.000000"
+          },
+          "equipment": {
+            "quantity": "0.095630",
+            "cost": "0.143445"
+          },
+          "household_goods": {
+            "quantity": "0.000000",
+            "cost": "0.000000"
+          }
+        }
+      },
+      "territories": {
+        "20297": {
+          "government": "government",
+          "population": 1093684,
+          "workforce": "1093684.000000",
+          "productive_condition": {
+            "producer": {
+              "equipment": "1",
+              "food": "1",
+              "household_goods": "1",
+              "material": "1",
+              "oil": "1.000000",
+              "ore": "1"
+            },
+            "government": {
+              "equipment": "1.000000",
+              "food": "1",
+              "household_goods": "1.000000",
+              "material": "1",
+              "oil": "1.000000",
+              "ore": "1"
+            }
+          },
+          "geography": {
+            "landFraction": 0.9473684210526312,
+            "agriculturalSuitability": 0.3476068980285947,
+            "terrainFractions": {
+              "Plain": 0.631578947368421,
+              "Forest": 0.2631578947368421,
+              "Water": 0.05263157894736842,
+              "Mountain": 0.05263157894736842
+            },
+            "climate": {
+              "temperature": 0.9164148612532029,
+              "rainfall": 0.44568662910136764,
+              "moisture": 0.5012421846569233
+            },
+            "resources": {
+              "food": {
+                "quantity": 32.18428547797426,
+                "capacity": 1.1315984182167604,
+                "terrainWeights": {
+                  "Plain": 0.1848042774913881,
+                  "Forest": 0.1365975227125289,
+                  "Mountain": 0.00044105457582555485
+                }
+              },
+              "material": {
+                "quantity": 63.157894736842096,
+                "capacity": 0.3778807880674673,
+                "terrainWeights": {
+                  "Plain": 0.42631578947368426,
+                  "Forest": 0.16315789473684209,
+                  "Mountain": 0.042105263157894736
+                }
+              },
+              "ore": {
+                "quantity": 60.242968522888766,
+                "capacity": 0.039909144544726646,
+                "terrainWeights": {
+                  "Plain": 0.03349691603565687,
+                  "Forest": 0.016705557733417115
+                }
+              }
+            }
+          },
+          "terrain": "Plain",
+          "economy": {
+            "capacity": "1.000000",
+            "infrastructure": "0.694998",
+            "unrest": "0.004026",
+            "informal": "0.106250"
+          },
+          "capacity": {
+            "government": {
+              "food": "0.169740",
+              "material": "0.056682",
+              "ore": "0.005986",
+              "oil": "0.000000",
+              "equipment": "0.000000",
+              "household_goods": "0.000000"
+            },
+            "producer": {
+              "food": "0.509219",
+              "material": "0.170047",
+              "ore": "0.017959",
+              "oil": "0.000000",
+              "equipment": "0.240000",
+              "household_goods": "0.360000"
+            }
+          },
+          "background_capacity": {
+            "producer": "1000000.000000",
+            "government": "0.000000"
+          }
+        },
+        "20337": {
+          "government": "government",
+          "population": 1093684,
+          "workforce": "1093684.000000",
+          "productive_condition": {
+            "producer": {
+              "equipment": "1",
+              "food": "1",
+              "household_goods": "1",
+              "material": "1",
+              "oil": "1.000000",
+              "ore": "1"
+            },
+            "government": {
+              "equipment": "1.000000",
+              "food": "1",
+              "household_goods": "1.000000",
+              "material": "1",
+              "oil": "1.000000",
+              "ore": "1"
+            }
+          },
+          "geography": {
+            "landFraction": 0.9999999999999996,
+            "agriculturalSuitability": 0.6149589245507098,
+            "terrainFractions": {
+              "Forest": 0.6842105263157894,
+              "Plain": 0.2631578947368421,
+              "Desert": 0.05263157894736842
+            },
+            "climate": {
+              "temperature": 0.9315624264041962,
+              "rainfall": 0.5316525310458827,
+              "moisture": 0.577968320519567
+            },
+            "resources": {
+              "food": {
+                "quantity": 60.95824643535821,
+                "capacity": 2.2190424919595695,
+                "terrainWeights": {
+                  "Forest": 0.4127957522149899,
+                  "Plain": 0.16993563375631218,
+                  "Desert": 0.02685107838228012
+                }
+              },
+              "material": {
+                "quantity": 51.57894736842108,
+                "capacity": 0.46003254215365175,
+                "terrainWeights": {
+                  "Forest": 0.35789473684210515,
+                  "Plain": 0.13157894736842105,
+                  "Desert": 0.02631578947368421
+                }
+              },
+              "ore": {
+                "quantity": 157.60103111801948,
+                "capacity": 0.11856065567231487,
+                "terrainWeights": {
+                  "Forest": 0.07584374872557842,
+                  "Plain": 0.044410022662011,
+                  "Desert": 0.011080421210760163
+                }
+              }
+            }
+          },
+          "terrain": "Forest",
+          "economy": {
+            "capacity": "1.000000",
+            "infrastructure": "0.694998",
+            "unrest": "0.004026",
+            "informal": "0.106250"
+          },
+          "capacity": {
+            "government": {
+              "food": "0.643757",
+              "material": "0.069005",
+              "ore": "0.017784",
+              "oil": "0.000000",
+              "equipment": "0.000000",
+              "household_goods": "0.000000"
+            },
+            "producer": {
+              "food": "0.998569",
+              "material": "0.207015",
+              "ore": "0.053353",
+              "oil": "0.000000",
+              "equipment": "0.240000",
+              "household_goods": "0.360000"
+            }
+          },
+          "background_capacity": {
+            "producer": "1000000.000000",
+            "government": "0.000000"
+          }
+        },
+        "20338": {
+          "government": "government",
+          "population": 1093684,
+          "workforce": "1093684.000000",
+          "productive_condition": {
+            "producer": {
+              "equipment": "1",
+              "food": "1",
+              "household_goods": "1",
+              "material": "1",
+              "oil": "1",
+              "ore": "1"
+            },
+            "government": {
+              "equipment": "1.000000",
+              "food": "1",
+              "household_goods": "1.000000",
+              "material": "1",
+              "oil": "1",
+              "ore": "1"
+            }
+          },
+          "geography": {
+            "landFraction": 0.9473684210526312,
+            "agriculturalSuitability": 0.5313467771208719,
+            "terrainFractions": {
+              "Desert": 0.6842105263157894,
+              "Plain": 0.21052631578947367,
+              "Forest": 0.05263157894736842,
+              "Water": 0.05263157894736842
+            },
+            "climate": {
+              "temperature": 0.9215605788404683,
+              "rainfall": 0.3689348981991448,
+              "moisture": 0.401157120421367
+            },
+            "resources": {
+              "food": {
+                "quantity": 53.13467771208718,
+                "capacity": 2.012459612964907,
+                "terrainWeights": {
+                  "Desert": 0.3554086758935254,
+                  "Plain": 0.1326775487154429,
+                  "Forest": 0.04326055251190349
+                }
+              },
+              "material": {
+                "quantity": 47.368421052631604,
+                "capacity": 0.4476032542216692,
+                "terrainWeights": {
+                  "Desert": 0.3421052631578947,
+                  "Plain": 0.10526315789473684,
+                  "Forest": 0.02631578947368421
+                }
+              },
+              "ore": {
+                "quantity": 226.47337691630443,
+                "capacity": 0.17864005532708419,
+                "terrainWeights": {
+                  "Desert": 0.1343181799894148,
+                  "Plain": 0.04644784726334976,
+                  "Forest": 0.007961786844155804
+                }
+              },
+              "oil": {
+                "quantity": 42.38752630432635,
+                "capacity": 0.03313597494625016,
+                "terrainWeights": {
+                  "Plain": 0.004926472321450428,
+                  "Desert": 0.030396466265488194
+                }
+              }
+            }
+          },
+          "terrain": "Plain",
+          "economy": {
+            "capacity": "1.000000",
+            "infrastructure": "0.694998",
+            "unrest": "0.004026",
+            "informal": "0.106250"
+          },
+          "capacity": {
+            "government": {
+              "food": "0.553451",
+              "material": "0.067141",
+              "ore": "0.026796",
+              "oil": "0.004971",
+              "equipment": "0.000000",
+              "household_goods": "0.000000"
+            },
+            "producer": {
+              "food": "0.905607",
+              "material": "0.201421",
+              "ore": "0.080388",
+              "oil": "0.014911",
+              "equipment": "0.240000",
+              "household_goods": "0.360000"
+            }
+          },
+          "background_capacity": {
+            "producer": "1000000.000000",
+            "government": "0.000000"
+          }
+        },
+        "20377": {
+          "government": "government",
+          "population": 1093684,
+          "workforce": "1093684.000000",
+          "productive_condition": {
+            "producer": {
+              "equipment": "1",
+              "food": "1",
+              "household_goods": "1",
+              "material": "1",
+              "oil": "1",
+              "ore": "1"
+            },
+            "government": {
+              "equipment": "1.000000",
+              "food": "1",
+              "household_goods": "1.000000",
+              "material": "1",
+              "oil": "1.000000",
+              "ore": "1"
+            }
+          },
+          "geography": {
+            "landFraction": 0.8421052631578945,
+            "agriculturalSuitability": 0.39802679287426634,
+            "terrainFractions": {
+              "Plain": 0.3157894736842105,
+              "Forest": 0.21052631578947367,
+              "Water": 0.15789473684210525,
+              "Desert": 0.3157894736842105
+            },
+            "climate": {
+              "temperature": 0.9024074008373829,
+              "rainfall": 0.43336495831636823,
+              "moisture": 0.46336495831636826
+            },
+            "resources": {
+              "food": {
+                "quantity": 38.30602781663966,
+                "capacity": 1.3672551647497189,
+                "terrainWeights": {
+                  "Plain": 0.17690785205292936,
+                  "Forest": 0.05460870761998093,
+                  "Desert": 0.15154371849348633
+                }
+              },
+              "material": {
+                "quantity": 46.842105263157904,
+                "capacity": 0.39341251284837825,
+                "terrainWeights": {
+                  "Plain": 0.15789473684210525,
+                  "Forest": 0.1526315789473684,
+                  "Desert": 0.15789473684210525
+                }
+              },
+              "ore": {
+                "quantity": 304.88492203812933,
+                "capacity": 0.20875794631120384,
+                "terrainWeights": {
+                  "Plain": 0.07863736015474677,
+                  "Forest": 0.09823516767018631,
+                  "Desert": 0.07719824054017478
+                }
+              },
+              "oil": {
+                "quantity": 0.2980616771181338,
+                "capacity": 0.00022602916765280967,
+                "terrainWeights": {
+                  "Plain": 0.00024838473093177814
+                }
+              }
+            }
+          },
+          "terrain": "Plain",
+          "economy": {
+            "capacity": "1.000000",
+            "infrastructure": "0.694998",
+            "unrest": "0.004026",
+            "informal": "0.106250"
+          },
+          "capacity": {
+            "government": {
+              "food": "0.205088",
+              "material": "0.059012",
+              "ore": "0.031314",
+              "oil": "0.000034",
+              "equipment": "0.000000",
+              "household_goods": "0.000000"
+            },
+            "producer": {
+              "food": "0.615265",
+              "material": "0.177036",
+              "ore": "0.093941",
+              "oil": "0.000102",
+              "equipment": "0.240000",
+              "household_goods": "0.360000"
+            }
+          },
+          "background_capacity": {
+            "producer": "1000000.000000",
+            "government": "0.000000"
+          }
+        },
+        "20378": {
+          "government": "government",
+          "population": 1093684,
+          "workforce": "1093684.000000",
+          "productive_condition": {
+            "producer": {
+              "equipment": "1",
+              "food": "1",
+              "household_goods": "1",
+              "material": "1",
+              "oil": "1",
+              "ore": "1"
+            },
+            "government": {
+              "equipment": "1.000000",
+              "food": "1",
+              "household_goods": "1.000000",
+              "material": "0.973570",
+              "oil": "0.960000",
+              "ore": "0.918743"
+            }
+          },
+          "geography": {
+            "landFraction": 0.5789473684210527,
+            "agriculturalSuitability": 0.26393346554582825,
+            "terrainFractions": {
+              "Water": 0.42105263157894735,
+              "Forest": 0.10526315789473684,
+              "Plain": 0.47368421052631576
+            },
+            "climate": {
+              "temperature": 0.9086084320309497,
+              "rainfall": 0.4396970960720011,
+              "moisture": 0.4942425506174557
+            },
+            "resources": {
+              "food": {
+                "quantity": 25.20890440580503,
+                "capacity": 0.8636323110591239,
+                "terrainWeights": {
+                  "Forest": 0.0439260680672664,
+                  "Plain": 0.2081629759907839
+                }
+              },
+              "material": {
+                "quantity": 32.10526315789474,
+                "capacity": 0.2635722601227477,
+                "terrainWeights": {
+                  "Forest": 0.05263157894736842,
+                  "Plain": 0.26842105263157895
+                }
+              },
+              "ore": {
+                "quantity": 185.79149384290264,
+                "capacity": 0.1272098215706285,
+                "terrainWeights": {
+                  "Forest": 0.02807373323397578,
+                  "Plain": 0.12675251163510975
+                }
+              },
+              "oil": {
+                "quantity": 142.31189134818555,
+                "capacity": 0.07575414517263454,
+                "terrainWeights": {
+                  "Water": 0.04361119220292649,
+                  "Forest": 0.010149871884769367,
+                  "Plain": 0.06483217870245878
+                }
+              }
+            }
+          },
+          "terrain": "Plain",
+          "economy": {
+            "capacity": "1.000000",
+            "infrastructure": "0.694998",
+            "unrest": "0.004026",
+            "informal": "0.106250"
+          },
+          "capacity": {
+            "government": {
+              "food": "0.129545",
+              "material": "0.039536",
+              "ore": "0.019082",
+              "oil": "0.011363",
+              "equipment": "0.000000",
+              "household_goods": "0.000000"
+            },
+            "producer": {
+              "food": "0.388634",
+              "material": "0.118607",
+              "ore": "0.057244",
+              "oil": "0.034089",
+              "equipment": "0.240000",
+              "household_goods": "0.360000"
+            }
+          },
+          "background_capacity": {
+            "producer": "1000000.000000",
+            "government": "0.000000"
+          }
+        }
+      },
+      "fiscal": {
+        "credit_limit": "32.950368",
+        "credit_lock": 0,
+        "default_episode": false,
+        "new_default": false,
+        "borrowing": "0.000000",
+        "interest_due": "0.000000",
+        "arrears": "0.000000",
+        "relief": "0.000000",
+        "receipts": [
+          "11.038396",
+          "10.636273",
+          "10.480246",
+          "10.450071"
+        ],
+        "closing_debt": "0.000000",
+        "principal_repaid": "0.000000"
+      },
+      "debts": {
+        "government": {
+          "lender": "0.000000"
+        }
+      }
+    },
+    "acquisitions": [],
+    "settings": {
+      "food.emergency_release": {
+        "nutrition": "1"
+      },
+      "institutions.development_ownership": {
+        "production": "mixed"
+      },
+      "finance.income_tax": {
+        "taxable_income": "0.25"
+      },
+      "budget.program_funding": {
+        "infrastructure": "1"
+      },
+      "allocation.infrastructure_priority": {
+        "infrastructure": "regional"
+      },
+      "food.reserve_target": {
+        "nutrition": "0.5"
+      },
+      "production.development_funding": {
+        "food": "0.1",
+        "material": "0",
+        "ore": "0",
+        "oil": "0",
+        "equipment": "0",
+        "household_goods": "0"
+      },
+      "allocation.production_priority": {
+        "food": "potential",
+        "material": "potential",
+        "ore": "potential",
+        "oil": "potential",
+        "equipment": "potential",
+        "household_goods": "potential"
+      }
+    }
+  }
+}

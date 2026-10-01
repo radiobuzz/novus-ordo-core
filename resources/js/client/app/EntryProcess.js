@@ -13,13 +13,13 @@ export class EntryProcess {
     async start(shell) {
         this.shell = shell;
         if (this.services.boot.userId) await this.authenticated();
-        else await this.login();
+        else await this.login(false);
     }
-    async login() {
+    async login(revealed = true) {
         this.shell.atmosphere.setSlideshow(true);
         this.services.audio.setEligible(true);
         history.replaceState(null, '', '#/login');
-        await this.shell.host.open('login');
+        await this.shell.host.open('login', { revealed });
     }
     async authenticated() {
         if (!this.services.boot.gameId) {

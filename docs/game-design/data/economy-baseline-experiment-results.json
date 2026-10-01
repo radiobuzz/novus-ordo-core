@@ -1,0 +1,503 @@
+{
+  "purpose": "Hypothesis only; no game integration",
+  "config": {
+    "seasons": 80,
+    "opening_treasury": 20,
+    "maximum_income_per_million": 30,
+    "tax": 0.25,
+    "tax_tolerance": 0.35,
+    "informal_floor": 0.05,
+    "civilian_service_cost": 1.5,
+    "infrastructure_service_cost": 1,
+    "public_infrastructure_target": 0.5,
+    "public_infrastructure_share": 0.5,
+    "public_ownership_orientation": 0.5,
+    "adjustment_rate": 0.1,
+    "shortage_income_penalty": 0.6,
+    "civilian_investment_share": 0.1,
+    "capacity_buffer": 0.15,
+    "interest_rate": 0.015,
+    "debt_ceiling_share": 0.5,
+    "treasury_reserve": 20,
+    "scenarios": [
+      {
+        "name": "Original homeland",
+        "fixture": "peaceful-founding"
+      },
+      {
+        "name": "Fertile homeland",
+        "fixture": "fertile-founding"
+      },
+      {
+        "name": "Original, growing population",
+        "fixture": "peaceful-founding",
+        "population_growth": 0.01
+      },
+      {
+        "name": "Fertile, growing population",
+        "fixture": "fertile-founding",
+        "population_growth": 0.01
+      },
+      {
+        "name": "Underfunded civilian services",
+        "fixture": "peaceful-founding",
+        "service_funding": 0.3
+      },
+      {
+        "name": "Very low tax",
+        "fixture": "peaceful-founding",
+        "tax": 0.05
+      },
+      {
+        "name": "Heavy military budget",
+        "fixture": "peaceful-founding",
+        "military_per_million": 5
+      },
+      {
+        "name": "Infrastructure damage",
+        "fixture": "peaceful-founding",
+        "damage_season": 20
+      }
+    ]
+  },
+  "results": [
+    {
+      "scenario": "Original homeland",
+      "first_shortage": null,
+      "first_debt": null,
+      "first_underfunding": null,
+      "first": {
+        "season": 1,
+        "population": 5000000,
+        "income": 75.0,
+        "income_per_million": 15.0,
+        "tax": 16.0546875,
+        "spending": 12.5,
+        "net_before_financing": 3.5546875,
+        "treasury": 23.5546875,
+        "debt": 0.0,
+        "food_coverage": 1.0,
+        "service_delivery": 1.0,
+        "infrastructure": 0.6603125000000001,
+        "economic_index": 0.52383155,
+        "resource_investment": 0.0
+      },
+      "last": {
+        "season": 80,
+        "population": 5000000,
+        "income": 116.30385062917982,
+        "income_per_million": 23.260770125835965,
+        "tax": 25.11427263588635,
+        "spending": 15.941987552431653,
+        "net_before_financing": 9.172285083454698,
+        "treasury": 689.8020302829683,
+        "debt": 0.0,
+        "food_coverage": 1.0,
+        "service_delivery": 1.0,
+        "infrastructure": 0.7524861972344105,
+        "economic_index": 0.7753746401180052,
+        "resource_investment": 0.0
+      }
+    },
+    {
+      "scenario": "Fertile homeland",
+      "first_shortage": null,
+      "first_debt": null,
+      "first_underfunding": null,
+      "first": {
+        "season": 1,
+        "population": 5000000,
+        "income": 75.0,
+        "income_per_million": 15.0,
+        "tax": 16.0546875,
+        "spending": 12.5,
+        "net_before_financing": 3.5546875,
+        "treasury": 23.5546875,
+        "debt": 0.0,
+        "food_coverage": 1.0,
+        "service_delivery": 1.0,
+        "infrastructure": 0.6603125000000001,
+        "economic_index": 0.52383155,
+        "resource_investment": 0.0
+      },
+      "last": {
+        "season": 80,
+        "population": 5000000,
+        "income": 116.30385062917982,
+        "income_per_million": 23.260770125835965,
+        "tax": 25.11427263588635,
+        "spending": 15.941987552431653,
+        "net_before_financing": 9.172285083454698,
+        "treasury": 689.8020302829683,
+        "debt": 0.0,
+        "food_coverage": 1.0,
+        "service_delivery": 1.0,
+        "infrastructure": 0.7524861972344105,
+        "economic_index": 0.7753746401180052,
+        "resource_investment": 0.0
+      }
+    },
+    {
+      "scenario": "Original, growing population",
+      "first_shortage": 68,
+      "first_debt": null,
+      "first_underfunding": null,
+      "first": {
+        "season": 1,
+        "population": 5000000,
+        "income": 75.0,
+        "income_per_million": 15.0,
+        "tax": 16.0546875,
+        "spending": 12.5,
+        "net_before_financing": 3.5546875,
+        "treasury": 23.5546875,
+        "debt": 0.0,
+        "food_coverage": 1.0,
+        "service_delivery": 1.0,
+        "infrastructure": 0.6603125000000001,
+        "economic_index": 0.5238315500000001,
+        "resource_investment": 0.0
+      },
+      "last": {
+        "season": 80,
+        "population": 10781525,
+        "income": 234.09738747381172,
+        "income_per_million": 21.7128270327075,
+        "tax": 50.23079606361447,
+        "spending": 34.20695819695197,
+        "net_before_financing": 16.023837866662497,
+        "treasury": 1039.0037951696902,
+        "debt": 0.0,
+        "food_coverage": 0.9017580590036423,
+        "service_delivery": 1.0,
+        "infrastructure": 0.751989716721448,
+        "economic_index": 0.7677087228279539,
+        "resource_investment": 0.0
+      }
+    },
+    {
+      "scenario": "Fertile, growing population",
+      "first_shortage": null,
+      "first_debt": null,
+      "first_underfunding": null,
+      "first": {
+        "season": 1,
+        "population": 5000000,
+        "income": 75.0,
+        "income_per_million": 15.0,
+        "tax": 16.0546875,
+        "spending": 12.5,
+        "net_before_financing": 3.5546875,
+        "treasury": 23.5546875,
+        "debt": 0.0,
+        "food_coverage": 1.0,
+        "service_delivery": 1.0,
+        "infrastructure": 0.6603125000000001,
+        "economic_index": 0.5238315500000001,
+        "resource_investment": 0.0
+      },
+      "last": {
+        "season": 80,
+        "population": 10973560,
+        "income": 255.25345662206848,
+        "income_per_million": 23.260770125835965,
+        "tax": 55.1185955252514,
+        "spending": 34.988071385172375,
+        "net_before_financing": 20.130524140079025,
+        "treasury": 1064.838489778988,
+        "debt": 0.0,
+        "food_coverage": 1.0,
+        "service_delivery": 1.0,
+        "infrastructure": 0.7524861972344105,
+        "economic_index": 0.7753746401180053,
+        "resource_investment": 0.0
+      }
+    },
+    {
+      "scenario": "Underfunded civilian services",
+      "first_shortage": null,
+      "first_debt": null,
+      "first_underfunding": 1,
+      "first": {
+        "season": 1,
+        "population": 5000000,
+        "income": 75.0,
+        "income_per_million": 15.0,
+        "tax": 16.0546875,
+        "spending": 7.25,
+        "net_before_financing": 8.8046875,
+        "treasury": 28.8046875,
+        "debt": 0.0,
+        "food_coverage": 1.0,
+        "service_delivery": 0.3,
+        "infrastructure": 0.6603125000000001,
+        "economic_index": 0.52383155,
+        "resource_investment": 0.0
+      },
+      "last": {
+        "season": 80,
+        "population": 5000000,
+        "income": 67.13277527465613,
+        "income_per_million": 13.426555054931224,
+        "tax": 13.192844245659169,
+        "spending": 6.869750804941713,
+        "net_before_financing": 6.3230934407174555,
+        "treasury": 625.3671225443521,
+        "debt": 0.0,
+        "food_coverage": 1.0,
+        "service_delivery": 0.3,
+        "infrastructure": 0.6261173008684282,
+        "economic_index": 0.44743339624243883,
+        "resource_investment": 0.0
+      }
+    },
+    {
+      "scenario": "Very low tax",
+      "first_shortage": null,
+      "first_debt": 3,
+      "first_underfunding": 8,
+      "first": {
+        "season": 1,
+        "population": 5000000,
+        "income": 75.0,
+        "income_per_million": 15.0,
+        "tax": 3.4134375,
+        "spending": 12.5,
+        "net_before_financing": -9.0865625,
+        "treasury": 10.9134375,
+        "debt": 0.0,
+        "food_coverage": 1.0,
+        "service_delivery": 1.0,
+        "infrastructure": 0.685,
+        "economic_index": 0.534875,
+        "resource_investment": 0.0
+      },
+      "last": {
+        "season": 80,
+        "population": 5000000,
+        "income": 76.76012703541426,
+        "income_per_million": 15.352025407082852,
+        "tax": 3.176921081535002,
+        "spending": 3.176921081535002,
+        "net_before_financing": -1.1102230246251565e-16,
+        "treasury": 0.0,
+        "debt": 55.08490565720926,
+        "food_coverage": 1.0,
+        "service_delivery": 0.18587075875035267,
+        "infrastructure": 0.6847588154277576,
+        "economic_index": 0.5114217483771443,
+        "resource_investment": 0.0
+      }
+    },
+    {
+      "scenario": "Heavy military budget",
+      "first_shortage": null,
+      "first_debt": 1,
+      "first_underfunding": 3,
+      "first": {
+        "season": 1,
+        "population": 5000000,
+        "income": 75.0,
+        "income_per_million": 15.0,
+        "tax": 16.0546875,
+        "spending": 37.5,
+        "net_before_financing": -21.4453125,
+        "treasury": 0.0,
+        "debt": 1.4453125,
+        "food_coverage": 1.0,
+        "service_delivery": 1.0,
+        "infrastructure": 0.6603125000000001,
+        "economic_index": 0.52383155,
+        "resource_investment": 0.0
+      },
+      "last": {
+        "season": 80,
+        "population": 5000000,
+        "income": 58.789319102603116,
+        "income_per_million": 11.757863820520623,
+        "tax": 11.574029220792864,
+        "spending": 11.574029220792864,
+        "net_before_financing": -5.551115123125783e-16,
+        "treasury": 0.0,
+        "debt": 46.57008080748122,
+        "food_coverage": 1.0,
+        "service_delivery": 0.30085050589569623,
+        "infrastructure": 0.27958194074959625,
+        "economic_index": 0.39098735242866517,
+        "resource_investment": 0.0
+      }
+    },
+    {
+      "scenario": "Infrastructure damage",
+      "first_shortage": null,
+      "first_debt": null,
+      "first_underfunding": null,
+      "first": {
+        "season": 1,
+        "population": 5000000,
+        "income": 75.0,
+        "income_per_million": 15.0,
+        "tax": 16.0546875,
+        "spending": 12.5,
+        "net_before_financing": 3.5546875,
+        "treasury": 23.5546875,
+        "debt": 0.0,
+        "food_coverage": 1.0,
+        "service_delivery": 1.0,
+        "infrastructure": 0.6603125000000001,
+        "economic_index": 0.52383155,
+        "resource_investment": 0.0
+      },
+      "last": {
+        "season": 80,
+        "population": 5000000,
+        "income": 115.43740242923961,
+        "income_per_million": 23.087480485847923,
+        "tax": 24.921291250031523,
+        "spending": 15.869783535769969,
+        "net_before_financing": 9.051507714261554,
+        "treasury": 603.6152743963764,
+        "debt": 0.0,
+        "food_coverage": 1.0,
+        "service_delivery": 1.0,
+        "infrastructure": 0.7489752958869231,
+        "economic_index": 0.7700280571197096,
+        "resource_investment": 0.0
+      }
+    }
+  ],
+  "sensitivity": [
+    {
+      "scenario": "Original homeland",
+      "income_scale": 0.8,
+      "cost_scale": 0.8,
+      "first_debt": null,
+      "last_balance": 7.337828066763759
+    },
+    {
+      "scenario": "Fertile homeland",
+      "income_scale": 0.8,
+      "cost_scale": 0.8,
+      "first_debt": null,
+      "last_balance": 7.337828066763759
+    },
+    {
+      "scenario": "Original homeland",
+      "income_scale": 0.8,
+      "cost_scale": 1,
+      "first_debt": null,
+      "last_balance": 4.149430556277428
+    },
+    {
+      "scenario": "Fertile homeland",
+      "income_scale": 0.8,
+      "cost_scale": 1,
+      "first_debt": null,
+      "last_balance": 4.149430556277428
+    },
+    {
+      "scenario": "Original homeland",
+      "income_scale": 0.8,
+      "cost_scale": 1.2,
+      "first_debt": null,
+      "last_balance": 0.9610330457911012
+    },
+    {
+      "scenario": "Fertile homeland",
+      "income_scale": 0.8,
+      "cost_scale": 1.2,
+      "first_debt": null,
+      "last_balance": 0.9610330457911012
+    },
+    {
+      "scenario": "Original homeland",
+      "income_scale": 1,
+      "cost_scale": 0.8,
+      "first_debt": null,
+      "last_balance": 12.360682593941029
+    },
+    {
+      "scenario": "Fertile homeland",
+      "income_scale": 1,
+      "cost_scale": 0.8,
+      "first_debt": null,
+      "last_balance": 12.360682593941029
+    },
+    {
+      "scenario": "Original homeland",
+      "income_scale": 1,
+      "cost_scale": 1,
+      "first_debt": null,
+      "last_balance": 9.172285083454698
+    },
+    {
+      "scenario": "Fertile homeland",
+      "income_scale": 1,
+      "cost_scale": 1,
+      "first_debt": null,
+      "last_balance": 9.172285083454698
+    },
+    {
+      "scenario": "Original homeland",
+      "income_scale": 1,
+      "cost_scale": 1.2,
+      "first_debt": null,
+      "last_balance": 5.983887572968371
+    },
+    {
+      "scenario": "Fertile homeland",
+      "income_scale": 1,
+      "cost_scale": 1.2,
+      "first_debt": null,
+      "last_balance": 5.983887572968371
+    },
+    {
+      "scenario": "Original homeland",
+      "income_scale": 1.2,
+      "cost_scale": 0.8,
+      "first_debt": null,
+      "last_balance": 17.3835371211183
+    },
+    {
+      "scenario": "Fertile homeland",
+      "income_scale": 1.2,
+      "cost_scale": 0.8,
+      "first_debt": null,
+      "last_balance": 17.3835371211183
+    },
+    {
+      "scenario": "Original homeland",
+      "income_scale": 1.2,
+      "cost_scale": 1,
+      "first_debt": null,
+      "last_balance": 14.195139610631971
+    },
+    {
+      "scenario": "Fertile homeland",
+      "income_scale": 1.2,
+      "cost_scale": 1,
+      "first_debt": null,
+      "last_balance": 14.195139610631971
+    },
+    {
+      "scenario": "Original homeland",
+      "income_scale": 1.2,
+      "cost_scale": 1.2,
+      "first_debt": null,
+      "last_balance": 11.006742100145644
+    },
+    {
+      "scenario": "Fertile homeland",
+      "income_scale": 1.2,
+      "cost_scale": 1.2,
+      "first_debt": null,
+      "last_balance": 11.006742100145644
+    }
+  ],
+  "infrastructure_comparison": {
+    "funded_income_per_million": 23.260770125835965,
+    "unfunded_income_per_million": 19.33335200477135,
+    "funded_infrastructure": 0.7524861972344105,
+    "unfunded_infrastructure": 0.22694035383709288
+  }
+}

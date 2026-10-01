@@ -1,4 +1,26 @@
 /** Exact acquisition intent; settlement and affordability belong to the server. */
+export function publicInvestmentControl(data, resource, changes = null) {
+    const policies = data.policies;
+    if (!policies?.enabled) return null;
+    const choices = { ...policies.current, ...(changes ?? policies.pending) };
+    for (const policy of policies.catalogue.policies) {
+        if (policy.status !== 'active') continue;
+        const choice = choices[policy.key];
+        const option = policy.options.find((o) => o.key === choice?.option && !o.retired);
+        for (const effect of option?.effects ?? []) {
+            if (effect.effect_type !== 'production.development_funding') continue;
+            const target = effect.arguments.resource;
+            const key = target.startsWith('role:') ? data.definitions.roles[target.slice(5)] : target;
+            const parameter = policy.parameters.find(
+                (p) => p.key === effect.arguments.funding_ratio?.parameter,
+            );
+            if (key === resource && parameter?.unit_key?.startsWith('fraction_'))
+                return { policy: policy.key, parameter, value: choice.parameters[parameter.key] };
+        }
+    }
+    return null;
+}
+
 export function acquisitionPlan(data, drafts) {
     return data.definitions.acquisition_resources.map((resource) => {
         const saved = data.acquisitions.find((row) => row.resource_key === resource);

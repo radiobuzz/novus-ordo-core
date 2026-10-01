@@ -1,0 +1,30 @@
+{
+  "seasons": 80,
+  "opening_treasury": 20,
+  "maximum_income_per_million": 30,
+  "tax": 0.25,
+  "tax_tolerance": 0.35,
+  "informal_floor": 0.05,
+  "civilian_service_cost": 1.5,
+  "infrastructure_service_cost": 1,
+  "public_infrastructure_target": 0.5,
+  "public_infrastructure_share": 0.5,
+  "public_ownership_orientation": 0.5,
+  "adjustment_rate": 0.1,
+  "shortage_income_penalty": 0.6,
+  "civilian_investment_share": 0.1,
+  "capacity_buffer": 0.15,
+  "interest_rate": 0.015,
+  "debt_ceiling_share": 0.5,
+  "treasury_reserve": 20,
+  "scenarios": [
+    {"name": "Original homeland", "fixture": "peaceful-founding"},
+    {"name": "Fertile homeland", "fixture": "fertile-founding"},
+    {"name": "Original, growing population", "fixture": "peaceful-founding", "population_growth": 0.01},
+    {"name": "Fertile, growing population", "fixture": "fertile-founding", "population_growth": 0.01},
+    {"name": "Underfunded civilian services", "fixture": "peaceful-founding", "service_funding": 0.3},
+    {"name": "Very low tax", "fixture": "peaceful-founding", "tax": 0.05},
+    {"name": "Heavy military budget", "fixture": "peaceful-founding", "military_per_million": 5},
+    {"name": "Infrastructure damage", "fixture": "peaceful-founding", "damage_season": 20}
+  ]
+}

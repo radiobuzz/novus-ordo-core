@@ -29,7 +29,7 @@ try {
     await page.getByRole('button', { name: 'Continue playing', exact: true }).click();
     await expect(page.locator('[data-resource="test_good"]')).toBeVisible();
     await page.locator('.economy-resources > summary').click();
-    await page.getByRole('button', { name: 'Open acquisition planner', exact: true }).click();
+    await page.getByRole('button', { name: 'Open production planner', exact: true }).click();
     const row = page.locator('[data-production-resource="test_good"]');
     await expect(row).toBeVisible();
     const input = row.getByLabel('Requested quantity', { exact: true });
@@ -41,7 +41,7 @@ try {
         n.focus();
     });
     await page
-        .getByRole('dialog', { name: 'Government acquisitions', exact: true })
+        .getByRole('dialog', { name: 'Production & acquisitions', exact: true })
         .getByRole('button', { name: 'Refresh', exact: true })
         .click();
     await expect(input).toHaveValue('0.234567');
@@ -73,7 +73,7 @@ try {
     await expect(input).toBeVisible();
     await page.screenshot({ path: `${root}/resource-mobile.png` });
     await page
-        .getByRole('dialog', { name: 'Government acquisitions', exact: true })
+        .getByRole('dialog', { name: 'Production & acquisitions', exact: true })
         .getByRole('button', { name: 'Close', exact: true })
         .click();
     await page.getByLabel('Game menu', { exact: true }).click();

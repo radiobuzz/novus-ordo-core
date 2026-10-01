@@ -1,5 +1,13 @@
 # Novus Ordo client planning
 
+## Playable civilian economy — 2026-10-01
+
+The authorized [civilian integration](../game-design/civilian-economy-live-integration.md) extends the existing transactional resolver and fresh-game catalogue. Budget & Policies now shows civilian needs, worker use, upkeep and optional accounting details through the existing shared owner snapshot and retained tables. Twenty real turns, replay and EN/FR Chromium checks pass. This does not select the indicator-led replacement discussed below.
+
+## Economy alternatives — decision open (2026-09-30)
+
+The [indicator-led alternative](../game-design/indicator-economy-alternative.md) preserves the revised design as a possibility, including ten territorial indicators, public/private development and conditional packages I1–I4. The user has not decided to replace the current economy; improving the existing system remains an option. The live production system below remains the working baseline. Do not start the alternative's replacement, retirement or migrations without a subsequent decision. UI design is deferred to the user's later brief; the earlier sketch is not an accepted layout.
+
 ## Production cleanup — Package F (2026-09-29)
 
 The superseded economic calculators, bid/facility models and placeholder effects are retired. Generic acquisitions, funded production, owned stocks and the Package E UI remain the active path. Useful catalogue/policy/accounting checks now target that path; passive seasons and rollback remain covered. No application database changes or Git publication. See [results and rollout](../game-design/production-retirement-results.md).
@@ -137,4 +145,4 @@ Review the delivered [persistent player panels](live-data-plan.md) and shared co
 
 Production/development Package B: [definitions and seasonal state](../game-design/production-state-contract.md). Run `php8.3 tests/client/production-state.php` only through the guarded disposable MariaDB bootstrap (`NO7_ENTRY_TEST_ROOT`); it creates and deletes fixture games. Live economic cutover remains Packages C–F.
 
-Production/development Package C: run `php8.3 tests/client/production-economy.php` and `php8.3 tests/client/production-accounting.php` without a database. [Contract and live-integration boundary](../game-design/production-resolver-contract.md).
+Production/development Package C: run `php8.3 tests/client/production-economy.php`, `php8.3 tests/client/production-accounting.php` and `php8.3 tests/client/peaceful-economy.php` without a database. [Contract and live-integration boundary](../game-design/production-resolver-contract.md).

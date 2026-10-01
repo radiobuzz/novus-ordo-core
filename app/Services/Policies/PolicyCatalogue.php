@@ -71,6 +71,8 @@ final class PolicyCatalogue {
                 unset($policy);
             }
             $document['name'] = $name ?? $document['name'];
+            if ($game && in_array('production_investors', array_column($document['policies'], 'key'), true))
+                $document = PublicInvestmentPolicies::appendMissing($document, ResourceCatalogue::forGame($game)->resources);
             $document = app(PolicyDefinitionValidator::class)->validate($document);
             if ($game) app(PolicyEffectRegistry::class)->validateCatalogueTargets($document, ResourceCatalogue::forGame($game));
             $id = DB::table('policy_sets')->insertGetId(['kind' => $game ? 'game' : 'template', 'game_id' => $game?->id, 'source_policy_set_id' => $sourceId, 'name' => $document['name'], 'description' => $document['description'], 'created_at' => now(), 'updated_at' => now()]);
@@ -100,6 +102,27 @@ final class PolicyCatalogue {
             return ['catalogue' => $catalogue, 'diagnostics' => $diagnostics];
         };
         return $game ? app(GameMutation::class)->run($game, $work) : DB::transaction($work);
+    }
+
+    /** Narrow additive feature upgrade; unlike arbitrary definition editing this
+     * cannot change existing policies, defaults, chosen values or testing permissions.
+     */
+    public function installPublicInvestment(Game $game, int $expectedCounter): array {
+        return app(GameMutation::class)->run($game, function () use ($game, $expectedCounter) {
+            $current = $this->forGame($game);
+            if (!$current) abort(409, 'The game has no policy catalogue.');
+            if ((int) $current['set']['edit_counter'] !== $expectedCounter) abort(409, 'Policy definitions changed. Reload before installing.');
+            $document = PublicInvestmentPolicies::appendMissing($current['document'], ResourceCatalogue::forGame($game)->resources);
+            $added = array_values(array_diff(array_column($document['policies'], 'key'), array_column($current['document']['policies'], 'key')));
+            if (!$added) return ['game_id' => $game->id, 'added' => [], 'edit_counter' => $expectedCounter, 'diagnostics' => []];
+            $document = app(PolicyDefinitionValidator::class)->validate($document);
+            app(PolicyEffectRegistry::class)->validateCatalogueTargets($document, ResourceCatalogue::forGame($game));
+            $this->write($current['set']['id'], $document);
+            DB::table('policy_sets')->where('id', $current['set']['id'])->update(['edit_counter' => $expectedCounter + 1, 'updated_at' => now()]);
+            $diagnostics = app(PolicyService::class)->rebuild($game, $this->load($current['set']['id']));
+            if ($diagnostics) PolicyValues::fail('catalogue', 'Existing policy choices must be valid before adding investment controls.');
+            return ['game_id' => $game->id, 'added' => $added, 'edit_counter' => $expectedCounter + 1, 'diagnostics' => []];
+        });
     }
 
     private function write(int $id, array $document): void {

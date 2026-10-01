@@ -57,7 +57,7 @@ final class EconomyService {
         $report['desertion_risk'] = (1 - $funding) * $game->economy_rules['desertion_rate'];
         $report['territories'] = [];
         foreach ($result['state']['territories'] as $id => $t) $report['territories'][] = ['id' => (int) $id, 'population' => $t['population'],
-            'state' => $t['economy'] + ['background_capacity' => $t['background_capacity']], 'workers_used' => $result['used_workers'][$id] ?? '0'];
+            'state' => $t['economy'] + ['background_capacity' => $t['background_capacity'], 'productive_condition' => $t['productive_condition'] ?? []], 'workers_used' => $result['used_workers'][$id] ?? '0'];
         $report['indicators'] = $this->indicators($report['territories'], $report);
         $report['food'] = $result['resources'][$nutrition];
         $report['warnings'] = $result['warnings'];
@@ -161,6 +161,7 @@ final class EconomyService {
         foreach (['tax_receipts', 'treasury_inflows'] as $field) $report[$field] = Q::add($report[$field], $tax);
         $report['response_costs'] = Q::add($report['response_costs'] ?? '0', $cost);
         $report['closing_treasury'] = $treasury->available_quantity;
+        if (isset($report['civilian'])) $report['civilian']['household_cash'] = $settled['state']['accounts']['household']['cash'];
         $report['indicators'] = $this->indicators($report['territories'], $report);
         $fiscal = $detail->economy_state;
         $last = array_key_last($fiscal['fiscal']['receipts']);

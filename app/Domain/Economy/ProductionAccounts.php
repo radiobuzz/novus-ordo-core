@@ -22,6 +22,7 @@ final class ProductionAccounts
     private array $resources;
     private array $usedWorkers = [];
     private array $usedCapacity = [];
+    private array $usedSubsistence = [];
     private array $services = [];
     private array $holds = [];
     private array $stockHolds = [];
@@ -30,6 +31,7 @@ final class ProductionAccounts
     private array $events = [];
     private int $phase = 0; // funding -> work -> exchange -> distributions/development -> close
     private array $operatingBudget = [];
+    private array $inputBudget = [];
     private bool $closed = false;
 
     public function __construct(array $resources, array $state)
@@ -42,6 +44,18 @@ final class ProductionAccounts
                     throw new DomainException("$field must be positive.");
                 }
             }
+        }
+        unset($resource);
+        foreach ($resources as $key => &$resource) {
+            if (!isset($resource['inputs'])) continue;
+            if (!is_array($resource['inputs'])) throw new DomainException('Production inputs must be a resource map.');
+            ksort($resource['inputs'], SORT_STRING);
+            foreach ($resource['inputs'] as $input => &$rate) {
+                if (!isset($resources[$input]) || $input === $key) throw new DomainException('Invalid production input.');
+                $rate = self::amount($rate);
+                if (Q::cmp($rate, '0') <= 0) throw new DomainException('Input quantities must be positive.');
+            }
+            unset($rate);
         }
         unset($resource);
         $this->resources = $resources;
@@ -83,6 +97,11 @@ final class ProductionAccounts
             foreach ($territory['workers_per_unit'] ?? [] as $key => $workers) {
                 if (!isset($resources[$key]) || Q::cmp(self::amount($workers), '0') <= 0) throw new DomainException('Invalid local productivity.');
             }
+            foreach ($territory['subsistence'] ?? [] as $key => $activity) {
+                if (!isset($resources[$key])) throw new DomainException('Unknown subsistence resource.');
+                self::amount($activity['capacity']);
+                if (Q::cmp(self::amount($activity['workers']), '0') <= 0) throw new DomainException('Subsistence requires workers.');
+            }
             $territory += ['capacity' => [], 'background_capacity' => []];
             foreach ($territory['potential'] as $key => &$potential) {
                 if (!isset($resources[$key])) throw new DomainException('Unknown potential resource.');
@@ -96,6 +115,8 @@ final class ProductionAccounts
                 foreach ($capacities as $key => &$capacity) {
                     if (!isset($territory['potential'][$key])) throw new DomainException('Capacity requires potential.');
                     $capacity = self::amount($capacity);
+                    $condition = self::amount($territory['productive_condition'][$owner][$key] ?? '1');
+                    if (Q::cmp($condition, '1') > 0) throw new DomainException('Invalid productive asset condition.');
                     $totals[$key] = Q::add($totals[$key] ?? self::ZERO, $capacity);
                 }
                 unset($capacity);
@@ -134,6 +155,7 @@ final class ProductionAccounts
         if ($phase < $this->phase) throw new DomainException('Cannot restart an earlier seasonal phase.');
         if ($phase === 1 && $this->phase === 0) {
             foreach ($this->state['accounts'] as $id => $_) $this->operatingBudget[$id] = $this->availableCash($id);
+            foreach ($this->state['inventories'] as $owner => $stocks) foreach ($stocks as $resource => $_) $this->inputBudget[$owner][$resource] = $this->availableStock($owner, $resource);
         }
         $this->phase = $phase;
     }
@@ -320,8 +342,12 @@ final class ProductionAccounts
         $rule = $this->resource($resource);
         $rate = $this->opening['territories'][$territory]['workers_per_unit'][$resource] ?? $rule['workers'];
         $capacity = Q::sub($this->opening['territories'][$territory]['capacity'][$owner][$resource] ?? self::ZERO, $this->usedCapacity[$territory][$owner][$resource] ?? self::ZERO);
-        return ['installed_capacity' => $capacity, 'workers' => self::divide($this->workforce($territory), $rate),
+        $limits = ['installed_capacity' => $capacity, 'workers' => self::divide($this->workforce($territory), $rate),
             'working_capital' => Q::cmp($rule['wage'], '0') > 0 ? self::divide($this->phase === 0 ? $this->availableCash($owner) : $this->operatingCash($owner), $rule['wage']) : $capacity];
+        $condition = $this->opening['territories'][$territory]['productive_condition'][$owner][$resource] ?? '1';
+        if (Q::cmp($condition, '1') < 0) $limits['asset_condition'] = Q::max('0', Q::sub(Q::mul($this->opening['territories'][$territory]['capacity'][$owner][$resource] ?? self::ZERO, $condition), $this->usedCapacity[$territory][$owner][$resource] ?? self::ZERO));
+        foreach ($rule['inputs'] ?? [] as $input => $quantity) $limits['input:' . $input] = self::divide(Q::min($this->availableStock($owner, $input), $this->phase === 0 ? $this->availableStock($owner, $input) : ($this->inputBudget[$owner][$input] ?? self::ZERO)), $quantity);
+        return $limits;
     }
 
     public function produce(string $territory, string $owner, string $resource, string $requested, string $household): string
@@ -332,13 +358,23 @@ final class ProductionAccounts
             $rule = $this->resource($resource);
             $rule['workers'] = $this->opening['territories'][$territory]['workers_per_unit'][$resource] ?? $rule['workers'];
             $capacity = $this->opening['territories'][$territory]['capacity'][$owner][$resource] ?? self::ZERO;
+            $capacity = Q::mul($capacity, $this->opening['territories'][$territory]['productive_condition'][$owner][$resource] ?? '1');
             $left = Q::sub($capacity, $this->usedCapacity[$territory][$owner][$resource] ?? self::ZERO);
             $quantity = self::lesser(self::amount($requested), $left, self::divide($this->workforce($territory), $rule['workers']));
             if (Q::cmp($rule['wage'], '0') > 0) $quantity = Q::min($quantity, self::divide($this->operatingCash($owner), $rule['wage']));
-            $cost = Q::mul($quantity, $rule['wage']);
+            foreach ($rule['inputs'] ?? [] as $input => $rate) $quantity = Q::min($quantity, self::divide(Q::min($this->availableStock($owner, $input), $this->inputBudget[$owner][$input] ?? self::ZERO), $rate));
+            $wages = Q::mul($quantity, $rule['wage']);
+            $cost = $wages;
+            foreach ($rule['inputs'] ?? [] as $input => $rate) {
+                $used = Q::mul($quantity, $rate);
+                $basis = $this->takeStock($owner, $input, $used);
+                $this->inputBudget[$owner][$input] = Q::sub($this->inputBudget[$owner][$input] ?? self::ZERO, $used);
+                $cost = Q::add($cost, $basis);
+                $this->events[] = ['type' => 'consumption', 'owner' => $owner, 'resource' => $input, 'quantity' => $used, 'cost' => $basis, 'purpose' => 'production:' . $resource];
+            }
             $this->work($territory, Q::mul($quantity, $rule['workers']));
-            $this->wages($owner, $household, $cost, $resource, $territory);
-            $this->operatingBudget[$owner] = Q::sub($this->operatingBudget[$owner], $cost);
+            $this->wages($owner, $household, $wages, $resource, $territory);
+            $this->operatingBudget[$owner] = Q::sub($this->operatingBudget[$owner], $wages);
             $this->usedCapacity[$territory][$owner][$resource] = Q::add($this->usedCapacity[$territory][$owner][$resource] ?? self::ZERO, $quantity);
             $this->addStock($owner, $resource, $quantity, $cost);
             $this->events[] = ['type' => 'production', 'territory' => $territory, 'owner' => $owner, 'resource' => $resource, 'quantity' => $quantity, 'cost' => $cost];
@@ -351,23 +387,82 @@ final class ProductionAccounts
     {
         return $this->atomic(function () use ($buyer, $seller, $resource, $requested, $commitment) {
             $this->enter(2);
-            if ($buyer === $seller) throw new DomainException('Internal deliveries are not sales.');
-            if (!in_array($this->account($seller)['kind'], ['government', 'producer'], true)) throw new DomainException('Invalid seller.');
-            $this->sameEconomy($buyer, $seller);
-            $price = $this->resource($resource)['price'];
-            $budget = $this->availableCash($buyer);
-            if ($commitment !== null) {
-                $hold = $this->holds[$commitment] ?? throw new DomainException('Unknown commitment.');
-                if ($hold['owner'] !== $buyer) throw new DomainException('Foreign commitment.');
-                $budget = $hold['amount']; unset($this->holds[$commitment]);
-            }
-            $quantity = self::lesser(self::amount($requested), $this->availableStock($seller, $resource), self::divide($budget, $price));
-            $revenue = Q::mul($quantity, $price);
-            $cost = $this->takeStock($seller, $resource, $quantity);
-            $this->cash($buyer, $seller, $revenue, 'goods_purchase');
-            $this->addStock($buyer, $resource, $quantity, $revenue);
-            if ($this->account($seller)['kind'] === 'producer') $this->earnings[$seller] = Q::add($this->earnings[$seller] ?? self::ZERO, Q::sub($revenue, $cost));
-            $this->events[] = ['type' => 'sale', 'seller' => $seller, 'buyer' => $buyer, 'resource' => $resource, 'quantity' => $quantity, 'revenue' => $revenue, 'cost' => $cost];
+            return $this->settlePurchase($buyer, $seller, $resource, $requested, $commitment);
+        });
+    }
+
+    /** Business inputs trade before work, so only opening goods can fund this season's recipes. */
+    public function purchaseInputs(string $buyer, string $seller, string $resource, string $requested): string
+    {
+        return $this->atomic(function () use ($buyer, $seller, $resource, $requested) {
+            $this->enter(0);
+            if (!in_array($this->account($buyer)['kind'], ['producer', 'government'], true)) throw new DomainException('Inputs require a productive buyer.');
+            return $this->settlePurchase($buyer, $seller, $resource, $requested, null);
+        });
+    }
+
+    private function settlePurchase(string $buyer, string $seller, string $resource, string $requested, ?string $commitment): string
+    {
+        if ($buyer === $seller) throw new DomainException('Internal deliveries are not sales.');
+        if (!in_array($this->account($seller)['kind'], ['government', 'producer'], true)) throw new DomainException('Invalid seller.');
+        $this->sameEconomy($buyer, $seller);
+        $price = $this->resource($resource)['price'];
+        $budget = $this->availableCash($buyer);
+        if ($commitment !== null) {
+            $hold = $this->holds[$commitment] ?? throw new DomainException('Unknown commitment.');
+            if ($hold['owner'] !== $buyer) throw new DomainException('Foreign commitment.');
+            $budget = $hold['amount']; unset($this->holds[$commitment]);
+        }
+        $quantity = self::lesser(self::amount($requested), $this->availableStock($seller, $resource), self::divide($budget, $price));
+        $revenue = Q::mul($quantity, $price);
+        $cost = $this->takeStock($seller, $resource, $quantity);
+        $this->cash($buyer, $seller, $revenue, 'goods_purchase');
+        $this->addStock($buyer, $resource, $quantity, $revenue);
+        if ($this->account($seller)['kind'] === 'producer') $this->earnings[$seller] = Q::add($this->earnings[$seller] ?? self::ZERO, Q::sub($revenue, $cost));
+        $this->events[] = ['type' => 'sale', 'seller' => $seller, 'buyer' => $buyer, 'resource' => $resource, 'quantity' => $quantity, 'revenue' => $revenue, 'cost' => $cost];
+        return $quantity;
+    }
+
+    /** Own-use food has no cash receipt. A declared local ceiling and shared labor bound every call. */
+    public function subsist(string $territory, string $household, string $resource, string $requested): string
+    {
+        return $this->atomic(function () use ($territory, $household, $resource, $requested) {
+            $this->enter(1);
+            if ($this->account($household)['kind'] !== 'household') throw new DomainException('Subsistence belongs to households.');
+            $t = $this->opening['territories'][$territory] ?? throw new DomainException('Unknown territory.');
+            $this->sameEconomy($household, $t['government']);
+            $activity = $t['subsistence'][$resource] ?? throw new DomainException('No local subsistence activity.');
+            $used = $this->usedSubsistence[$territory][$resource] ?? self::ZERO;
+            $quantity = self::lesser(self::amount($requested), Q::sub(self::amount($activity['capacity']), $used), self::divide($this->workforce($territory), $activity['workers']));
+            $this->work($territory, Q::mul($quantity, $activity['workers']));
+            $this->usedSubsistence[$territory][$resource] = Q::add($used, $quantity);
+            $this->addStock($household, $resource, $quantity, self::ZERO);
+            $this->events[] = ['type' => 'production', 'activity' => 'subsistence', 'territory' => $territory, 'owner' => $household, 'resource' => $resource, 'quantity' => $quantity, 'cost' => self::ZERO];
+            return $quantity;
+        });
+    }
+
+    /** Equipment upkeep is a real input and wage expense, with no invented sale or capacity addition. */
+    public function maintain(string $territory, string $owner, string $resource, string $requested, string $workersPerUnit, string $wagePerUnit, string $household): string
+    {
+        return $this->atomic(function () use ($territory, $owner, $resource, $requested, $workersPerUnit, $wagePerUnit, $household) {
+            $this->enter(1);
+            if (!in_array($this->account($owner)['kind'], ['producer', 'government'], true)) throw new DomainException('Invalid maintenance owner.');
+            $t = $this->opening['territories'][$territory] ?? throw new DomainException('Unknown territory.');
+            $this->sameEconomy($owner, $t['government']);
+            $rate = self::amount($workersPerUnit); $wage = self::amount($wagePerUnit);
+            if (Q::cmp($rate, '0') <= 0) throw new DomainException('Maintenance requires workers.');
+            $quantity = self::lesser(self::amount($requested), $this->availableStock($owner, $resource), $this->inputBudget[$owner][$resource] ?? self::ZERO, self::divide($this->workforce($territory), $rate));
+            if (Q::cmp($wage, '0') > 0) $quantity = Q::min($quantity, self::divide($this->operatingCash($owner), $wage));
+            $basis = $this->takeStock($owner, $resource, $quantity);
+            $this->inputBudget[$owner][$resource] = Q::max(self::ZERO, Q::sub($this->inputBudget[$owner][$resource] ?? self::ZERO, $quantity));
+            $cost = Q::mul($quantity, $wage);
+            $this->work($territory, Q::mul($quantity, $rate));
+            $this->wages($owner, $household, $cost, 'maintenance', $territory);
+            $this->operatingBudget[$owner] = Q::sub($this->operatingBudget[$owner], $cost);
+            if ($this->account($owner)['kind'] === 'producer') $this->earnings[$owner] = Q::sub($this->earnings[$owner] ?? self::ZERO, Q::add($basis, $cost));
+            $this->events[] = ['type' => 'consumption', 'owner' => $owner, 'resource' => $resource, 'quantity' => $quantity, 'cost' => $basis, 'purpose' => 'maintenance'];
+            $this->events[] = ['type' => 'maintenance', 'owner' => $owner, 'territory' => $territory, 'quantity' => $quantity, 'cost' => Q::add($basis, $cost)];
             return $quantity;
         });
     }
@@ -470,6 +565,19 @@ final class ProductionAccounts
         });
     }
 
+    /** Deliver already-funded public work. No household charge or government-to-itself sale. */
+    public function deliverPublicService(string $territory, string $government, string $requested): string
+    {
+        return $this->atomic(function () use ($territory, $government, $requested) {
+            $this->enter(2);
+            if ($this->account($government)['kind'] !== 'government' || ($this->state['territories'][$territory]['government'] ?? null) !== $government) throw new DomainException('Invalid public service owner.');
+            $quantity = Q::min(self::amount($requested), $this->services[$territory][$government]['available'] ?? self::ZERO);
+            $this->services[$territory][$government]['available'] = Q::sub($this->services[$territory][$government]['available'] ?? self::ZERO, $quantity);
+            $this->events[] = ['type' => 'public_service', 'owner' => $government, 'territory' => $territory, 'quantity' => $quantity];
+            return $quantity;
+        });
+    }
+
     public function distributeProfit(string $producer, string $household, string $requested): string
     {
         return $this->atomic(function () use ($producer, $household, $requested) {
@@ -503,6 +611,26 @@ final class ProductionAccounts
             $this->wages($owner, $household, $cost, 'construction', $territory);
             $this->state['territories'][$territory]['capacity'][$owner][$resource] = Q::add($t['capacity'][$owner][$resource] ?? self::ZERO, $quantity);
             $this->events[] = ['type' => 'investment', 'owner' => $owner, 'territory' => $territory, 'resource' => $resource, 'quantity' => $quantity, 'cost' => $cost];
+            return $quantity;
+        });
+    }
+
+    /** Paid replacement of damaged installed capacity; never adds geological capacity or current output. */
+    public function rebuild(string $territory, string $owner, string $resource, string $requested, string $damaged, string $household): string
+    {
+        return $this->atomic(function () use ($territory, $owner, $resource, $requested, $damaged, $household) {
+            $this->enter(3);
+            $t = $this->state['territories'][$territory] ?? throw new DomainException('Unknown territory.');
+            $account = $this->account($owner);
+            if (!in_array($account['kind'], ['government', 'producer'], true) || ($account['kind'] === 'government' ? $owner : $account['treasury']) !== $t['government']) throw new DomainException('Rebuilding requires a domestic owner.');
+            $rule = $this->resource($resource);
+            $quantity = self::lesser(self::amount($requested), self::amount($damaged), $t['capacity'][$owner][$resource] ?? self::ZERO,
+                self::divide($this->workforce($territory), $rule['construction_workers']), self::divide($this->availableCash($owner), $rule['capital_cost']));
+            if (Q::cmp($quantity, '0') <= 0) return self::ZERO;
+            $cost = Q::mul($quantity, $rule['capital_cost']);
+            $this->work($territory, Q::mul($quantity, $rule['construction_workers']));
+            $this->wages($owner, $household, $cost, 'rebuilding', $territory);
+            $this->events[] = ['type' => 'rebuilding', 'owner' => $owner, 'territory' => $territory, 'resource' => $resource, 'quantity' => $quantity, 'cost' => $cost];
             return $quantity;
         });
     }
@@ -596,7 +724,9 @@ final class ProductionAccounts
                 $lender = $plan['lender'];
                 if ($this->account($government)['kind'] !== 'government' || $this->account($lender)['kind'] !== 'lender') throw new DomainException('Invalid repayment accounts.');
                 $principal = $this->state['debts'][$government][$lender] ?? throw new DomainException('Unknown debt.');
-                $repaid = Q::min($principal, Q::max('0', Q::sub($this->availableCash($government), self::amount($plan['reserve']))));
+                $cash = $this->availableCash($government);
+                $repaid = self::lesser($principal, $cash, Q::max(self::amount($plan['minimum_repayment'] ?? '0'),
+                    Q::max('0', Q::sub($cash, self::amount($plan['reserve'])))));
                 $this->cash($government, $lender, $repaid, 'principal_repayment');
                 $this->state['debts'][$government][$lender] = Q::sub($principal, $repaid);
                 $this->events[] = ['type' => 'debt', 'government' => $government, 'lender' => $lender, 'interest_paid' => self::ZERO, 'arrears' => self::ZERO, 'repaid' => $repaid, 'relief' => self::ZERO];

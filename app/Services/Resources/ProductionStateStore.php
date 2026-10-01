@@ -23,7 +23,9 @@ final class ProductionStateStore {
             if ($turn->getNumber() !== 1 || $this->rows('territory_production_states', $game, $turn)->exists()) {
                 throw new \LogicException('World production can only be seeded once, in its founding season.');
             }
-            $territories = DB::table('territories')->where('game_id', $game->id)->get(['id', 'geographic_potential']);
+            $territories = DB::table('territories')->where('territories.game_id', $game->id)
+                ->join('territory_details as d', fn ($q) => $q->on('d.territory_id', '=', 'territories.id')->where('d.turn_id', $turn->id))
+                ->get(['territories.id', 'geographic_potential', 'd.population_size']);
             $rows = $this->capacities(ResourceCatalogue::forGame($game), $territories, false);
             $this->insert('territory_production_states', $game, $turn, $rows);
         });
@@ -135,7 +137,7 @@ final class ProductionStateStore {
             foreach ($catalogue->producers() as $key => $resource) {
                 $seed = $resource['rules']['production.founding'];
                 // Seasonal output units. Geography is not a stockpile and population does not recreate deposits.
-                $potential = Q::max('0', Q::calculated((float) ($geography['resources'][$key]['capacity'] ?? 0)));
+                $potential = \App\Domain\Resources\GeographicProduction::potential($resource['rules'], $key, $geography, (int) $territory->population_size);
                 $total = Q::mul($potential, $seed[$core ? 'core_developed_fraction' : 'neutral_developed_fraction']);
                 $public = Q::mul($total, $seed['public_share']);
                 foreach (['government' => $public, 'producer' => Q::sub($total, $public)] as $owner => $capacity) {

@@ -1,6 +1,9 @@
 import test from "node:test";
 import assert from "node:assert/strict";
-import { acquisitionPlan } from "../../resources/js/client/services/production.js";
+import {
+    acquisitionPlan,
+    publicInvestmentControl,
+} from "../../resources/js/client/services/production.js";
 import { GameplayService } from "../../resources/js/client/services/GameplayService.js";
 import {
     deploymentDraft,
@@ -21,6 +24,78 @@ const data = () => ({
             priority: 100,
         },
     ],
+});
+test("public investment edits share the policy draft, preserve pending choices and fence conflicts", () => {
+    const snapshot = {
+        game_id: 1,
+        turn_number: 3,
+        turn_context_revision: "turn",
+        setup: { nation_id: 4 },
+        nation: data(),
+    };
+    const p = snapshot.nation.policies;
+    p.enabled = true;
+    p.current = {
+        investment: { option: "enabled", parameters: { fraction: "0" } },
+        tax: { option: "standard", parameters: { rate: "0.25" } },
+    };
+    p.pending = { tax: { option: "standard", parameters: { rate: "0.30" } } };
+    p.catalogue = {
+        policies: [
+            {
+                key: "investment",
+                status: "active",
+                parameters: [
+                    {
+                        key: "fraction",
+                        unit_key: "fraction_of_program_requirement",
+                    },
+                ],
+                options: [
+                    {
+                        key: "enabled",
+                        effects: [
+                            {
+                                effect_type: "production.development_funding",
+                                arguments: {
+                                    resource: "test_good",
+                                    funding_ratio: { parameter: "fraction" },
+                                },
+                            },
+                        ],
+                    },
+                ],
+            },
+        ],
+    };
+    const before = structuredClone(p);
+    const service = new GameplayService({}, { snapshot }, { userId: 1 });
+    service.setPolicyParameter(snapshot, "investment", "fraction", "0.25");
+    const draft = service.policyDraft(snapshot);
+    assert.equal(
+        publicInvestmentControl(snapshot.nation, "test_good", draft.changes)
+            .value,
+        "0.25",
+    );
+    assert.equal(draft.changes.tax.parameters.rate, "0.30");
+    assert.deepEqual(p, before);
+    assert.equal(
+        service.economicPlan(snapshot).changes.investment.parameters.fraction,
+        "0.25",
+    );
+    service.setPolicyParameter(snapshot, "investment", "fraction", "0");
+    assert.equal(Object.hasOwn(draft.changes, "investment"), false);
+    p.pending.tax.parameters.rate = "0.31";
+    assert.throws(
+        () =>
+            service.setPolicyParameter(
+                snapshot,
+                "investment",
+                "fraction",
+                "0.5",
+            ),
+        /saved policy plan changed/i,
+    );
 });
 test("complete dynamic plan retains unedited decimals and does not mutate confirmed data", () => {
     const source = data(),

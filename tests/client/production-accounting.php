@@ -225,6 +225,29 @@ $a = new Accounts($rules, $built['state']);
 $decimal($a->produce('frontier', 'producers', 'ore', '2', 'households'), '2', 'New capacity produces next season');
 $a->close();
 $summaries['private_development'] = $built;
+
+// Replacement uses existing construction funding/labor but cannot create stock or capacity.
+$repairSeed = $seed;
+$repairSeed['accounts']['producers']['cash'] = '15';
+$repairSeed['territories']['core']['workforce'] = '1';
+$a = new Accounts($rules, $repairSeed);
+$decimal($a->rebuild('core', 'producers', 'ore', '10', '2', 'households'), '1', 'Rebuilding shares the territorial workforce');
+$repaired = $a->close();
+$decimal($cash($repaired, 'producers'), '5', 'Rebuilding is paid, not a grant');
+$decimal($repaired['used_workers']['core'], '1', 'Rebuilding workers are accounted');
+$decimal($repaired['state']['territories']['core']['capacity']['producers']['ore'], '14', 'Rebuilding does not expand installed capacity');
+$decimal($repaired['state']['inventories']['producers']['ore']['quantity'] ?? '0.000000', '0', 'Rebuilding cannot create immediate goods');
+$decimal($events($repaired, 'rebuilding')[0]['cost'], '10', 'Replacement expense is auditable');
+$repairSeed['territories']['core']['workforce'] = '30';
+$a = new Accounts($rules, $repairSeed);
+$decimal($a->rebuild('core', 'producers', 'ore', '10', '2', 'households'), '1.5', 'Rebuilding is cash limited');
+$a->close();
+$a = new Accounts($rules, $seed);
+$decimal($a->rebuild('core', 'producers', 'ore', '10', '0.5', 'households'), '0.5', 'Rebuilding cannot exceed damaged capacity');
+$a->close();
+$a = new Accounts($rules, $seed);
+$throws(fn () => $a->rebuild('core', 'lender', 'ore', '1', '1', 'households'), 'Non-domestic investors cannot rebuild');
+$a->close();
 $a = new Accounts($rules, $seed);
 $a->produce('core', 'producers', 'ore', '10', 'households');
 $a->purchase('government', 'producers', 'ore', '10');
@@ -301,6 +324,16 @@ $eq($generic['state']['accounts'], $private['state']['accounts'], 'Renaming reso
 $decimal($generic['state']['inventories']['government']['synthetic_seventh']['quantity'], '10', 'Reduced single-resource fixture works');
 $throws(fn () => new Accounts(['cash' => ['kind' => 'currency']], $seed), 'Currency cannot enter physical production');
 $throws(fn () => new Accounts(['recruits' => ['kind' => 'capacity']], $seed), 'Recruitment cannot become stored goods');
+
+// Return unspent financing below the ordinary reserve, bounded by actual cash and debt.
+foreach ([['5','100','5'], ['50','100','50'], ['50','10','10']] as [$openingCash,$principal,$expected]) {
+    $unused = $seed; $unused['accounts']['government']['cash'] = $openingCash;
+    $unused['debts']['government']['lender'] = $principal;
+    $a = new Accounts($rules, $unused);
+    $r = $a->close(['government'=>['lender'=>'lender','reserve'=>'100','minimum_repayment'=>'80']]);
+    $decimal($cash($r, 'government'), Q::sub(Q::parse($openingCash), Q::parse($expected)), 'Unused repayment capped by cash');
+    $decimal($r['state']['debts']['government']['lender'], Q::sub(Q::parse($principal), Q::parse($expected)), 'Unused repayment capped by principal');
+}
 
 // Rounding: weighted-average withdrawal conserves the final micro-unit of inventory cost.
 $round = $seed; $round['inventories']['producers']['ore'] = ['quantity' => '3', 'cost' => '1'];

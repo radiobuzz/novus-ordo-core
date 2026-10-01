@@ -6,6 +6,7 @@ import { FieldShell } from '../../ui/FieldShell.js';
 import { Scope } from '../../runtime/Scope.js';
 import './economy.scss';
 import { MetricTable } from './MetricTable.js';
+import { CivilianEconomyView } from './CivilianEconomyView.js';
 
 const copy = (value) => structuredClone(value);
 const signature = (value) => JSON.stringify(value);
@@ -38,6 +39,8 @@ export class EconomyPanel {
         };
         this.element = el('div', { class: 'economy-workspace' });
         this.summary = el('div', { class: 'economy-summary' });
+        this.civilian = new CivilianEconomyView(services.i18n);
+        this.civilianPanel = surface('civilianTitle', {}, this.civilian.element);
         this.warning = el('p', { class: 'economy-warning', role: 'status' });
         this.table = el('div', { class: 'economy-budget' });
         this.reportTables = new Map();
@@ -77,6 +80,7 @@ export class EconomyPanel {
         this.element.append(
             this.summary,
             this.warning,
+            this.civilianPanel,
             el(
                 'div',
                 { class: 'economy-columns' },
@@ -140,6 +144,23 @@ export class EconomyPanel {
         scope.listen(this.save.element, 'click', () => void this.submit());
         services.gameplay.economicDraftChanged.subscribe(scope, () => {
             if (this.snapshot) {
+                const choices = {
+                    ...this.policies.current,
+                    ...(this.draft.changes ?? this.policies.pending),
+                };
+                for (const control of this.inputs) {
+                    if (document.activeElement === control.input) continue;
+                    const choice = choices[control.key];
+                    if (!choice) continue;
+                    if (control.option) control.input.value = choice.option;
+                    else if (control.param.value_type === 'boolean')
+                        control.input.checked = choice.parameters[control.param.key];
+                    else {
+                        const value = choice.parameters[control.param.key];
+                        control.input.value =
+                            value === '' ? '' : String(Number(value) * (control.percent ? 100 : 1));
+                    }
+                }
                 this.preview = null;
                 this.schedulePreview();
                 this.paint();
@@ -466,7 +487,7 @@ export class EconomyPanel {
             .join(' ');
         this.warning.hidden = !this.warning.textContent;
         this.warning.dataset.tone = (proposed?.warnings ?? []).some((w) =>
-            ['default', 'food_shortage', 'payroll_shortfall'].includes(w.type),
+            ['default', 'food_shortage', 'payroll_shortfall', 'maintenance_shortfall'].includes(w.type),
         )
             ? 'danger'
             : 'warning';
@@ -477,6 +498,8 @@ export class EconomyPanel {
             this.t('draftEstimate'),
         ];
         const reports = [economy.last_season, baseline?.expected, proposed?.expected];
+        this.civilian.update(this.snapshot.nation, reports);
+        this.civilianPanel.hidden = this.civilian.element.hidden;
         const value = (report, key) =>
             key === 'balance'
                 ? report

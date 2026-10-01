@@ -1,5 +1,19 @@
 # Shared game data — implementation plan
 
+## Public investment in the shared seasonal draft — 2026-10-01
+
+`GameplayService.setPolicyParameter` edits the existing service-owned policy package, preserving other pending choices, confirmed data and base-signature conflict detection. The planner discovers resource funding through catalogue effects (`publicInvestmentControl`), including role targets; it does not maintain a parallel investment model. EconomyPanel synchronizes retained policy controls on the same economic-draft signal. Preview generation fencing, atomic policy/acquisition submission, reset and refresh ownership remain unchanged. No additional endpoint, polling loop or optimistic economic settlement was introduced.
+
+Authoritative resource forecasts now include public industrial demand/planned/delivered/revenue and public development availability/permission. Civilian reports expose observed constraints and industrial deliveries. Old actual reports may omit these fields; they are not reconstructed in the browser. The client-data skill guided these ownership boundaries; service tests and real-browser combined-save/retention checks cover the added path.
+
+## Acquisition resource tabs — 2026-10-01
+
+The planner's tab selection and native detail disclosures are presentation state in its existing Component lifetime. Same-context refresh updates retained tab buttons, fields and report tables without replacing selection or focused inputs. All resource drafts remain in GameplayService and Save still submits the complete seasonal package, including hidden resources and policy drafts. Invalid hidden resources are identified on their tabs; supply badges come only from the current valid server preview, never a retained previous estimate. The footer borrows the same preview's whole-plan report. No new store, requests, command path or backend rule. Shared Tabs owns interaction only. Existing generation fencing and stale/uncertain-command safeguards remain unchanged.
+
+## Civilian economy projections — 2026-10-01
+
+The existing owner response now includes `economy_report.civilian` and the same section in authoritative saved/draft forecasts. These are read-only projections of the one seasonal resolver, not another client cache or endpoint. GameDataService retains confirmed ownership and GameplayService retains the combined policy/acquisition draft and command lifecycle. CivilianEconomyView updates retained report tables and a native disclosure from those values. No optimistic settlement or new polling was introduced. The client-data skill guided these boundaries; existing client race/scope/command checks and real retained-node Chromium checks pass. [Live integration and 20-turn evidence](../game-design/civilian-economy-live-integration.md).
+
 ## Economic preview display retention — 2026-09-29
 
 Budget & Policies and the acquisition planner retain report DOM during local editing, validation and preview requests. A last-displayed preview is presentation-only, explicitly marked as previous while pending; it never enables submission. Existing generation/abort checks fence late results. Scope/rules/turn context changes clear the old display, while compatible refreshes retain input and table identity. The confirmed snapshot and service-owned drafts remain unchanged in responsibility.

@@ -89,6 +89,27 @@ export class GameplayService {
         this.economicRevision++;
         this.economicDraftChanged.emit();
     }
+    setPolicyParameter(snapshot, policyKey, parameterKey, value) {
+        const policies = snapshot.nation.policies;
+        const draft = this.policyDraft(snapshot);
+        const base = JSON.stringify([policies.current, policies.pending]);
+        if (draft.changes !== null && draft.base !== base)
+            throw new ApiError('conflict', 'The saved policy plan changed. Review your draft first.');
+        const choice = structuredClone(
+            (draft.changes ?? policies.pending)[policyKey] ?? policies.current[policyKey],
+        );
+        if (!choice || !Object.hasOwn(choice.parameters, parameterKey))
+            throw new ApiError('validation', 'This policy parameter is unavailable. Refresh first.');
+        if (draft.changes === null) {
+            draft.base = base;
+            draft.changes = structuredClone(policies.pending);
+        }
+        choice.parameters[parameterKey] = value;
+        if (JSON.stringify(choice) === JSON.stringify(policies.current[policyKey]))
+            delete draft.changes[policyKey];
+        else draft.changes[policyKey] = choice;
+        this.notifyEconomicDraft();
+    }
     economicPlan(snapshot, overrides = {}) {
         const policies = snapshot.nation.policies;
         const draft = this.policyDraft(snapshot);

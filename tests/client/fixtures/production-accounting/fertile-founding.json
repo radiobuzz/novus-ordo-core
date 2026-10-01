@@ -1,0 +1,369 @@
+{
+  "state": {
+    "accounts": {
+      "government": {
+        "kind": "government",
+        "cash": "20.000000",
+        "tax_rate": "0"
+      },
+      "household": {
+        "kind": "household",
+        "cash": "50.000000",
+        "treasury": "government"
+      },
+      "producer": {
+        "kind": "producer",
+        "cash": "50.000000",
+        "treasury": "government"
+      },
+      "lender": {
+        "kind": "lender",
+        "cash": "1000000"
+      }
+    },
+    "inventories": {
+      "government": {
+        "food": {
+          "quantity": "0.000000",
+          "cost": "0.000000"
+        },
+        "material": {
+          "quantity": "0.000000",
+          "cost": "0.000000"
+        },
+        "ore": {
+          "quantity": "10.000000",
+          "cost": "0.000000"
+        },
+        "oil": {
+          "quantity": "10.000000",
+          "cost": "0.000000"
+        }
+      },
+      "producer": {
+        "food": {
+          "quantity": "0.000000",
+          "cost": "0.000000"
+        },
+        "material": {
+          "quantity": "0.000000",
+          "cost": "0.000000"
+        },
+        "ore": {
+          "quantity": "0.000000",
+          "cost": "0.000000"
+        },
+        "oil": {
+          "quantity": "0.000000",
+          "cost": "0.000000"
+        }
+      }
+    },
+    "territories": {
+      "region_1": {
+        "government": "government",
+        "population": 1000000,
+        "workforce": "1000000.000000",
+        "geography": {
+          "resources": {
+            "food": {
+              "capacity": 3.16035869530929,
+              "terrainWeights": {
+                "Plain": 0.5301207488693529,
+                "Forest": 0.2808284752116543
+              }
+            },
+            "material": {
+              "capacity": 0.48702194778572805,
+              "terrainWeights": {
+                "Plain": 0.3421052631578947,
+                "Forest": 0.15789473684210525
+              }
+            },
+            "ore": {
+              "capacity": 0.0676760851655153,
+              "terrainWeights": {
+                "Plain": 0.04035301047904098,
+                "Forest": 0.029211159559964332
+              }
+            }
+          }
+        },
+        "terrain": "Plain",
+        "economy": {
+          "capacity": "1.000000",
+          "infrastructure": "0.650000",
+          "unrest": "0.030000",
+          "informal": "0.100000"
+        },
+        "capacity": {
+          "government": {
+            "food": "0.474054",
+            "material": "0.073053",
+            "ore": "0.010152",
+            "oil": "0.000000"
+          },
+          "producer": {
+            "food": "1.422161",
+            "material": "0.219160",
+            "ore": "0.030454",
+            "oil": "0.000000"
+          }
+        },
+        "background_capacity": {
+          "producer": "1000000.000000",
+          "government": "0"
+        }
+      },
+      "region_2": {
+        "government": "government",
+        "population": 1000000,
+        "workforce": "1000000.000000",
+        "geography": {
+          "resources": {
+            "food": {
+              "capacity": 3.1265267683839695,
+              "terrainWeights": {
+                "Plain": 0.5487239088894498,
+                "Forest": 0.2570974610005593
+              }
+            },
+            "material": {
+              "capacity": 0.4848053932005727,
+              "terrainWeights": {
+                "Plain": 0.3421052631578947,
+                "Forest": 0.15789473684210525
+              }
+            },
+            "ore": {
+              "capacity": 0.0026880887793394835,
+              "terrainWeights": {
+                "Plain": 0.0003101954572288532,
+                "Forest": 0.0024563967116219363
+              }
+            }
+          }
+        },
+        "terrain": "Plain",
+        "economy": {
+          "capacity": "1.000000",
+          "infrastructure": "0.650000",
+          "unrest": "0.030000",
+          "informal": "0.100000"
+        },
+        "capacity": {
+          "government": {
+            "food": "0.468979",
+            "material": "0.072721",
+            "ore": "0.000403",
+            "oil": "0.000000"
+          },
+          "producer": {
+            "food": "1.406937",
+            "material": "0.218162",
+            "ore": "0.001210",
+            "oil": "0.000000"
+          }
+        },
+        "background_capacity": {
+          "producer": "1000000.000000",
+          "government": "0"
+        }
+      },
+      "region_3": {
+        "government": "government",
+        "population": 1000000,
+        "workforce": "1000000.000000",
+        "geography": {
+          "resources": {
+            "food": {
+              "capacity": 2.6717811267530602,
+              "terrainWeights": {
+                "Forest": 0.15938147979266704,
+                "Plain": 0.5115797242138825,
+                "Desert": 0.03350203446711959
+              }
+            },
+            "material": {
+              "capacity": 0.4737787549288805,
+              "terrainWeights": {
+                "Forest": 0.10526315789473684,
+                "Plain": 0.36842105263157887,
+                "Desert": 0.02631578947368421
+              }
+            },
+            "oil": {
+              "capacity": 0.10820401606552973,
+              "terrainWeights": {
+                "Plain": 0.09467638641451795,
+                "Forest": 0.007966303150242732,
+                "Desert": 0.011277789956854918
+              }
+            }
+          }
+        },
+        "terrain": "Plain",
+        "economy": {
+          "capacity": "1.000000",
+          "infrastructure": "0.650000",
+          "unrest": "0.030000",
+          "informal": "0.100000"
+        },
+        "capacity": {
+          "government": {
+            "food": "0.400767",
+            "material": "0.071067",
+            "ore": "0.000000",
+            "oil": "0.016231"
+          },
+          "producer": {
+            "food": "1.202302",
+            "material": "0.213200",
+            "ore": "0.000000",
+            "oil": "0.048691"
+          }
+        },
+        "background_capacity": {
+          "producer": "1000000.000000",
+          "government": "0"
+        }
+      },
+      "region_4": {
+        "government": "government",
+        "population": 1000000,
+        "workforce": "1000000.000000",
+        "geography": {
+          "resources": {
+            "food": {
+              "capacity": 2.170304118148145,
+              "terrainWeights": {
+                "Plain": 0.27577578614541765,
+                "Forest": 0.21665493239853928,
+                "Desert": 0.09468154664795932
+              }
+            },
+            "material": {
+              "capacity": 0.43619546801618536,
+              "terrainWeights": {
+                "Plain": 0.21052631578947367,
+                "Forest": 0.15789473684210525,
+                "Desert": 0.10526315789473684
+              }
+            },
+            "ore": {
+              "capacity": 0.013163588193613207,
+              "terrainWeights": {
+                "Forest": 0.01263966978201061,
+                "Plain": 0.001364142948195631,
+                "Desert": 0.00041577315033252234
+              }
+            },
+            "oil": {
+              "capacity": 0.07553885443945195,
+              "terrainWeights": {
+                "Plain": 0.03732403426284485,
+                "Forest": 0.012065061336140338,
+                "Desert": 0.033189074472690004
+              }
+            }
+          }
+        },
+        "terrain": "Plain",
+        "economy": {
+          "capacity": "1.000000",
+          "infrastructure": "0.650000",
+          "unrest": "0.030000",
+          "informal": "0.100000"
+        },
+        "capacity": {
+          "government": {
+            "food": "0.325546",
+            "material": "0.065429",
+            "ore": "0.001975",
+            "oil": "0.011331"
+          },
+          "producer": {
+            "food": "0.976636",
+            "material": "0.196288",
+            "ore": "0.005923",
+            "oil": "0.033992"
+          }
+        },
+        "background_capacity": {
+          "producer": "1000000.000000",
+          "government": "0"
+        }
+      },
+      "region_5": {
+        "government": "government",
+        "population": 1000000,
+        "workforce": "1000000.000000",
+        "geography": {
+          "resources": {
+            "food": {
+              "capacity": 1.7169632690820609,
+              "terrainWeights": {
+                "Forest": 0.1228345937633572,
+                "Plain": 0.2090358724806734,
+                "Desert": 0.13390990767736582
+              }
+            },
+            "material": {
+              "capacity": 0.38628394822897605,
+              "terrainWeights": {
+                "Forest": 0.07894736842105263,
+                "Plain": 0.18421052631578946,
+                "Desert": 0.15789473684210525
+              }
+            },
+            "ore": {
+              "capacity": 0.02505149973315892,
+              "terrainWeights": {
+                "Forest": 0.0018334802096677523,
+                "Plain": 0.008583447326633858,
+                "Desert": 0.016935029786494228
+              }
+            }
+          }
+        },
+        "terrain": "Plain",
+        "economy": {
+          "capacity": "1.000000",
+          "infrastructure": "0.650000",
+          "unrest": "0.030000",
+          "informal": "0.100000"
+        },
+        "capacity": {
+          "government": {
+            "food": "0.257545",
+            "material": "0.057943",
+            "ore": "0.003758",
+            "oil": "0.000000"
+          },
+          "producer": {
+            "food": "0.772633",
+            "material": "0.173827",
+            "ore": "0.011273",
+            "oil": "0.000000"
+          }
+        },
+        "background_capacity": {
+          "producer": "1000000.000000",
+          "government": "0"
+        }
+      }
+    },
+    "fiscal": {
+      "receipts": [],
+      "credit_lock": 0,
+      "default_episode": false
+    },
+    "debts": {
+      "government": {
+        "lender": "0"
+      }
+    }
+  },
+  "acquisitions": [],
+  "_description": "Fertile five-million founding homeland. Starting food capacity greatly exceeds consumption: higher potential must not make the default expansion program unaffordable."
+}

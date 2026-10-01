@@ -1,4 +1,4 @@
-import { resourceName } from '../../ui/resourceVisuals.js';
+import { resourceName, productionConstraint } from '../../ui/resourceVisuals.js';
 import { territorialDefense } from '../../services/forceSummary.js';
 import { Component } from '../../runtime/Component.js';
 import { Scope } from '../../runtime/Scope.js';
@@ -262,7 +262,7 @@ class TerritoryInspector extends Component {
                                     list,
                                     el('p', {
                                         class: 'muted',
-                                        text: `${pt('constraints')}: ${owner.constraints.length ? owner.constraints.map((c) => pt(`constraint_${c}`)).join(' · ') : pt('noConstraints')}`,
+                                        text: `${pt('constraints')}: ${owner.constraints.length ? owner.constraints.map((c) => productionConstraint(this.snapshot.nation, c, i18n)).join(' · ') : pt('noConstraints')}`,
                                     }),
                                 );
                             }),

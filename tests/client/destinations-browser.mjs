@@ -13,11 +13,13 @@ try {
     const errors = [];
     page.on('pageerror', (error) => errors.push(error.message));
     await page.goto(`${origin}/client/entry`);
+    await page.locator('.entry-enter').click();
     const nav = () => page.getByRole('navigation', { name: 'Destinations', exact: true });
     await expect(nav().getByRole('link', { name: 'Games', exact: true })).toBeVisible();
     await page.getByText('First installation', { exact: true }).click();
     await expect(page.getByText('php artisan app:provision-admin ADMIN_NAME', { exact: true })).toBeVisible();
     await nav().getByRole('link', { name: 'Administration', exact: true }).click();
+    await page.locator('.entry-enter').click();
     await page.getByLabel('Username', { exact: true }).fill('multi-player');
     await page.getByLabel('Password', { exact: true }).fill('fixture-password');
     await page.getByRole('button', { name: 'Enter the world', exact: true }).click();

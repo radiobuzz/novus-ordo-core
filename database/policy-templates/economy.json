@@ -1,5 +1,5 @@
 {
-  "name": "Production economy — owned output and development",
+  "name": "Production economy — civilian-balanced opening v2",
   "description": "Funded public/private production, earned income, development and food security.",
   "policies": [
     {
@@ -204,8 +204,8 @@
         "fr": "Financement du développement agricole"
       },
       "descriptions": {
-        "en": "Funds gradual expansion of developed agricultural capacity. Existing farms continue producing without this program. Paid after infrastructure; improvements produce from the following season.",
-        "fr": "Finance progressivement la capacité agricole. Les exploitations existantes continuent sans ce programme. Payé après les infrastructures; les améliorations produisent à partir de la saison suivante."
+        "en": "Funds gradual expansion of developed agricultural capacity. Existing farms continue producing without this program. The budget scales with buildable potential, even when food needs are already met. Paid after infrastructure; improvements produce from the following season.",
+        "fr": "Finance progressivement la capacité agricole. Les exploitations existantes continuent sans ce programme. Le budget dépend du potentiel aménageable, même lorsque les besoins alimentaires sont déjà couverts. Payé après les infrastructures; les améliorations produisent à partir de la saison suivante."
       },
       "sort_order": 4,
       "status": "active",
@@ -244,7 +244,7 @@
           },
           "value_type": "decimal",
           "unit_key": "fraction_of_program_requirement",
-          "default_value": "0.50",
+          "default_value": "0.00",
           "min_value": "0.00",
           "max_value": "1.00",
           "step": "0.01",

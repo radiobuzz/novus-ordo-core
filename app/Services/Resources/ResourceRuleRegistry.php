@@ -89,7 +89,12 @@ final class ResourceRuleRegistry
                         $yield = Q::parse($yield);
                     }
                     unset($yield);
-                    if (array_diff(array_keys($p), ['geographic', 'yields'])) self::fail('Unsupported territorial production parameter.');
+                    if (array_key_exists('potential_multiplier', $p)) {
+                        $p['potential_multiplier'] = Q::parse($p['potential_multiplier']);
+                        if (!($p['geographic'] ?? false) || Q::cmp($p['potential_multiplier'], '0') <= 0)
+                            self::fail('A positive potential multiplier requires geographic production.');
+                    }
+                    if (array_diff(array_keys($p), ['geographic', 'yields', 'potential_multiplier'])) self::fail('Unsupported territorial production parameter.');
                     if (Q::cmp($p['yields']['Water'], '0') !== 0) {
                         self::fail('Water production is not supported.');
                     }
@@ -101,6 +106,22 @@ final class ResourceRuleRegistry
                     if ($handler === 'demand.population' && (!is_int($p['priority'] ?? null) || $p['priority'] < 0)) {
                         self::fail('Invalid consumption priority.');
                     }
+                } elseif ($handler === 'production.inputs') {
+                    if ($r['kind'] !== 'stock' || array_keys($p) !== ['resources'] || !is_array($p['resources']) || !$p['resources']) self::fail('Production inputs require a nonempty resource map.');
+                    foreach ($p['resources'] as $input => &$amount) {
+                        if (!is_string($input) || $input === $key) self::fail('Invalid production input.');
+                        $amount = Q::parse($amount);
+                        if (Q::cmp($amount, '0') <= 0) self::fail('Recipe quantities must be positive.');
+                    }
+                    unset($amount);
+                } elseif ($handler === 'production.maintenance') {
+                    $expected = ['resource', 'per_capacity', 'workers_per_unit', 'wage_per_unit', 'condition_decay', 'condition_recovery'];
+                    if ($r['kind'] !== 'stock' || array_diff(array_keys($p), $expected) || array_diff($expected, array_keys($p)) || !is_string($p['resource'])) self::fail('Invalid maintenance contract.');
+                    foreach (array_diff($expected, ['resource']) as $field) {
+                        $p[$field] = Q::parse($p[$field]);
+                        if (str_starts_with($field, 'condition_') && Q::cmp($p[$field], '1') > 0) self::fail('Maintenance condition changes must be fractions.');
+                    }
+                    if (Q::cmp($p['workers_per_unit'], '0') <= 0) self::fail('Maintenance requires worker time.');
                 } elseif (isset(self::productionContracts()[$handler])) {
                     $contract = self::productionContracts()[$handler];
                     if ($r['kind'] !== $contract['kind']) self::fail('Rule kind mismatch.');
@@ -132,12 +153,25 @@ final class ResourceRuleRegistry
             if ($r['role'] === 'nutrition' && !isset($r['rules']['demand.population'])) {
                 self::fail('Nutrition requires population demand.');
             }
+            if (isset($r['rules']['production.subsistence']) && $r['role'] !== 'nutrition') self::fail('Subsistence requires the nutrition role.');
+            if (isset($r['rules']['production.manufacturing']) && ($r['rules']['production.territorial_labor']['geographic'] ?? true)) self::fail('Manufacturing must use non-geographic labor yields.');
+            foreach (['production.inputs', 'production.maintenance', 'production.subsistence', 'production.manufacturing'] as $handler)
+                if (isset($r['rules'][$handler]) && !isset($r['rules']['production.territorial_labor'])) self::fail('Civilian production requires a production provider.');
             $keys[$key] = $r;
         }
         unset($r);
         if ($currencies !== 1 || count($roles) !== 3) {
             self::fail('Exactly one treasury, nutrition and recruitment role is required.');
         }
+        $recipes = [];
+        foreach ($keys as $key => $r) if ($r['kind'] === 'stock') {
+            $recipes[$key] = ['inputs' => $r['rules']['production.inputs']['resources'] ?? []];
+            $references = array_keys($recipes[$key]['inputs']);
+            if (isset($r['rules']['production.maintenance'])) $references[] = $r['rules']['production.maintenance']['resource'];
+            foreach ($references as $input) if (($keys[$input]['kind'] ?? null) !== 'stock' || !isset($keys[$input]['rules']['production.territorial_labor'])) self::fail('Inputs and upkeep must reference produced stock resources.');
+        }
+        try { \App\Domain\Economy\CivilianProduction::order($recipes); }
+        catch (\DomainException $e) { self::fail($e->getMessage()); }
         $unitKeys = array_keys($document['units'] ?? []);
         $expected = array_map(fn($t) => $t->name, DivisionType::cases());
         sort($unitKeys);
@@ -180,6 +214,8 @@ final class ResourceRuleRegistry
     /** Units and bounds are engine contracts, never arbitrary expressions from the catalogue. */
     public static function productionContracts(): array {
         return [
+            'production.manufacturing' => ['kind' => 'stock', 'fields' => ['capacity_per_million' => 'positive']],
+            'production.subsistence' => ['kind' => 'stock', 'fields' => ['per_million' => 'quantity', 'potential_share' => 'ratio', 'workers_per_unit' => 'positive']],
             'production.operating' => ['kind' => 'stock', 'fields' => ['wage_per_unit' => 'quantity']],
             'exchange.reference_price' => ['kind' => 'stock', 'fields' => ['price' => 'positive']],
             'development.capacity' => ['kind' => 'stock', 'fields' => [
