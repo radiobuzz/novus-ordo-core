@@ -1,6 +1,10 @@
 # Basic terrain atlas
 
-`terrain-atlas-v1.png` was generated with the built-in image generation tool for the map laboratory. It is a 1536 × 1024 raster atlas: three columns and two rows, 512 × 512 per swatch. Row one: plains, forest, hills. Row two: mountain, lake, ocean. The renderer crops each swatch into a cached hex sprite. The atlas itself has no transition tiles or infrastructure. `tiles.js` now also builds neighbor-aware terrain blends and shoreline bands from these same swatches at runtime, with world-aligned texture sampling and a bounded sprite cache.
+`terrain-atlas-v1.png` was generated with the built-in image generation tool for the map laboratory. It is the retained 1536 × 1024 master atlas: three columns and two rows, 512 × 512 per swatch. Row one: plains, forest, hills. Row two: mountain, lake, ocean. The atlas itself has no transition tiles or infrastructure.
+
+The gameplay renderer ships `terrain-atlas-v1-runtime.webp`, a 768 × 512 quality-88 WebP delivery copy with 256 × 256 swatches. It is generated offline from the master with `convert terrain-atlas-v1.png -strip -resize 50% -quality 88 terrain-atlas-v1-runtime.webp`; no image conversion happens in the browser or on the server. The renderer reduces each source swatch to a cached 192 × 192 hex sprite and 128 × 128 repeatable material, so the delivery copy retains more source resolution than either runtime surface while reducing the asset from 2,960,323 to 119,174 bytes. Vite fingerprints and serves the delivery copy; the original remains the authoring/provenance source and is not requested by gameplay.
+
+`tiles.js` also builds neighbor-aware terrain blends and shoreline bands from these swatches at runtime, with world-aligned texture sampling and a bounded sprite cache.
 
 Polar extension: snow, tundra, and sea-ice materials are drawn in Canvas by `tiles.js` and share the atlas materials' blending/cache pipeline. Sea ice uses a blue base with pale fractures so polar water remains distinct from white snow-covered land. They are code-native surfaces, not additional AI-generated bitmap assets. The original atlas is unchanged.
 

@@ -11,6 +11,8 @@ import { soundSettings } from '../ui/SoundSettings.js';
 import { setButtonIcon } from '../ui/icons.js';
 import { compactLabel } from '../ui/compactLabel.js';
 import { watchingControls } from '../experimental-ai/WatchingControls.js';
+import { headerFinance } from './headerFinance.js';
+import { economicWarning } from '../services/economicWarnings.js';
 
 /** Shell composition: shared snapshots in, explicit commands out. */
 export class GameHeader {
@@ -248,10 +250,75 @@ export class GameHeader {
         );
         this.news.setDisabled(!world.current || !snapshot?.nation);
     }
+    updateDebt(economy, moneyNode, format) {
+        const { i18n } = this.services;
+        if (!this.debtNode) {
+            const disclosure = new Disclosure(this.scope, {
+                className: 'hud-resource hud-debt',
+                group: 'game-hud',
+            });
+            const value = el('strong'),
+                label = el('span');
+            disclosure.trigger.append(el('span', { class: 'hud-resource-values' }, value, label));
+            const title = el('h2'),
+                list = el('dl'),
+                rows = new Map();
+            for (const key of ['current', 'change', 'closing', 'interest', 'remaining']) {
+                const term = el('dt'),
+                    description = el('dd');
+                list.append(term, description);
+                rows.set(key, { term, description });
+            }
+            const note = el('p', { class: 'muted' }),
+                link = el('a', { href: '#/economy' });
+            disclosure.content.append(title, list, note, link);
+            this.debtNode = { disclosure, value, label, title, rows, note, link };
+        }
+        const node = this.debtNode,
+            finance = headerFinance(economy);
+        node.disclosure.element.hidden = false;
+        if (moneyNode.disclosure.element.nextElementSibling !== node.disclosure.element)
+            moneyNode.disclosure.element.after(node.disclosure.element);
+        const arrow = { rising: '↑', falling: '↓', steady: '→', unknown: '' }[finance.trend];
+        node.value.textContent = `${format(finance.debt, true)}${arrow ? ` ${arrow}` : ''}`;
+        node.value.dataset.tone = finance.tone;
+        node.label.textContent = this.t('debtShort');
+        node.title.textContent = i18n.t('economy.debt');
+        const values = {
+            current: ['economy.debt', finance.debt],
+            change: ['hud.debtChange', finance.change],
+            closing: ['economy.closing_debt', finance.closingDebt],
+            interest: ['hud.debtInterest', finance.interest],
+            remaining: ['hud.creditRemaining', finance.remainingCredit],
+        };
+        const details = [];
+        for (const [key, [translation, value]] of Object.entries(values)) {
+            const row = node.rows.get(key);
+            row.term.textContent = i18n.t(translation);
+            row.description.textContent = format(value, false, key === 'change');
+            details.push(`${row.term.textContent}: ${row.description.textContent}`);
+        }
+        node.note.textContent = [
+            this.t('debtHint'),
+            finance.restricted ? this.t('creditRestricted') : '',
+            ...(economy.forecast?.warnings ?? [])
+                .filter(({ type }) => ['credit_low', 'default'].includes(type))
+                .map(({ type }) => i18n.t(`economy.${type}`)),
+        ]
+            .filter(Boolean)
+            .join(' ');
+        node.disclosure.trigger.title = [...details, node.note.textContent].join('\n');
+        node.disclosure.trigger.setAttribute(
+            'aria-label',
+            `${i18n.t('economy.debt')}: ${format(finance.debt)}. ${this.t(`debtTrend_${finance.trend}`)}. ${this.t('debtChange')}: ${format(finance.change, false, true)}`,
+        );
+        node.link.textContent = i18n.t('economy.title');
+    }
     update() {
         const { world, i18n } = this.services;
         const snapshot = world.snapshot,
             data = snapshot?.nation;
+        if (this.debtNode) this.debtNode.disclosure.element.hidden = true;
         this.turn.textContent = snapshot
             ? i18n.t('world.turn', { turn: snapshot.turn_number })
             : i18n.t('world.connecting');
@@ -351,7 +418,7 @@ export class GameHeader {
                     ? [
                           i18n.t('economy.moneyHint'),
                           ...(data.economy.forecast?.warnings ?? []).map((warning) =>
-                              i18n.t(`economy.${warning.type}`),
+                              economicWarning(i18n, warning),
                           ),
                       ].join(' ')
                     : this.t(world.current ? 'budgetHint' : 'staleNews');
@@ -381,6 +448,7 @@ export class GameHeader {
                 node.note.textContent = i18n.t('planner.resourceHint');
             }
             if (isMoney) {
+                const finance = headerFinance(data.economy);
                 node.balance.dataset.tone = data.economy.forecast?.warnings.length ? 'danger' : 'ready';
                 node.disclosure.trigger.title = node.note.textContent;
                 node.balance.replaceChildren(
@@ -389,16 +457,22 @@ export class GameHeader {
                         text: `${data.economy.forecast?.warnings.length ? '⚠ ' : ''}${format(values.available, true)}`,
                     }),
                 );
-                node.reserve.textContent = `${data.economy.forecast?.warnings.length ? '⚠ ' : ''}${format(values.balance, true, true)}/${this.t('turnShort')}`;
+                node.reserve.textContent = `${format(finance.balance, true, true)}/${this.t('turnShort')}`;
+                node.reserve.dataset.tone =
+                    finance.balance == null ? 'muted' : finance.balance < 0 ? 'danger' : 'ready';
+                node.reserve.title = this.t('seasonalBalanceHint');
+                node.rows.get('balance').label.textContent = this.t('seasonalBalance');
+                node.rows.get('balance').value.textContent = format(finance.balance, false, true);
                 node.disclosure.trigger.setAttribute(
                     'aria-label',
-                    `${i18n.t('economy.availableCash')}: ${format(values.available)}. ${i18n.t('economy.balance')}: ${format(values.balance)}`,
+                    `${i18n.t('economy.availableCash')}: ${format(values.available)}. ${this.t('seasonalBalance')}: ${format(finance.balance, false, true)}`,
                 );
                 if (!node.economyLink) {
                     node.economyLink = el('a', { href: '#/economy' });
                     node.disclosure.content.append(node.economyLink);
                 }
                 node.economyLink.textContent = i18n.t('economy.title');
+                this.updateDebt(data.economy, node, format);
             }
         }
         this.updateReadiness();

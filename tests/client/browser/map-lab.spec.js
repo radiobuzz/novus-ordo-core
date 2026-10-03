@@ -1,5 +1,10 @@
 import { expect, test } from '@playwright/test';
 
+const overviewReady = (page) =>
+    expect
+        .poll(() => page.evaluate(() => window.mapLabDiagnostics().metrics.overviewPending ?? true))
+        .toBe(false);
+
 test('map laboratory compares resolutions and advances through an operational cell', async ({ page }) => {
     const errors = [];
     page.on('pageerror', (error) => errors.push(error.message));
@@ -102,9 +107,26 @@ test('seeded geography controls and diagnostic views rebuild safely at full scal
     await page.getByRole('button', { name: '37', exact: true }).click();
     await expect.poll(() => page.evaluate(() => window.mapLabDiagnostics().totalCells)).toBe(22_200);
     expect((await page.evaluate(() => window.mapLabDiagnostics())).generation.settings.seed).toBe('ember-19');
+    await overviewReady(page);
+    await page.evaluate(() => {
+        window.overviewLongTasks = [];
+        window.overviewLongTaskObserver = new PerformanceObserver((list) => {
+            window.overviewLongTasks.push(...list.getEntries().map((entry) => entry.duration));
+        });
+        window.overviewLongTaskObserver.observe({ type: 'longtask' });
+    });
+    await page.getByLabel('Map view', { exact: true }).selectOption('drainage');
+    await expect
+        .poll(() => page.evaluate(() => window.mapLabDiagnostics().metrics.overviewPending))
+        .toBe(true);
+    await overviewReady(page);
+    const longestOverviewTask = await page.evaluate(() => {
+        window.overviewLongTaskObserver.disconnect();
+        return Math.max(0, ...window.overviewLongTasks);
+    });
+    expect(longestOverviewTask).toBeLessThan(100);
     await page.getByRole('button', { name: 'Find army', exact: true }).click();
     await expect(page.locator('[data-field="cell-details"]')).toContainText('Drainage outlet');
-    await page.getByLabel('Map view', { exact: true }).selectOption('drainage');
     await page.screenshot({ path: 'test-results/client/map-lab-drainage-trace.png', fullPage: true });
     await page.getByLabel('Wetness', { exact: false }).focus();
     await page.getByLabel('Wetness', { exact: false }).press('Home');
@@ -165,6 +187,7 @@ test('landscape controls shrink caps independently and relief is a display-only 
     await page.getByLabel('Mountain snowline', { exact: false }).press('End');
     await page.getByRole('button', { name: 'Generate landscape', exact: true }).click();
     await expect.poll(() => page.evaluate(() => window.mapLabDiagnostics().generation.snowCells)).toBe(0);
+    await overviewReady(page);
     const checksum = () =>
         page.locator('canvas').evaluate((canvas) => {
             const data = canvas.getContext('2d').getImageData(0, 0, canvas.width, canvas.height).data;
@@ -174,11 +197,13 @@ test('landscape controls shrink caps independently and relief is a display-only 
         });
     const shaded = await checksum();
     await page.getByRole('checkbox', { name: 'Relief shading', exact: true }).uncheck();
+    await overviewReady(page);
     await expect.poll(checksum).not.toBe(shaded);
     expect((await page.evaluate(() => window.mapLabDiagnostics())).geographySignature).toBe(
         original.geographySignature,
     );
     await page.getByRole('checkbox', { name: 'Relief shading', exact: true }).check();
+    await overviewReady(page);
     await expect.poll(checksum).toBe(shaded);
     await page.screenshot({ path: 'test-results/client/map-lab-no-polar-caps.png', fullPage: true });
     await page.getByLabel('Coastal detail', { exact: false }).focus();

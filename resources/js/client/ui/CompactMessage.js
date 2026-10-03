@@ -1,7 +1,7 @@
 import { el } from './element.js';
 import { Tooltip } from './Tooltip.js';
 
-/** A short visible message, with the complete detail on hover, focus or tap. */
+/** A short visible message, with the complete detail on explicit click, tap or keyboard activation. */
 export class CompactMessage {
     constructor(scope, { className = '', role = 'status' } = {}) {
         this.text = el('span', { class: 'ui-message-text' });

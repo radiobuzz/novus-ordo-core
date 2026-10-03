@@ -115,6 +115,10 @@ Route::get('/game/ranking-history', [GameController::class, 'rankingHistory'])
 Route::get('/game/news', [NewsController::class, 'news'])
     ->name('ajax.get-game-news');
 
+Route::get('/nation/economic-history', [\App\Http\Controllers\EconomicHistoryController::class, 'show'])->middleware(['auth', NoStoreResponse::class])->name('ajax.get-economic-history');
+
+Route::post('/nation/finance/repay', [\App\Http\Controllers\FinanceController::class, 'repay'])->middleware(['auth', NoStoreResponse::class, \App\Http\Middleware\EnsureClientCommandContext::class])->name('ajax.repay-debt');
+
 // Nation routes.
 Route::middleware(['auth', NoStoreResponse::class])->prefix('nation/policies')->group(function () {
     Route::get('/', [\App\Http\Controllers\PolicyController::class, 'show']);

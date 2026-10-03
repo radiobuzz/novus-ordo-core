@@ -60,6 +60,16 @@ final class EconomyService {
             'state' => $t['economy'] + ['background_capacity' => $t['background_capacity'], 'productive_condition' => $t['productive_condition'] ?? []], 'workers_used' => $result['used_workers'][$id] ?? '0'];
         $report['indicators'] = $this->indicators($report['territories'], $report);
         $report['food'] = $result['resources'][$nutrition];
+        $withoutWorkers = array_keys(array_filter($result['opening_territories'], fn ($t) => $t['population'] > 0 && Q::cmp($t['workforce'], '0') === 0));
+        if ($withoutWorkers) {
+            $previousTurn = Turn::where('game_id', $game->id)->where('number', $detail->getTurn()->number - 1)->value('id');
+            if ($previousTurn) {
+                $previousOwners = DB::table('territory_details')->where('game_id', $game->id)->where('turn_id', $previousTurn)
+                    ->whereIn('territory_id', $withoutWorkers)->pluck('owner_nation_id', 'territory_id')->all();
+                $annexed = array_filter($withoutWorkers, fn ($id) => array_key_exists($id, $previousOwners) && ($previousOwners[$id] === null || (int) $previousOwners[$id] !== $detail->nation_id));
+                $result['warnings'] = \App\Domain\Economy\MaintenanceWarnings::explain($result, $annexed);
+            }
+        }
         $report['warnings'] = $result['warnings'];
         return $result;
     }
@@ -86,7 +96,7 @@ final class EconomyService {
         $cells = array_map(fn ($t) => ['id' => $t['territory_id'], 'population' => $t['population_size'], 'state' => $t['economy_state']], $this->facts($detail));
         $money = $detail->resources()->role('treasury'); $cash = $detail->getStockpiledQuantity($money);
         $commands = app(ResourceLedger::class)->costs($detail)['commands'][$money];
-        return ['treasury' => $cash, 'committed_cash' => $commands, 'available_cash' => Q::max('0', Q::sub($cash, $commands)),
+        return ['reserve_target' => $policies['report']['settings']['finance.treasury_reserve']['treasury'] ?? ($detail->getGame()->economy_rules['production']['treasury_reserve'] ?? ProductionEconomySeason::defaults()['treasury_reserve']), 'treasury' => $cash, 'committed_cash' => $commands, 'available_cash' => Q::max('0', Q::sub($cash, $commands)),
             'state' => $detail->economy_state, 'current' => $this->indicators($cells, $detail->economy_report), 'territories' => $cells,
             'last_season' => $detail->economy_report, 'forecast' => $this->forecastResult($result)];
     }

@@ -32,6 +32,43 @@ $plan = ['settings' => ['finance.income_tax' => ['taxable_income' => '0.2']],
     'acquisitions' => ['ore' => ['quantity' => '2', 'spending_limit' => '4', 'priority' => 2]], 'investors' => []];
 $rules = ['service_demand_per_person' => '0', 'private_investment' => '0'];
 $cashTotal = fn ($state) => array_reduce($state['accounts'], fn ($q, $a) => Q::add($q, Q::parse($a['cash'])), '0.000000');
+
+// The policy uses the existing transfer ledger: funded purchases, no invented cash/income.
+$supportSeed = $fixture();
+$supportSeed['accounts']['producer']['cash'] = $supportSeed['accounts']['household']['cash'] = '0';
+$supportSeed['inventories']['producer']['food'] = ['quantity' => '4', 'cost' => '0'];
+$supportPlan = ['investors' => [], 'settings' => ['finance.income_tax' => ['taxable_income' => '0']]];
+$withoutSupport = Season::resolve($resources, $supportSeed, $supportPlan, $rules);
+$supportPlan['settings']['budget.income_support']['households'] = '8';
+$withSupport = Season::resolve($resources, $supportSeed, $supportPlan, $rules);
+$eq($withSupport['report']['support_requested'], '8.000000', 'Policy specifies the seasonal support budget');
+$eq($withSupport['report']['support_paid'], '8.000000', 'Funded support is paid before purchases');
+$check(Q::cmp($withSupport['resources']['food']['civilian']['fulfilled'], $withoutSupport['resources']['food']['civilian']['fulfilled']) > 0, 'Support enables previously unaffordable purchases');
+$eq($cashTotal($withSupport['state']), $cashTotal($supportSeed), 'Support conserves domestic cash');
+$eq($withSupport['report']['wages'], '0.000000', 'Transfers are not counted as wages');
+$eq($withSupport['report']['earned_income'], $withSupport['report']['realized_profit'], 'Only genuine sale profit becomes earned income');
+$supportSeed['accounts']['government']['cash'] = '5';
+$supportPlan['settings']['budget.income_support']['households'] = '50';
+$partialSupport = Season::resolve($resources, $supportSeed, $supportPlan, $rules);
+$eq($partialSupport['report']['support_paid'], '5.000000', 'Support is capped by funded public cash');
+$check(in_array('income_support_shortfall', array_column($partialSupport['warnings'], 'type'), true), 'Underfunded support has an explicit warning');
+$eq($cashTotal($partialSupport['state']), $cashTotal($supportSeed), 'Partial support does not create cash');
+$supportPlan['settings']['budget.income_support']['households'] = '0';
+$eq(Season::resolve($resources, $supportSeed, $supportPlan, $rules), Season::resolve($resources, $supportSeed, ['investors' => [], 'settings' => ['finance.income_tax' => ['taxable_income' => '0']]], $rules), 'Zero funding retains the unsupported outcome');
+
+$expansionSeed = $fixture();
+$expansionSeed['accounts']['household']['cash'] = '0';
+$expansionSeed['accounts']['producer']['cash'] = '4';
+$expansionSeed['territories']['core']['capacity']['producer']['food'] = '2';
+$expansionSeed['inventories']['producer']['food'] = ['quantity' => '2', 'cost' => '0'];
+$expansionPlan = ['investors' => ['producer'], 'settings' => ['finance.income_tax' => ['taxable_income' => '0']]];
+$expansionRules = ['service_demand_per_person' => '0', 'profit_distribution' => '0', 'private_investment' => '0.2'];
+$weakDemand = Season::resolve($resources, $expansionSeed, $expansionPlan, $expansionRules);
+$expansionPlan['settings']['budget.income_support']['households'] = '8';
+$fundedDemand = Season::resolve($resources, $expansionSeed, $expansionPlan, $expansionRules);
+$check(Q::cmp($fundedDemand['resources']['food']['development']['producer'], $weakDemand['resources']['food']['development']['producer']) > 0, 'Funded demand can encourage private expansion when capacity is needed');
+$eq($cashTotal($fundedDemand['state']), $cashTotal($expansionSeed), 'Induced investment conserves cash');
+
 foreach (['0','1','0.5'] as $share) {
     $seed = $fixture($share); $result = Season::resolve($resources, $seed, $plan, $rules);
     $eq($result, Season::resolve($resources, $seed, $plan, $rules), 'Preview and settlement deterministic');
@@ -99,6 +136,38 @@ $limitedPublic['territories']['core']['capacity']['government']['food'] = '1';
 $r = Season::resolve($resources, $limitedPublic, ['investors'=>[]], $rules);
 $eq($r['report']['fiscal']['borrowing'], Q::parse($resources['food']['rules']['production.operating']['wage_per_unit']), 'Public wage envelope bounded by installed capacity');
 
+// Seasonal receipts settle temporary financing before the reserve protects older debt.
+// The purchase is completed: this is not the unused-order refund case above.
+foreach ([
+    ['cash'=>'3', 'tax'=>'0.2', 'debt'=>'0', 'loan'=>'1', 'shortfall'=>false],
+    ['cash'=>'0', 'tax'=>'0.2', 'debt'=>'0', 'loan'=>'4', 'shortfall'=>true],
+    ['cash'=>'3', 'tax'=>'0.2', 'debt'=>'10', 'loan'=>'1.15', 'shortfall'=>false],
+    ['cash'=>'15', 'tax'=>'0', 'debt'=>'10', 'loan'=>'0', 'shortfall'=>false],
+] as $case) {
+    $financingSeed = $fixture();
+    $financingSeed['accounts']['government']['cash'] = $case['cash'];
+    $financingSeed['accounts']['lender'] = ['kind'=>'lender', 'cash'=>'100'];
+    $financingSeed['debts'] = ['government'=>['lender'=>$case['debt']]];
+    $financingSeed['fiscal'] = ['receipts'=>['10']];
+    $financingPlan = $plan;
+    $financingPlan['settings']['finance.income_tax']['taxable_income'] = $case['tax'];
+    $r = Season::resolve($resources, $financingSeed, $financingPlan, $rules);
+    $f = $r['report']['fiscal'];
+    $eq($f['borrowing'], Q::parse($case['loan']), 'Opening treasury used before temporary financing');
+    $eq($r['report']['government_purchases'], '4.000000', 'Financed purchase actually delivered and paid');
+    if ($case['shortfall']) {
+        $eq($r['report']['closing_treasury'], '0.000000', 'Genuine new debt consumes available treasury first');
+        $eq($f['closing_debt'], Q::sub('4', $r['report']['tax_receipts']), 'Only the unfunded seasonal cost remains borrowed');
+        $check(Q::cmp($f['closing_debt'], '0') > 0, 'Genuine shortfall still permits debt');
+    } else {
+        $eq($f['closing_debt'], Q::parse($case['debt']), 'Late receipts clear new financing without sweeping older debt below reserve');
+        $eq($f['principal_repaid'], Q::parse($case['loan']), 'Temporary loan repaid even below treasury buffer');
+        $eq($r['report']['closing_treasury'], Q::sub(Q::add($case['cash'], $r['report']['tax_receipts']), Q::add('4', $f['interest_due'])), 'Seasonal deficit draws down treasury');
+    }
+    $eq($cashTotal($r['state']), $cashTotal($financingSeed), 'Temporary financing repayment conserves counterparty cash');
+    $eq($r, Season::resolve($resources, $financingSeed, $financingPlan, $rules), 'Financing replay and preview are identical');
+}
+
 // Generic catalogue identities and reduced optional goods.
 $renamed = $resources; $renamed['nutrition_test'] = $renamed['food']; unset($renamed['food']);
 $renamed['synthetic'] = $renamed['ore']; $renamed['synthetic']['role'] = null;
@@ -162,6 +231,13 @@ $seed=$fixture(); $seed['accounts']['lender']=['kind'=>'lender','cash'=>'100']; 
 $result=Season::resolve($resources,$seed,[], $rules);
 $eq($result['state']['debts']['government']['lender'],'0.000000','Surplus repays debt after keeping reserve');
 $eq($cashTotal($result['state']),$cashTotal($seed),'Debt payments have funded counterparty');
+$protectedPlan = ['settings' => ['finance.treasury_reserve' => ['treasury' => '200']]];
+$protected = Season::resolve($resources, $seed, $protectedPlan, $rules);
+$eq($protected['report']['fiscal']['principal_repaid'], '0.000000', 'Policy reserve protects older principal');
+$zeroReserve = $protectedPlan; $zeroReserve['settings']['finance.treasury_reserve']['treasury'] = '0';
+$repaid = Season::resolve($resources, $seed, $zeroReserve, $rules);
+$eq($repaid['report']['fiscal']['principal_repaid'], '10.000000', 'Zero policy reserve permits surplus repayment');
+$eq($cashTotal($protected['state']), $cashTotal($repaid['state']), 'Reserve changes never create money');
 for($i=0;$i<4;++$i){$before=$result['state'];$result=Season::resolve($resources,$before,$plan,$rules);$eq($result,Season::resolve($resources,$before,$plan,$rules),'Four-season replay');$eq($cashTotal($result['state']),$cashTotal($seed),'Four-season cash conservation');}
 // Explicit spending limits apply equally to public delivery and private purchases.
 $zeroBudget=$plan;$zeroBudget['acquisitions']['ore']['spending_limit']='0';

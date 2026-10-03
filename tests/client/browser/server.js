@@ -34,7 +34,7 @@ const server = http.createServer(async (req, res) => {
                     admin: null,
                 },
                 assets: {
-                    background: '/res/bundled/entry/2026-09-26-static.png',
+                    background: '/res/bundled/entry/2026-09-26-static.png.display-v1.webp',
                     backgroundSlides: [
                         '2026-09-26-01-0a.png',
                         '2026-09-26-02-0b.png',
@@ -44,7 +44,7 @@ const server = http.createServer(async (req, res) => {
                         '2026-09-26-06-4.png',
                         '2026-09-26-07-5.png',
                         '2026-09-26-08-6.png',
-                    ].map((file) => `/res/bundled/entry/${file}`),
+                    ].map((file) => `/res/bundled/entry/${file}.display-v1.webp`),
                     soundtrack: '/res/bundled/entry/intro.mp3',
                 },
             };

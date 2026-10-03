@@ -129,7 +129,7 @@ final class CivilianProduction
         foreach ($ctx['subsistence'] as $id => $resources) foreach ($resources as $key => $q)
             $ctx['subsistence'][$id][$key] = $a->subsist((string) $id, 'household', $key, $q);
         foreach ($ctx['maintenance'] as &$m) {
-            $m['delivered'] = $a->maintain($m['territory'], $m['owner'], $m['input'], $m['required'], $m['workers'], $m['wage'], 'household');
+            $m['delivered'] = $a->maintain($m['territory'], $m['owner'], $m['input'], $m['required'], $m['workers'], $m['wage'], 'household', $m['resource']);
             $m['closing_condition'] = self::condition($m['opening_condition'], $m['required'], $m['delivered'], $m['decay'], $m['recovery']);
         }
         unset($m);

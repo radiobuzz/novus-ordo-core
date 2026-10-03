@@ -3,6 +3,10 @@ import { isWater } from './water.js';
 import { agriculturalSuitability } from './resources.js';
 import { TerrainTiles } from './tiles.js';
 
+const OVERVIEW_FRAME_BUDGET = 5;
+const OVERVIEW_RASTER_LIMIT = 6;
+const sharedOverviewCaches = new WeakMap();
+
 const terrainLabel = {
     plains: 'Plains',
     forest: 'Forest',
@@ -48,7 +52,6 @@ function fieldColor(cell, view) {
 
 export class MapRenderer {
     #frame = null;
-    #overviewCache = new WeakMap();
     #waterCache = new WeakMap();
 
     constructor(canvas, camera, getState, onDraw) {
@@ -125,13 +128,9 @@ export class MapRenderer {
         const blending =
             detailed && layers.terrain && layers.tiles && layers.transitions && this.tiles.status === 'ready';
         this.tiles.pending = 0;
+        this.overviewPending = false;
+        this.overviewProgress = 1;
         if (blending) this.tiles.prepare(model, visibleCells);
-        const overviewWasCached = detailed || this.#overviewCache.has(model);
-        const fieldWasCached =
-            detailed ||
-            !state.view ||
-            state.view === 'terrain' ||
-            this.#overviewCache.get(model)?.fields.has(state.view);
         ctx.setTransform(1, 0, 0, 1, 0, 0);
         const gradient = ctx.createLinearGradient(0, 0, 0, canvas.height);
         gradient.addColorStop(0, '#142733');
@@ -142,7 +141,7 @@ export class MapRenderer {
         const ry = canvas.height / camera.height;
         camera.applyTransform(ctx, rx, ry);
 
-        if (!detailed) this.drawOverviewCells(ctx, state, visibleCells);
+        if (!detailed) this.drawOverviewCells(ctx, state);
         else for (const cell of visibleCells) this.drawCell(ctx, cell, state);
         this.drawUnderlay(ctx, state);
         if (layers.microGrid && cellPixels >= 3.2) this.drawMicroGrid(ctx, state, visibleCells, !detailed);
@@ -163,10 +162,11 @@ export class MapRenderer {
             transitions: blending,
             transitionTilesCached: this.tiles.blended.size,
             transitionsPending: this.tiles.pending,
+            overviewPending: this.overviewPending,
+            overviewProgress: this.overviewProgress,
             detail: detailed ? 'cell detail' : cellPixels >= 3.2 ? 'micro grid' : 'overview',
         });
-        // Report steady-state interaction cost after the one-time path compilation frame.
-        if (!overviewWasCached || !fieldWasCached || this.tiles.pending) this.invalidate();
+        if (this.overviewPending || this.tiles.pending) this.invalidate();
     }
 
     visibleCells(model) {
@@ -224,158 +224,141 @@ export class MapRenderer {
         }
     }
 
-    drawOverviewCells(ctx, { model, layers, view }, visibleCells) {
-        const cache = this.overviewCache(model);
+    drawOverviewCells(ctx, { model, layers, view }) {
         if (view && view !== 'terrain') {
-            if (!cache.fields.has(view)) {
-                const paths = new Map();
-                for (const cell of model.cells) {
-                    const color = fieldColor(cell, view);
-                    if (!paths.has(color)) paths.set(color, new Path2D());
-                    traceHex(paths.get(color), cell.x, cell.y, model.cellSize * 1.012);
-                }
-                cache.fields.set(view, paths);
-            }
-            for (const [color, path] of cache.fields.get(view)) {
-                ctx.fillStyle = color;
-                ctx.fill(path);
-            }
+            this.drawOverviewRaster(ctx, model, `field:${view}`, (paint, cell) => {
+                paint.fillStyle = fieldColor(cell, view);
+                paint.beginPath();
+                traceHex(paint, cell.x, cell.y, model.cellSize * 1.012);
+                paint.fill();
+            });
             return;
         }
         if (layers.terrain) {
             const key = layers.relief ? 'relief' : 'flat';
-            if (!cache.landscapes.has(key)) {
-                // Bounded overview raster blends sub-pixel color seams. The
-                // operational grid/picking and diagnostic views remain exact.
-                const scale = Math.min(1, 1536 / Math.max(model.width, model.height));
-                const source = document.createElement('canvas');
-                source.width = Math.ceil(model.width * scale);
-                source.height = Math.ceil(model.height * scale);
-                const paint = source.getContext('2d');
-                paint.scale(scale, scale);
-                for (const [color, path] of layers.relief ? cache.reliefPaths : cache.terrainPaths) {
-                    paint.fillStyle = color;
-                    paint.strokeStyle = color;
-                    paint.lineWidth = model.cellSize * 0.12;
-                    paint.fill(path);
-                    paint.stroke(path);
-                }
-                const surface = document.createElement('canvas');
-                surface.width = source.width;
-                surface.height = source.height;
-                const surfaceCtx = surface.getContext('2d');
-                surfaceCtx.filter = `blur(${Math.max(0.5, model.cellSize * scale * 0.3)}px)`;
-                surfaceCtx.drawImage(source, 0, 0);
-                cache.landscapes.set(key, surface);
-                this.invalidate();
-            }
-            ctx.save();
-            ctx.clip(cache.allCells);
-            ctx.drawImage(cache.landscapes.get(key), 0, 0, model.width, model.height);
-            ctx.restore();
+            this.drawOverviewRaster(ctx, model, `terrain:${key}`, (paint, cell) => {
+                const color = layers.relief ? cell.reliefColor : cell.terrainColor;
+                paint.fillStyle = color;
+                paint.strokeStyle = color;
+                paint.lineWidth = model.cellSize * 0.12;
+                paint.beginPath();
+                traceHex(paint, cell.x, cell.y, model.cellSize * 1.012);
+                paint.fill();
+                paint.stroke();
+            });
         } else {
-            ctx.fillStyle = '#4d5659';
-            ctx.fill(cache.allCells);
+            this.drawOverviewRaster(ctx, model, 'terrain:disabled', (paint, cell) => {
+                paint.fillStyle = '#4d5659';
+                paint.beginPath();
+                traceHex(paint, cell.x, cell.y, model.cellSize * 1.012);
+                paint.fill();
+            });
         }
         if (layers.political) {
+            const nations = Object.values(this.getState().nations ?? {});
+            const colors = new Map(nations.map((nation) => [nation.id, nation.color]));
+            const signature = nations
+                .map((nation) => `${nation.id}:${nation.color}`)
+                .sort()
+                .join('|');
+            const revision = this.overviewCache(model).ownershipRevision;
             ctx.globalAlpha = 0.23;
-            for (const nation of Object.values(this.getState().nations ?? {})) {
-                const path = cache.politicalPaths.get(nation.id);
-                if (!path) continue;
-                ctx.fillStyle = nation.color;
-                ctx.fill(path);
-            }
+            this.drawOverviewRaster(ctx, model, `political:${revision}:${signature}`, (paint, cell) => {
+                const color = !isWater(cell) && colors.get(cell.politicalOwnerId);
+                if (!color) return;
+                paint.fillStyle = color;
+                paint.beginPath();
+                traceHex(paint, cell.x, cell.y, model.cellSize * 0.985);
+                paint.fill();
+            });
             ctx.globalAlpha = 1;
         }
         if (layers.control) {
-            const controlled = visibleCells.filter(
-                (cell) => cell.controllerId && cell.controllerId !== cell.politicalOwnerId,
-            );
-            for (const nation of Object.values(this.getState().nations ?? {})) {
-                const cells = controlled.filter((cell) => cell.controllerId === nation.id);
-                if (!cells.length) continue;
-                const path = new Path2D();
-                for (const cell of cells) traceHex(path, cell.x, cell.y, model.cellSize * 0.985);
-                ctx.fillStyle = nation.color;
-                ctx.globalAlpha = 0.72;
-                ctx.fill(path);
-            }
+            const nations = Object.values(this.getState().nations ?? {});
+            const colors = new Map(nations.map((nation) => [nation.id, nation.color]));
+            const signature = nations
+                .map((nation) => `${nation.id}:${nation.color}`)
+                .sort()
+                .join('|');
+            const revision = this.overviewCache(model).ownershipRevision;
+            ctx.globalAlpha = 0.72;
+            this.drawOverviewRaster(ctx, model, `control:${revision}:${signature}`, (paint, cell) => {
+                const color = cell.controllerId !== cell.politicalOwnerId && colors.get(cell.controllerId);
+                if (!color) return;
+                paint.fillStyle = color;
+                paint.beginPath();
+                traceHex(paint, cell.x, cell.y, model.cellSize * 0.985);
+                paint.fill();
+            });
             ctx.globalAlpha = 1;
         }
     }
 
     overviewCache(model) {
-        const existing = this.#overviewCache.get(model);
+        const existing = sharedOverviewCaches.get(model);
         if (existing) return existing;
-        const allCells = new Path2D();
-        const terrainPaths = new Map();
-        const reliefPaths = new Map();
-        const politicalPaths = new Map();
-        const borders = new Path2D();
-        const microGrid = new Path2D();
-        const pathFor = (collection, key) => {
-            if (!collection.has(key)) collection.set(key, new Path2D());
-            return collection.get(key);
-        };
-        for (const cell of model.cells) {
-            traceHex(allCells, cell.x, cell.y, model.cellSize * 1.012);
-            traceHex(pathFor(terrainPaths, cell.terrainColor), cell.x, cell.y, model.cellSize * 1.012);
-            traceHex(pathFor(reliefPaths, cell.reliefColor), cell.x, cell.y, model.cellSize * 1.012);
-            traceHex(microGrid, cell.x, cell.y, model.cellSize * 0.985);
-            if (cell.politicalOwnerId && !isWater(cell))
-                traceHex(
-                    pathFor(politicalPaths, cell.politicalOwnerId),
-                    cell.x,
-                    cell.y,
-                    model.cellSize * 0.985,
-                );
-            const corners = Array.from({ length: 6 }, (_, index) => {
-                const angle = ((60 * index - 30) * Math.PI) / 180;
-                return {
-                    x: cell.x + model.cellSize * 0.985 * Math.cos(angle),
-                    y: cell.y + model.cellSize * 0.985 * Math.sin(angle),
-                };
-            });
-            const edgeCorners = [
-                [0, 1],
-                [5, 0],
-                [4, 5],
-                [3, 4],
-                [2, 3],
-                [1, 2],
-            ];
-            neighborCoordinates(cell.q, cell.r).forEach(({ q, r }, index) => {
-                if (model.cellById.get(axialKey(q, r))?.regionId === cell.regionId) return;
-                const [from, to] = edgeCorners[index];
-                borders.moveTo(corners[from].x, corners[from].y);
-                borders.lineTo(corners[to].x, corners[to].y);
-            });
-        }
         const created = {
-            allCells,
-            terrainPaths,
-            reliefPaths,
-            politicalPaths,
-            borders,
-            microGrid,
-            fields: new Map(),
-            landscapes: new Map(),
+            scale: Math.min(1, 1536 / Math.max(model.width, model.height)),
+            rasters: new Map(),
+            ownershipRevision: 0,
         };
-        this.#overviewCache.set(model, created);
+        sharedOverviewCaches.set(model, created);
         return created;
+    }
+
+    overviewRaster(model, key, painter) {
+        const cache = this.overviewCache(model);
+        let raster = cache.rasters.get(key);
+        if (!raster) {
+            const canvas = document.createElement('canvas');
+            canvas.width = Math.max(1, Math.ceil(model.width * cache.scale));
+            canvas.height = Math.max(1, Math.ceil(model.height * cache.scale));
+            const context = canvas.getContext('2d');
+            context.scale(cache.scale, cache.scale);
+            raster = { canvas, context, painter, index: 0, ready: false };
+            cache.rasters.set(key, raster);
+            while (cache.rasters.size > OVERVIEW_RASTER_LIMIT)
+                cache.rasters.delete(cache.rasters.keys().next().value);
+        } else {
+            // Active main-map/minimap surfaces stay ahead of inactive analysis views.
+            cache.rasters.delete(key);
+            cache.rasters.set(key, raster);
+        }
+        return raster;
+    }
+
+    advanceOverviewRaster(model, raster) {
+        if (raster.ready) return;
+        const started = performance.now();
+        while (raster.index < model.cells.length) {
+            const end = Math.min(model.cells.length, raster.index + 32);
+            while (raster.index < end) raster.painter(raster.context, model.cells[raster.index++]);
+            if (performance.now() - started >= OVERVIEW_FRAME_BUDGET) break;
+        }
+        raster.ready = raster.index >= model.cells.length;
+    }
+
+    drawOverviewRaster(ctx, model, key, painter) {
+        const raster = this.overviewRaster(model, key, painter);
+        this.advanceOverviewRaster(model, raster);
+        ctx.drawImage(raster.canvas, 0, 0, model.width, model.height);
+        if (!raster.ready) {
+            this.overviewPending = true;
+            this.overviewProgress = Math.min(
+                this.overviewProgress,
+                raster.index / Math.max(1, model.cells.length),
+            );
+        }
+        return raster.ready;
     }
 
     /** Ownership changes do not invalidate static terrain, water or landscape caches. */
     updateOwnership(model) {
-        const cached = this.#overviewCache.get(model);
+        const cached = sharedOverviewCaches.get(model);
         if (cached) {
-            const paths = new Map();
-            for (const cell of model.cells) {
-                if (!cell.politicalOwnerId || isWater(cell)) continue;
-                if (!paths.has(cell.politicalOwnerId)) paths.set(cell.politicalOwnerId, new Path2D());
-                traceHex(paths.get(cell.politicalOwnerId), cell.x, cell.y, model.cellSize * 0.985);
-            }
-            cached.politicalPaths = paths;
+            cached.ownershipRevision++;
+            for (const key of cached.rasters.keys())
+                if (key.startsWith('political:') || key.startsWith('control:')) cached.rasters.delete(key);
         }
         this.invalidate();
     }
@@ -463,7 +446,13 @@ export class MapRenderer {
         ctx.strokeStyle = 'rgba(238, 232, 207, 0.2)';
         ctx.lineWidth = 0.75;
         if (useOverviewCache) {
-            ctx.stroke(this.overviewCache(model).microGrid);
+            this.drawOverviewRaster(ctx, model, 'overlay:micro-grid', (paint, cell) => {
+                paint.strokeStyle = 'rgba(238, 232, 207, 0.2)';
+                paint.lineWidth = 0.75;
+                paint.beginPath();
+                traceHex(paint, cell.x, cell.y, model.cellSize * 0.985);
+                paint.stroke();
+            });
             return;
         }
         ctx.beginPath();
@@ -476,7 +465,34 @@ export class MapRenderer {
         ctx.lineWidth = Math.max(2.4, model.cellSize * 0.11);
         ctx.lineJoin = 'round';
         if (useOverviewCache) {
-            ctx.stroke(this.overviewCache(model).borders);
+            this.drawOverviewRaster(ctx, model, 'overlay:region-borders', (paint, cell) => {
+                const corners = Array.from({ length: 6 }, (_, index) => {
+                    const angle = ((60 * index - 30) * Math.PI) / 180;
+                    return {
+                        x: cell.x + model.cellSize * 0.985 * Math.cos(angle),
+                        y: cell.y + model.cellSize * 0.985 * Math.sin(angle),
+                    };
+                });
+                const edgeCorners = [
+                    [0, 1],
+                    [5, 0],
+                    [4, 5],
+                    [3, 4],
+                    [2, 3],
+                    [1, 2],
+                ];
+                paint.strokeStyle = 'rgba(255, 230, 177, 0.94)';
+                paint.lineWidth = Math.max(2.4, model.cellSize * 0.11);
+                paint.lineJoin = 'round';
+                neighborCoordinates(cell.q, cell.r).forEach(({ q, r }, index) => {
+                    if (model.cellById.get(axialKey(q, r))?.regionId === cell.regionId) return;
+                    const [from, to] = edgeCorners[index];
+                    paint.beginPath();
+                    paint.moveTo(corners[from].x, corners[from].y);
+                    paint.lineTo(corners[to].x, corners[to].y);
+                    paint.stroke();
+                });
+            });
             return;
         }
         ctx.beginPath();

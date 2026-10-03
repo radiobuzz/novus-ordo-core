@@ -108,11 +108,26 @@ final class PolicyCatalogue {
      * cannot change existing policies, defaults, chosen values or testing permissions.
      */
     public function installPublicInvestment(Game $game, int $expectedCounter): array {
-        return app(GameMutation::class)->run($game, function () use ($game, $expectedCounter) {
+        return $this->installMissing($game, $expectedCounter, fn ($document) => PublicInvestmentPolicies::appendMissing($document, ResourceCatalogue::forGame($game)->resources));
+    }
+
+    public function installIncomeSupport(Game $game, int $expectedCounter): array {
+        return $this->installMissing($game, $expectedCounter, function ($document) {
+            foreach ($document['policies'] as $policy) foreach ($policy['options'] as $option) foreach ($option['effects'] as $effect)
+                if ($effect['effect_type'] === 'budget.income_support') return $document;
+            if (in_array('income_support', array_column($document['policies'], 'key'), true)) PolicyValues::fail('catalogue', 'Income support policy identity is already used.');
+            $template = json_decode(file_get_contents(database_path('policy-templates/economy.json')), true, flags: JSON_THROW_ON_ERROR);
+            $document['policies'][] = collect($template['policies'])->firstWhere('key', 'income_support');
+            return $document;
+        });
+    }
+
+    private function installMissing(Game $game, int $expectedCounter, callable $append): array {
+        return app(GameMutation::class)->run($game, function () use ($game, $expectedCounter, $append) {
             $current = $this->forGame($game);
             if (!$current) abort(409, 'The game has no policy catalogue.');
             if ((int) $current['set']['edit_counter'] !== $expectedCounter) abort(409, 'Policy definitions changed. Reload before installing.');
-            $document = PublicInvestmentPolicies::appendMissing($current['document'], ResourceCatalogue::forGame($game)->resources);
+            $document = $append($current['document']);
             $added = array_values(array_diff(array_column($document['policies'], 'key'), array_column($current['document']['policies'], 'key')));
             if (!$added) return ['game_id' => $game->id, 'added' => [], 'edit_counter' => $expectedCounter, 'diagnostics' => []];
             $document = app(PolicyDefinitionValidator::class)->validate($document);
@@ -120,7 +135,7 @@ final class PolicyCatalogue {
             $this->write($current['set']['id'], $document);
             DB::table('policy_sets')->where('id', $current['set']['id'])->update(['edit_counter' => $expectedCounter + 1, 'updated_at' => now()]);
             $diagnostics = app(PolicyService::class)->rebuild($game, $this->load($current['set']['id']));
-            if ($diagnostics) PolicyValues::fail('catalogue', 'Existing policy choices must be valid before adding investment controls.');
+            if ($diagnostics) PolicyValues::fail('catalogue', 'Existing policy choices must be valid before adding policies.');
             return ['game_id' => $game->id, 'added' => $added, 'edit_counter' => $expectedCounter + 1, 'diagnostics' => []];
         });
     }

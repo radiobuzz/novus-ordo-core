@@ -1,18 +1,30 @@
 import { resourceName } from '../../ui/resourceVisuals.js';
+import { publicInvestmentAllowed } from '../../services/production.js';
 import { el } from '../../ui/dom.js';
 import { panel } from '../../ui/Panel.js';
 import { Button } from '../../ui/Button.js';
 import { FieldShell } from '../../ui/FieldShell.js';
+import { Tabs } from '../../ui/Tabs.js';
+import { Tooltip } from '../../ui/Tooltip.js';
+import { policyGroup, seasonFinance } from './economyGroups.js';
 import { Scope } from '../../runtime/Scope.js';
 import './economy.scss';
+import { FinanceControls } from './FinanceControls.js';
+import { EconomicHistoryView } from './EconomicHistoryView.js';
+import { TimeSeriesChart } from '../../ui/TimeSeriesChart.js';
+import { nationalPoint } from './historySeries.js';
+import { treasuryChange } from '../../ui/financeProjection.js';
 import { MetricTable } from './MetricTable.js';
 import { CivilianEconomyView } from './CivilianEconomyView.js';
+import { economicWarning } from '../../services/economicWarnings.js';
 
 const copy = (value) => structuredClone(value);
 const signature = (value) => JSON.stringify(value);
 const supported = new Set([
     'finance.income_tax',
+    'finance.treasury_reserve',
     'budget.program_funding',
+    'budget.income_support',
     'allocation.infrastructure_priority',
     'production.development_funding',
     'allocation.production_priority',
@@ -39,9 +51,29 @@ export class EconomyPanel {
         };
         this.element = el('div', { class: 'economy-workspace' });
         this.summary = el('div', { class: 'economy-summary' });
+        this.balanceHelp = new Tooltip({
+            scope,
+            text: this.t('seasonBalanceHelp'),
+            label: this.t('seasonBalance'),
+        });
+        this.treasuryHelp = new Tooltip({
+            scope,
+            text: this.t('treasuryChangeHelp'),
+            label: this.t('balance'),
+        });
         this.civilian = new CivilianEconomyView(services.i18n);
         this.civilianPanel = surface('civilianTitle', {}, this.civilian.element);
-        this.warning = el('p', { class: 'economy-warning', role: 'status' });
+        this.warning = el('button', {
+            type: 'button',
+            class: 'economy-warning',
+            'data-icon': 'none',
+            'aria-expanded': 'false',
+        });
+        this.warningList = el('ul', { class: 'economy-warning-list', hidden: true });
+        scope.listen(this.warning, 'click', () => {
+            this.warningList.hidden = !this.warningList.hidden;
+            this.warning.setAttribute('aria-expanded', String(!this.warningList.hidden));
+        });
         this.table = el('div', { class: 'economy-budget' });
         this.reportTables = new Map();
         this.previewNote = el('p', { class: 'economy-preview-status', role: 'status' });
@@ -52,23 +84,18 @@ export class EconomyPanel {
             label('span', 'colourExpense', { 'data-tone': 'warning' }),
             label('span', 'colourProblem', { 'data-tone': 'danger' }),
         );
-        this.policyRows = el('div');
+        this.policyRows = el('div', { class: 'economy-policy-panels' });
         this.outlook = el('div', { class: 'economy-indicators' });
         this.food = el('div', { class: 'game-table-scroll' });
         this.territories = el('div', { class: 'game-table-scroll' });
-        this.feedback = el('p', { role: 'status', 'aria-live': 'polite' });
-        this.reviewContent = el('div', { hidden: true });
+        this.feedback = el('p', { class: 'economy-action-status', role: 'status', 'aria-live': 'polite' });
+        this.reviewContent = el('div', { class: 'economy-review', hidden: true });
         this.review = new Button({ label: this.t('review'), variant: 'primary' });
         this.save = new Button({ label: this.t('save'), variant: 'primary' });
         this.discard = new Button({ label: this.t('discard') });
         this.continue = new Button({ label: this.t('keepEditing') });
         this.reviewList = el('ul');
-        this.reviewContent.append(
-            this.reviewList,
-            label('p', 'timing'),
-            this.save.element,
-            this.continue.element,
-        );
+        this.reviewContent.append(this.reviewList, label('p', 'timing'), this.continue.element);
         this.footer = surface(
             'changes',
             { className: 'economy-actions' },
@@ -77,33 +104,88 @@ export class EconomyPanel {
             this.discard.element,
             this.reviewContent,
         );
-        this.element.append(
-            this.summary,
-            this.warning,
-            this.civilianPanel,
+        this.save.element.hidden = false;
+        this.save.element.dataset.saveStage = 'review';
+        this.footer.insertBefore(this.save.element, this.reviewContent);
+        this.review.element.hidden = true;
+        this.top = el(
+            'div',
+            { class: 'economy-top' },
+            el('div', { class: 'economy-overview' }, this.summary),
+            this.footer,
             el(
                 'div',
-                { class: 'economy-columns' },
-                surface(
-                    'budget',
-                    {},
-                    this.colourKey,
-                    this.previewNote,
-                    this.table,
-                    label('p', 'forecastHelp', { class: 'economy-help' }),
-                ),
-                surface('policies', {}, this.policyRows),
+                { class: 'economy-statuses' },
+                this.warning,
+                this.warningList,
+                this.previewNote,
+                this.feedback,
             ),
-            surface('foodSecurity', {}, this.food, label('p', 'foodHelp', { class: 'economy-help' })),
-            surface(
-                'outlook',
-                {},
-                this.outlook,
-                label('p', 'outlookHelp', { class: 'economy-help' }),
-                el('details', {}, label('summary', 'territories'), this.territories),
-            ),
-            this.footer,
+            this.reviewContent,
         );
+        this.budgetPanels = new Map(
+            ['spending', 'revenue', 'finance', 'civilian', 'history', 'territories'].map((key) => [
+                key,
+                el('div', { class: 'economy-tab-content', 'data-budget-group': key }),
+            ]),
+        );
+        this.policyPanels = new Map(
+            [
+                'taxation',
+                'support',
+                'infrastructure',
+                'production',
+                'food',
+                'institutions',
+                'finance',
+                'other',
+            ].map((key) => [key, el('div', { class: 'economy-tab-content', 'data-policy-group': key })]),
+        );
+        this.budgetTabs = new Tabs(scope, { label: this.t('budget') });
+        this.policyTabs = new Tabs(scope, { label: this.t('policies') });
+        this.budgetPanels.get('civilian').append(this.civilianPanel, surface('foodSecurity', {}, this.food));
+        this.budgetPanels.get('territories').append(this.outlook, this.territories);
+        this.budgetPanels.get('spending').append(this.colourKey);
+        this.budgetColumn = surface(
+            'budget',
+            { className: 'economy-column' },
+            this.budgetTabs.element,
+            ...this.budgetPanels.values(),
+        );
+        this.policyColumn = surface(
+            'policies',
+            { className: 'economy-column' },
+            this.policyTabs.element,
+            this.policyRows,
+        );
+        this.policyRows.append(...this.policyPanels.values());
+        this.mobileTabs = new Tabs(scope, { label: this.t('workspaceSides') });
+        this.mobileTabs.setItems([
+            { key: 'budget', label: this.t('budget'), panel: el('div') },
+            { key: 'policies', label: this.t('policies'), panel: el('div') },
+        ]);
+        this.mobileTabs.onSelect = (key) => (this.element.dataset.side = key);
+        this.element.dataset.side = 'budget';
+        this.columns = el('div', { class: 'economy-columns' }, this.budgetColumn, this.policyColumn);
+        this.element.append(this.top, this.mobileTabs.element, this.columns);
+        this.trend = new TimeSeriesChart(scope, services.i18n, { compact: true });
+        this.trend.element.classList.add('economy-mini-trend');
+        this.trend.plot.setAttribute('tabindex', '-1');
+        this.top.querySelector('.economy-overview').append(this.trend.element);
+        this.history = new EconomicHistoryView(scope, services, {
+            onData: (data) => {
+                this.trend.update({
+                    title: this.t('seasonBalance'),
+                    unit: this.t('credits'),
+                    points: data.seasons.map(nationalPoint),
+                    series: [{ key: 'balance', label: this.t('seasonBalance') }],
+                });
+            },
+        });
+        this.budgetPanels.get('history').append(this.history.element);
+        this.financeControls = new FinanceControls(scope, services);
+        this.budgetPanels.get('finance').append(this.financeControls.element);
+        this.updateTabs();
         scope.listen(this.review.element, 'click', () => {
             this.reviewContent.hidden = false;
             const choices = { ...this.policies.current, ...this.draft.changes };
@@ -123,11 +205,13 @@ export class EconomyPanel {
                 );
             if (!this.reviewList.childNodes.length)
                 this.reviewList.append(el('li', { text: this.t('cancelPending') }));
+            this.save.setLabel(this.t('save'));
             this.save.element.focus();
         });
         scope.listen(this.continue.element, 'click', () => {
             this.reviewContent.hidden = true;
-            this.review.element.focus();
+            this.save.setLabel(this.t('reviewSave'));
+            this.save.element.focus();
         });
         scope.listen(this.discard.element, 'click', () => {
             this.draft.changes = null;
@@ -141,7 +225,10 @@ export class EconomyPanel {
             this.buildInputs();
             this.paint();
         });
-        scope.listen(this.save.element, 'click', () => void this.submit());
+        scope.listen(this.save.element, 'click', () => {
+            if (this.reviewContent.hidden) this.review.element.click();
+            else void this.submit();
+        });
         services.gameplay.economicDraftChanged.subscribe(scope, () => {
             if (this.snapshot) {
                 const choices = {
@@ -213,6 +300,8 @@ export class EconomyPanel {
             this.previewSequence++;
         }
         this.paint();
+        this.history.update(snapshot);
+        this.financeControls.update(snapshot);
         if (
             (this.draft.changes !== null || Object.keys(this.services.gameplay.drafts(snapshot)).length) &&
             !this.conflict
@@ -241,7 +330,8 @@ export class EconomyPanel {
         void this.inputsScope?.dispose();
         this.inputsScope = new Scope();
         this.inputs = [];
-        this.policyRows.replaceChildren();
+        this.investmentNotices = new Map();
+        for (const group of this.policyPanels.values()) group.replaceChildren();
         this.inputSignature = this.confirmedSignature;
         const choices = { ...this.policies.current, ...(this.draft.changes ?? this.policies.pending) };
         for (const p of this.definitions) {
@@ -249,7 +339,7 @@ export class EconomyPanel {
             if (!choice) continue;
             const group = el(
                 'fieldset',
-                { class: 'economy-policy' },
+                { class: 'economy-policy', 'aria-label': this.localize(p.labels) },
                 el('legend', { text: this.localize(p.labels) }),
                 el('p', {
                     class: 'economy-help',
@@ -259,6 +349,19 @@ export class EconomyPanel {
             const unsupported = p.options.some((o) => o.effects.some((e) => !supported.has(e.effect_type)));
             if (unsupported)
                 group.append(el('p', { class: 'economy-help', text: this.t('configurationOnly') }));
+            if (
+                p.options.some((o) =>
+                    o.effects.some((e) => e.effect_type === 'production.development_funding'),
+                )
+            ) {
+                const notice = el('p', {
+                    class: 'economy-investment-notice',
+                    'data-tone': 'warning',
+                    hidden: true,
+                });
+                this.investmentNotices.set(p.key, notice);
+                group.append(notice);
+            }
             if (p.options.length > 1) {
                 const select = el(
                     'select',
@@ -293,8 +396,60 @@ export class EconomyPanel {
                 );
             }
             const description = this.localize(p.descriptions);
-            if (description) group.append(el('p', { class: 'economy-help', text: description }));
-            this.policyRows.append(group);
+            if (description)
+                group.querySelector('legend').append(
+                    new Tooltip({
+                        scope: this.inputsScope,
+                        text: description,
+                        label: this.services.i18n.t('common.helpFor', { name: this.localize(p.labels) }),
+                    }).element,
+                );
+            group.dataset.policyKey = p.key;
+            this.policyPanels.get(policyGroup(p)).append(group);
+        }
+    }
+    updateTabs() {
+        // Empty groups have no tab, so Tabs cannot hide them. Keep them out of layout.
+        for (const panel of this.policyPanels.values()) if (!panel.childNodes.length) panel.hidden = true;
+        this.budgetTabs.setItems(
+            [...this.budgetPanels].map(([key, panel]) => ({ key, label: this.t(`tab_${key}`), panel })),
+        );
+        this.policyTabs.setItems(
+            [...this.policyPanels]
+                .filter(([, panel]) => panel.childNodes.length)
+                .map(([key, panel]) => {
+                    const controls = (this.inputs ?? []).filter((c) => panel.contains(c.input));
+                    const invalid = controls.some((c) => c.inactiveInvalid || !c.input.checkValidity());
+                    const changed = new Set(
+                        controls.filter((c) => this.draft?.changes?.[c.key]).map((c) => c.key),
+                    ).size;
+                    return {
+                        key,
+                        label: this.t(`tab_${key}`),
+                        panel,
+                        badge: invalid
+                            ? { text: '!', label: this.t('invalid'), tone: 'danger' }
+                            : changed
+                              ? { text: String(changed), label: this.t('unsaved') }
+                              : null,
+                    };
+                }),
+        );
+        this.mobileTabs.setItems(
+            [...this.mobileTabs.items].map(([key, item]) => ({ key, label: this.t(key), panel: item.panel })),
+        );
+    }
+    updateInvestmentAvailability() {
+        const inactive = !publicInvestmentAllowed(this.policies, this.draft.changes);
+        for (const [key, notice] of this.investmentNotices ?? []) {
+            notice.hidden = !inactive;
+            notice.textContent = this.t('publicInvestmentInactive');
+            for (const control of this.inputs.filter((c) => c.key === key)) {
+                // Disabling an inactive lever must not hide invalid retained draft values.
+                control.input.disabled = false;
+                control.inactiveInvalid = inactive && !control.input.checkValidity();
+                control.input.disabled = inactive;
+            }
         }
     }
     edit() {
@@ -350,7 +505,7 @@ export class EconomyPanel {
         }, 350);
     }
     validInputs() {
-        return this.inputs.every(({ input }) => input.checkValidity());
+        return this.inputs.every(({ input, inactiveInvalid }) => !inactiveInvalid && input.checkValidity());
     }
     async submit() {
         if (!this.canSave) return;
@@ -404,6 +559,13 @@ export class EconomyPanel {
     }
     paint() {
         if (!this.policies?.enabled) return;
+        const busy = this.services.gameplay.busy;
+        this.policyRows.querySelectorAll('fieldset').forEach((f) => {
+            f.disabled = busy || !this.services.world.current || this.services.gameplay.needsReview;
+        });
+        this.updateInvestmentAvailability();
+        this.updateTabs();
+        this.save.setLabel(this.t(this.reviewContent.hidden ? 'reviewSave' : 'save'));
         const economy = this.snapshot.nation.economy;
         const dirty =
             this.draft.changes !== null ||
@@ -417,15 +579,16 @@ export class EconomyPanel {
             dirty && !this.preview
                 ? this.previewError ||
                   this.t(baseline || this.displayPreview ? 'previousEstimate' : 'calculating')
-                : '';
+                : dirty
+                  ? this.t('draftActive')
+                  : this.t('savedEstimate');
         this.previewNote.dataset.tone = this.previewError || !this.validInputs() ? 'danger' : 'warning';
-        this.table.setAttribute(
+        this.element.setAttribute(
             'aria-busy',
             String(dirty && !this.preview && !this.previewError && this.validInputs()),
         );
-        const busy = this.services.gameplay.busy;
-        for (const { input } of this.inputs)
-            input.setAttribute('aria-invalid', String(!input.checkValidity()));
+        for (const { input, inactiveInvalid } of this.inputs)
+            input.setAttribute('aria-invalid', String(Boolean(inactiveInvalid) || !input.checkValidity()));
         this.canSave =
             dirty &&
             this.validInputs() &&
@@ -438,9 +601,6 @@ export class EconomyPanel {
         this.save.element.disabled = !this.canSave;
         this.discard.element.hidden = !dirty;
         this.discard.element.disabled = busy;
-        this.policyRows.querySelectorAll('fieldset').forEach((f) => {
-            f.disabled = busy || !this.services.world.current || this.services.gameplay.needsReview;
-        });
         this.feedback.textContent = this.conflict
             ? this.t('conflict')
             : !this.validInputs()
@@ -449,9 +609,9 @@ export class EconomyPanel {
                 (this.preview?.violations?.length
                     ? this.preview.violations.map((v) => this.localize(v.message)).join(' ')
                     : dirty
-                      ? this.t(this.preview ? 'unsaved' : 'calculating')
+                      ? this.t(this.preview ? 'unsavedShort' : 'calculating')
                       : Object.keys(this.policies.pending).length
-                        ? this.t('pending')
+                        ? this.t('pendingShort')
                         : this.t('noChanges')));
         if (!economy) {
             this.summary.textContent = this.t('notEnabled');
@@ -459,35 +619,82 @@ export class EconomyPanel {
             return;
         }
         const forecast = proposed?.expected;
+        const finances = seasonFinance(forecast);
+        this.balanceHelp.setText(this.t('seasonBalanceHelp'));
+        this.balanceHelp.setLabel(this.t('seasonBalance'));
+        this.treasuryHelp.setText(this.t('treasuryChangeHelp'));
+        this.treasuryHelp.setLabel(this.t('balance'));
         this.summary.replaceChildren(
             ...[
+                ['balance', finances.treasuryChange],
+                ['seasonBalance', finances.balance],
+                ['receipts', finances.receipts],
+                ['spending', finances.spending],
                 ['availableCash', economy.available_cash],
-                ['committed', economy.committed_cash],
+                ['closing_treasury', forecast?.closing_treasury],
                 ['debt', economy.state.debt],
-                ['credit', baseline?.expected.fiscal.credit_limit],
+                ['fiscal.closing_debt', forecast?.fiscal.closing_debt],
             ].map(([key, value]) =>
                 el(
                     'div',
-                    {},
-                    el('span', { text: this.t(key) }),
+                    {
+                        class: key === 'balance' ? 'economy-primary-balance' : '',
+                        'data-summary-metric': key,
+                    },
+                    el(
+                        'span',
+                        {},
+                        this.t(key),
+                        key === 'balance'
+                            ? this.treasuryHelp.element
+                            : key === 'seasonBalance'
+                              ? this.balanceHelp.element
+                              : null,
+                    ),
                     el('strong', {
-                        text: this.number(value),
+                        text: (key === 'balance' && value > 0 ? '+' : '') + this.number(value),
                         'data-tone':
-                            key === 'debt' && Number(value) > 0
-                                ? 'warning'
-                                : key === 'availableCash' && Number(value) <= 0
-                                  ? 'danger'
+                            key === 'balance' || key === 'seasonBalance'
+                                ? value < 0
+                                    ? 'danger'
+                                    : value > 0
+                                      ? 'ready'
+                                      : 'neutral'
+                                : key.includes('debt') && Number(value) > 0
+                                  ? 'warning'
                                   : 'neutral',
                     }),
                 ),
             ),
         );
-        this.warning.textContent = (proposed?.warnings ?? [])
-            .map((warning) => this.t(warning.type))
-            .join(' ');
+        const warnings = proposed?.warnings ?? [];
+        const severity = (type) =>
+            [
+                'default',
+                'food_shortage',
+                'payroll_shortfall',
+                'maintenance_shortfall',
+                'annexed_maintenance_no_workforce',
+            ].includes(type)
+                ? 1
+                : 0;
+        const ordered = [...warnings].sort((a, b) => severity(b.type) - severity(a.type));
+        this.warning.textContent = ordered.length
+            ? `${economicWarning(this.services.i18n, ordered[0])}${ordered.length > 1 ? ` (+${ordered.length - 1})` : ''}`
+            : '';
+        this.warningList.replaceChildren(
+            ...ordered.map((w) => el('li', { text: economicWarning(this.services.i18n, w) })),
+        );
+        if (!ordered.length) this.warningList.hidden = true;
         this.warning.hidden = !this.warning.textContent;
         this.warning.dataset.tone = (proposed?.warnings ?? []).some((w) =>
-            ['default', 'food_shortage', 'payroll_shortfall', 'maintenance_shortfall'].includes(w.type),
+            [
+                'default',
+                'food_shortage',
+                'payroll_shortfall',
+                'maintenance_shortfall',
+                'annexed_maintenance_no_workforce',
+            ].includes(w.type),
         )
             ? 'danger'
             : 'warning';
@@ -502,9 +709,7 @@ export class EconomyPanel {
         this.civilianPanel.hidden = this.civilian.element.hidden;
         const value = (report, key) =>
             key === 'balance'
-                ? report
-                    ? Number(report.closing_treasury) - Number(report.opening_treasury)
-                    : null
+                ? treasuryChange(report)
                 : key === 'infrastructure_paid'
                   ? report
                       ? Object.values(report.infrastructure ?? {}).reduce(
@@ -531,19 +736,29 @@ export class EconomyPanel {
             if (!view) {
                 view = {
                     table: new MetricTable(),
-                    title: el('h3'),
-                    help: el('p', { class: 'economy-help' }),
+                    caption: el('span'),
+                    help: new Tooltip({ scope: this.scope, text: '', label: this.t(title) }),
                 };
+                view.title = el('h3', {}, view.caption, view.help.element);
                 this.reportTables.set(title, view);
-                this.table.append(
-                    view.title,
-                    el('div', { class: 'game-table-scroll' }, view.table.element),
-                    view.help,
+                const target = this.budgetPanels.get(
+                    title === 'revenue'
+                        ? 'revenue'
+                        : title === 'financing'
+                          ? 'finance'
+                          : title === 'nationalActivity'
+                            ? 'civilian'
+                            : 'spending',
                 );
+                const table = el('div', { class: 'game-table-scroll' }, view.table.element);
+                if (title === 'financing') this.financeControls.element.before(view.title, table);
+                else target.append(view.title, table);
             }
-            view.title.textContent = this.t(title);
-            view.help.textContent = help ? this.t(help) : '';
-            view.help.hidden = !help;
+            view.caption.textContent = this.t(title);
+            view.title.setAttribute('aria-label', this.t(title));
+            view.help.setText(help ? this.t(help) : '');
+            view.help.setLabel(this.t(title));
+            view.help.element.hidden = !help;
             view.table.update(
                 columns,
                 keys.map((key) => ({
@@ -587,33 +802,38 @@ export class EconomyPanel {
             );
         };
         section(
-            'cashFlows',
+            'spending',
             [
-                'opening_treasury',
-                'tax_receipts',
-                'public_sales',
                 'command_costs',
                 'public_payroll_paid',
                 'public_operations',
                 'government_purchases',
                 'public_development',
+                'support_requested',
                 'support_paid',
                 'infrastructure_paid',
-                'treasury_inflows',
-                'treasury_outflows',
-                'balance',
-                'closing_treasury',
+                'fiscal.interest_due',
             ],
             'cashFlowsHelp',
         );
-        section('financing', [
-            'fiscal.borrowing',
-            'fiscal.interest_due',
-            'fiscal.arrears',
-            'fiscal.principal_repaid',
-            'fiscal.relief',
-            'fiscal.closing_debt',
-        ]);
+        section('revenue', ['tax_receipts', 'public_sales'], 'nationalActivityHelp');
+        section(
+            'financing',
+            [
+                'balance',
+                'opening_treasury',
+                'closing_treasury',
+                'fiscal.borrowing',
+                'fiscal.interest_due',
+                'fiscal.arrears',
+                'fiscal.principal_repaid',
+                'fiscal.relief',
+                'fiscal.closing_debt',
+                'treasury_inflows',
+                'treasury_outflows',
+            ],
+            'financingHelp',
+        );
         section(
             'nationalActivity',
             ['wages', 'realized_profit', 'earned_income', 'private_development'],

@@ -52,6 +52,7 @@ final class ProductionEconomySeason
             'committed_payroll' => '0', 'income_support' => '0', 'release_limits' => [], 'investors' => ['government', 'producer']];
         if (array_diff($plan['investors'], ['government', 'producer'])) throw new DomainException('Invalid institutional investor.');
         foreach (['infrastructure_point_cost', 'infrastructure_workers_per_currency'] as $field) if (Q::cmp($rules[$field], '0') <= 0) throw new DomainException('Invalid infrastructure cost.');
+        $rules['treasury_reserve'] = Q::parse($plan['settings']['finance.treasury_reserve']['treasury'] ?? $rules['treasury_reserve']);
         $infraFunding = self::ratio($plan['settings']['budget.program_funding']['infrastructure'] ?? '0');
         $infrastructure = [];
         $tax = self::ratio($plan['settings']['finance.income_tax']['taxable_income'] ?? '0');
@@ -177,7 +178,8 @@ final class ProductionEconomySeason
         foreach ($civilianProduction['maintenance'] as $m) if ($m['owner'] === 'government')
             $publicOperations = Q::add($publicOperations, Q::mul($m['required'], Q::add($m['wage'], $defs[$m['input']]['price'])));
         $purchaseNeed = self::sum(array_column($rows, 'purchase_limit'));
-        $payroll = Q::parse($plan['public_payroll']); $support = Q::parse($plan['income_support']);
+        $payroll = Q::parse($plan['public_payroll']);
+        $support = Q::parse($plan['settings']['budget.income_support']['households'] ?? $plan['income_support']);
         $infraRequested = self::sum(array_column($infrastructure, 'requested'));
         $requestedBudget = self::sum([$publicOperations, $purchaseNeed, self::sum($programs), $payroll, $support, $infraRequested]);
         $fiscal = self::finance($a, $state, $requestedBudget, $rules);
@@ -296,15 +298,13 @@ final class ProductionEconomySeason
                 self::develop($a, $state, $defs[$key], $key, 'producer', $privateBudget, $growth, 'opportunity', $headroom, $row);
             }
         } unset($row);
-        // A financing envelope is not a bill. Return the unused part of this season's
-        // loan before applying the normal treasury-reserve rule for surplus repayment.
-        $spent = self::sum(array_map(fn ($e) => $e['amount'], array_filter($a->position()['events'],
-            fn ($e) => $e['type'] === 'cash' && $e['from'] === 'government' && !in_array($e['reason'], ['interest', 'principal_repayment'], true))));
-        $spent = self::positive(Q::sub($spent, $committedPayroll));
-        $unusedLoan = Q::min($fiscal['borrowing'], self::positive(Q::sub($requestedBudget, $spent)));
-        $result = $a->close(isset($state['accounts']['lender']) ? ['government' => ['lender' => 'lender', 'reserve' => $rules['treasury_reserve'], 'minimum_repayment' => $unusedLoan]] : []);
+        // Funding precedes seasonal receipts. At close, use available cash (including
+        // final profit taxes) to retire this season's loan before protecting a reserve
+        // from repayment of older debt. close() caps repayment by cash and principal.
+        $result = $a->close(isset($state['accounts']['lender']) ? ['government' => ['lender' => 'lender', 'reserve' => $rules['treasury_reserve'], 'minimum_repayment' => $fiscal['borrowing']]] : []);
         $civilianReport = CivilianProduction::finish($result, $civilianProduction);
         $report = self::report($opening, $result);
+        $report['industries'] = IndustryHistory::summarize($opening, $result, $rows, $civilianProduction['subsistence_total']);
         $recurringReceipts = Q::add($report['tax_receipts'], $report['public_sales']);
         $fiscal['receipts'] = array_slice([...($state['fiscal']['receipts'] ?? []), $recurringReceipts], -4);
         $debt = $result['state']['debts']['government']['lender'] ?? self::Z;
@@ -338,10 +338,11 @@ final class ProductionEconomySeason
         if (Q::cmp(self::sum(array_column($infrastructure, 'paid')), $infraRequested) < 0) $warnings[] = ['type' => 'infrastructure_shortfall'];
         if ($fiscal['default_episode']) $warnings[] = ['type' => 'default'];
         if (Q::cmp($paidPayroll, $payroll) < 0) $warnings[] = ['type' => 'payroll_shortfall'];
+        if (Q::cmp($paidSupport, $support) < 0) $warnings[] = ['type' => 'income_support_shortfall'];
         if (Q::cmp($debt, Q::mul($fiscal['credit_limit'], '0.8')) > 0) $warnings[] = ['type' => 'credit_low'];
         return $result + ['opening_territories' => $state['territories'], 'resources' => $rows, 'report' => $report + ['population' => $population, 'services_delivered' => $servicesDelivered,
             'command_costs' => $committedPayroll, 'profit_distribution' => $distribution, 'public_payroll_requested' => $payroll, 'public_payroll_paid' => $paidPayroll,
-            'support_requested' => $support, 'support_paid' => $paidSupport, 'infrastructure' => $infrastructure, 'food_shortage_ratio' => $foodShortage, 'fiscal' => $fiscal,
+            'support_requested' => $support, 'support_paid' => $paidSupport, 'infrastructure' => $infrastructure, 'infrastructure_budget' => $infraBudget, 'food_shortage_ratio' => $foodShortage, 'fiscal' => $fiscal,
             'civilian' => $civilianReport + ['production' => array_map(fn ($row) => self::sum($row['production']), $rows),
                 'constraints' => array_map(fn ($row) => $row['constraints'], $rows),
                 'public_industry' => array_map(fn ($row) => ['requested' => $row['public_industry_requested'], 'planned' => $row['public_industry_planned'], 'delivered' => $row['public_industry_delivery'], 'revenue' => $row['public_industry_revenue']], $rows),

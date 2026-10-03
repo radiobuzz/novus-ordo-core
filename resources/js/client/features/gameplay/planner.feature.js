@@ -1,3 +1,4 @@
+import { EconomicHistoryView } from './EconomicHistoryView.js';
 import { Component } from '../../runtime/Component.js';
 import { el } from '../../ui/dom.js';
 import { Button } from '../../ui/Button.js';
@@ -5,7 +6,11 @@ import { FieldShell } from '../../ui/FieldShell.js';
 import { Tabs } from '../../ui/Tabs.js';
 import { resourceIcon, resourceName, productionConstraint } from '../../ui/resourceVisuals.js';
 import { MetricTable } from './MetricTable.js';
-import { acquisitionPlan, publicInvestmentControl } from '../../services/production.js';
+import {
+    acquisitionPlan,
+    publicInvestmentControl,
+    publicInvestmentAllowed,
+} from '../../services/production.js';
 
 class ProductionPlanner extends Component {
     render() {
@@ -115,6 +120,31 @@ class ProductionPlanner extends Component {
         const icon = resourceIcon(
             this.snapshot.nation.definitions.resources.find((r) => r.resource_key === key)?.icon_key,
         );
+        const historyHost = el(
+            'details',
+            { class: 'planner-history' },
+            el('summary', { text: this.services.i18n.t('history.industryReport') }),
+        );
+        let historyView;
+        this.scope.listen(historyHost, 'toggle', () => {
+            if (!historyHost.open) return;
+            if (!historyView) {
+                historyView = new EconomicHistoryView(this.scope, this.services, {
+                    resource: key,
+                    compact: true,
+                });
+                historyHost.append(historyView.element);
+            }
+            historyView.update(this.snapshot);
+        });
+        this.services.world.store.subscribe(this.scope, (state) => {
+            if (
+                historyView &&
+                state.snapshot?.nation &&
+                this.services.world.sameScope(this.snapshot, state.snapshot)
+            )
+                historyView.update(state.snapshot, { load: historyHost.open });
+        });
         const card = el(
             'section',
             { class: 'planner-row', 'data-production-resource': key },
@@ -124,6 +154,7 @@ class ProductionPlanner extends Component {
             order.element,
             investmentSection,
             forecast,
+            historyHost,
         );
         for (const input of [quantity, spending_limit, priority])
             this.scope.listen(input, 'input', () => {
@@ -201,20 +232,27 @@ class ProductionPlanner extends Component {
     }
     syncInvestment() {
         const draft = this.services.gameplay.policyDraft(this.snapshot);
+        const allowed = publicInvestmentAllowed(this.snapshot.nation.policies, draft.changes);
         for (const [key, row] of this.rows) {
             const control = publicInvestmentControl(this.snapshot.nation, key, draft.changes);
             row.investmentControl = control;
             row.investmentSection.hidden = !control;
             row.investment.disabled = !control;
+            row.investmentInactiveInvalid = false;
             if (!control) continue;
             row.investmentField.label.textContent = this.t('publicInvestment');
-            row.investmentHelp.textContent = this.t('publicInvestmentHelp');
+            row.investmentHelp.textContent = allowed
+                ? this.t('publicInvestmentHelp')
+                : this.services.i18n.t('economy.publicInvestmentInactive');
             row.investment.min = String(Number(control.parameter.min_value ?? 0) * 100);
             row.investment.max = String(Number(control.parameter.max_value ?? 1) * 100);
             row.investment.step = String(Number(control.parameter.step ?? 0.01) * 100);
             const value = control.value === '' ? '' : String(Number(control.value) * 100);
             if (document.activeElement !== row.investment && row.investment.value !== value)
                 row.investment.value = value;
+            row.investment.disabled = false;
+            row.investmentInactiveInvalid = !allowed && !row.investment.validity.valid;
+            row.investment.disabled = !allowed;
         }
     }
     update() {
@@ -271,7 +309,9 @@ class ProductionPlanner extends Component {
                 this.services.gameplay.drafts(this.snapshot),
             );
             this.valid = [...this.rows.values()].every(
-                (row) => !row.investmentControl || row.investment.validity.valid,
+                (row) =>
+                    !row.investmentControl ||
+                    (!row.investmentInactiveInvalid && row.investment.validity.valid),
             );
         } catch {
             this.valid = false;
@@ -391,6 +431,7 @@ class ProductionPlanner extends Component {
                                 canonical(saved?.[field] ?? (field === 'priority' ? 100 : '0')),
                         ));
                 const invalid =
+                    row.investmentInactiveInvalid ||
                     !/^\d+$/.test(row.priority.value) ||
                     [row.quantity, row.spending_limit, row.priority, row.investment].some(
                         (input) => !input.disabled && !input.validity.valid,

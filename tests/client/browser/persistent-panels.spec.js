@@ -90,7 +90,7 @@ test('Economy keeps its instance, inputs, focus and scroll as confirmed budget c
     expect(errors).toEqual([]);
 });
 
-test('shared help supports hover, keyboard, Escape, tap and narrow overflow; errors stay short', async ({
+test('shared help opens only on activation, supports dismissal and narrow overflow; errors stay short', async ({
     page,
 }) => {
     const errors = [];
@@ -100,18 +100,34 @@ test('shared help supports hover, keyboard, Escape, tap and narrow overflow; err
     await page.locator('[data-tool="deploy"]').click();
     const help = page.getByRole('button', { name: 'Help: Deploy', exact: true });
     await help.hover();
-    await expect(page.locator('.ui-tooltip:popover-open')).toContainText('Choose a type');
+    await expect(page.locator('.ui-tooltip:popover-open')).toHaveCount(0);
     await help.focus();
+    await expect(page.locator('.ui-tooltip:popover-open')).toHaveCount(0);
+    await page.keyboard.press('Enter');
+    await expect(page.locator('.ui-tooltip:popover-open')).toContainText('Choose a type');
+    await expect(help).toHaveAttribute('aria-expanded', 'true');
     await page.keyboard.press('Escape');
     await expect(page.locator('.ui-tooltip:popover-open')).toHaveCount(0);
     await expect(page.locator('.world-command-dock')).toBeVisible();
+    await expect(help).toHaveAttribute('aria-expanded', 'false');
+    await help.click();
+    await expect(page.locator('.ui-tooltip:popover-open')).toHaveCount(1);
+    await help.click();
+    await expect(page.locator('.ui-tooltip:popover-open')).toHaveCount(0);
+    await page.keyboard.press('Space');
+    await expect(page.locator('.ui-tooltip:popover-open')).toHaveCount(1);
+    await page.locator('[data-unit-type="Infantry"]').click();
+    await expect(page.locator('.ui-tooltip:popover-open')).toHaveCount(0);
     await page.getByText('Place using a list', { exact: true }).click();
     await page.getByLabel('Destination territory', { exact: true }).selectOption('156');
     await page.getByLabel('Quantity (up to 100 per request)', { exact: true }).fill('99');
     await page.getByRole('button', { name: 'Add to preview', exact: true }).click();
     const message = page.locator('.world-command-message .ui-message-text');
     await expect(message).toHaveText('Cannot place here.');
+    await message.hover();
     await message.focus();
+    await expect(page.locator('.ui-tooltip:popover-open')).toHaveCount(0);
+    await page.keyboard.press('Enter');
     await expect(page.locator('.ui-tooltip:popover-open')).toContainText('100-unit draft limit');
     await page.keyboard.press('Escape');
     await page.setViewportSize({ width: 390, height: 844 });

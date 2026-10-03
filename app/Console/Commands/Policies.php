@@ -10,10 +10,10 @@ use Illuminate\Support\Facades\DB;
 
 /** Initial authoring tooling; the same catalogue services back the future editor. */
 final class Policies extends Command {
-    protected $signature = 'app:policies {action : list|example|create|export|import|clone|attach|testing|public-investment}
+    protected $signature = 'app:policies {action : list|example|create|export|import|clone|attach|testing|public-investment|income-support}
         {id? : Policy set ID, or game ID for testing}
         {--file= : JSON document to create/import}
-        {--counter= : Required current edit counter for import or public-investment}
+        {--counter= : Required current edit counter for import or policy additions}
         {--game= : Existing test game for attach}
         {--name= : Name for a cloned template}
         {--enabled= : 0 or 1 for testing}';
@@ -29,6 +29,7 @@ final class Policies extends Command {
                 'export' => $catalogues->load($id)['document'],
                 'import' => $catalogues->edit($id, $this->counter(), $this->document()),
                 'public-investment' => $this->publicInvestment($catalogues, $id),
+                'income-support' => $this->incomeSupport($catalogues, $id),
                 'clone' => $catalogues->cloneSet($id, name: $this->option('name')),
                 'attach' => $this->attach($catalogues, $id),
                 'testing' => $this->testing($id),
@@ -55,6 +56,12 @@ final class Policies extends Command {
         $catalogue = $catalogues->load($id);
         $game = Game::findOrFail($catalogue['set']['game_id']);
         return $catalogues->installPublicInvestment($game, $this->counter());
+    }
+
+    private function incomeSupport(PolicyCatalogue $catalogues, int $id): array {
+        $catalogue = $catalogues->load($id);
+        $game = Game::findOrFail($catalogue['set']['game_id']);
+        return $catalogues->installIncomeSupport($game, $this->counter());
     }
 
     private function counter(): int {

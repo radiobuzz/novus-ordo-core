@@ -113,6 +113,15 @@
     .hud-resource [data-tone='ready'] {
         color: var(--status-ready);
     }
+    .hud-resource [data-tone='warning'] {
+        color: var(--status-warning);
+    }
+    .hud-resource [data-tone='muted'] {
+        color: var(--text-muted);
+    }
+    .hud-debt > summary {
+        justify-content: center;
+    }
     .hud-resource dl {
         display: grid;
         grid-template-columns: 1fr auto;
@@ -317,6 +326,9 @@
         }
         .hud-resource-values strong {
             font-size: 0.7rem;
+            display: flex;
+            flex-wrap: wrap;
+            justify-content: center;
         }
         .hud-resource-values > span {
             font-size: var(--font-tiny);

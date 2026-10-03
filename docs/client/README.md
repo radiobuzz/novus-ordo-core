@@ -1,5 +1,7 @@
 # Novus Ordo client planning
 
+2026-10-02: [Economic workspace results](economic-workspace-results.md) — independent Budget/Policies tabs, permanent financial summary and save controls, shared national/industry graphs, recorded settlement summaries, reserve policy and confirmed manual repayment. No reset or migration; complete industry financial history begins with newly resolved seasons. The [layout](budget-policy-tabs-plan.md) and [graph](economic-history-graphs-plan.md) plans retain the design and deferred scope.
+
 ## Playable civilian economy — 2026-10-01
 
 The authorized [civilian integration](../game-design/civilian-economy-live-integration.md) extends the existing transactional resolver and fresh-game catalogue. Budget & Policies now shows civilian needs, worker use, upkeep and optional accounting details through the existing shared owner snapshot and retained tables. Twenty real turns, replay and EN/FR Chromium checks pass. This does not select the indicator-led replacement discussed below.

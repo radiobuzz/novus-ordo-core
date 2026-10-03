@@ -87,6 +87,10 @@
 .economy-policy select {
     max-width: 100%;
 }
+.economy-investment-notice {
+    font-size: var(--font-small);
+    margin-block: var(--space-2);
+}
 .economy-indicators {
     display: grid;
     grid-template-columns: repeat(auto-fit, minmax(150px, 1fr));
@@ -105,4 +109,249 @@
     .economy-columns {
         grid-template-columns: minmax(0, 1fr);
     }
+}
+
+/* Each retained tab owns its scroll position; the shared summary/actions stay above it. */
+.economy-workspace {
+    display: flex;
+    flex-direction: column;
+    height: 100%;
+    min-height: 0;
+    .ui-tabs {
+        flex: none;
+    }
+    > .ui-tabs {
+        display: none;
+    }
+    [hidden] {
+        display: none !important;
+    }
+}
+.economy-top {
+    flex: none;
+    display: grid;
+    grid-template-columns: minmax(0, 1fr) auto;
+    align-items: center;
+    gap: var(--space-2) var(--space-3);
+    background: var(--surface-panel);
+    border: 1px solid var(--border-default);
+    border-radius: var(--radius);
+    padding: var(--space-3);
+    .economy-actions {
+        grid-column: 2;
+        grid-row: 2;
+        display: flex;
+        flex-wrap: wrap;
+        align-items: center;
+        gap: var(--space-2);
+        border: 0;
+        padding: 0;
+        box-shadow: none;
+    }
+    .economy-actions > header {
+        display: none;
+    }
+    .economy-preview-status {
+        min-height: 0;
+        margin: 0;
+    }
+    .economy-preview-status:empty,
+    [role='status']:empty {
+        display: none;
+    }
+    .economy-summary {
+        gap: var(--space-2) var(--space-4);
+    }
+    .economy-primary-balance strong {
+        font-size: 1.4rem;
+    }
+    .economy-warning {
+        max-height: 3em;
+        overflow: auto;
+        padding: var(--space-2);
+        font-size: var(--font-small);
+    }
+    > .economy-review {
+        grid-column: 1 / -1;
+        max-height: 24vh;
+        overflow: auto;
+    }
+    .economy-actions button {
+        margin: 0;
+    }
+}
+.economy-overview {
+    grid-column: 1 / -1;
+    display: flex;
+    align-items: center;
+    min-width: 0;
+    gap: var(--space-3);
+    .economy-summary {
+        flex: 1;
+        min-width: 0;
+    }
+}
+.economy-statuses {
+    grid-column: 1;
+    grid-row: 2;
+    display: flex;
+    flex-wrap: wrap;
+    align-items: center;
+    gap: var(--space-1) var(--space-3);
+    .economy-action-status {
+        margin: 0;
+        font-size: var(--font-small);
+    }
+    .economy-warning-list {
+        flex-basis: 100%;
+    }
+}
+.economy-columns {
+    flex: 1;
+    min-height: 0;
+    align-items: stretch;
+    overflow: hidden;
+}
+.economy-column {
+    display: flex;
+    flex-direction: column;
+    min-height: 0;
+    padding: var(--space-3);
+    overflow: hidden;
+    > .ui-panel-heading {
+        flex: none;
+    }
+    > .economy-policy-panels {
+        display: grid;
+        grid-template-rows: minmax(0, 1fr);
+        min-height: 0;
+        flex: 1;
+        overflow: hidden;
+    }
+    .economy-tab-content {
+        flex: 1;
+        min-height: 0;
+        overflow: auto;
+        padding: var(--space-2);
+        scrollbar-width: thin;
+        scrollbar-color: var(--text-muted) var(--surface-panel);
+        &::-webkit-scrollbar {
+            width: 8px;
+            height: 8px;
+        }
+        &::-webkit-scrollbar-thumb {
+            background: var(--text-muted);
+            border-radius: var(--radius);
+        }
+        &::-webkit-scrollbar-track {
+            background: var(--surface-panel);
+        }
+    }
+    .game-table-scroll {
+        overflow-x: auto;
+        overflow-y: visible;
+    }
+}
+.no-client .game-workspace:has(.economy-workspace) {
+    overflow: hidden;
+    display: flex;
+    flex-direction: column;
+    padding: var(--space-3);
+}
+.no-client .game-workspace:has(.economy-workspace) .game-cards {
+    flex: 1;
+    min-height: 0;
+}
+.economy-policy legend .ui-tooltip-anchor {
+    margin-inline-start: var(--space-2);
+}
+@media (max-width: 850px) {
+    .economy-workspace > .ui-tabs {
+        display: flex;
+    }
+    .economy-workspace[data-side='budget'] .economy-column:last-child,
+    .economy-workspace[data-side='policies'] .economy-column:first-child {
+        display: none;
+    }
+    .economy-columns {
+        grid-template-columns: minmax(0, 1fr);
+    }
+    .economy-top .economy-summary {
+        font-size: var(--font-small);
+    }
+}
+.economy-mini-trend {
+    flex: 0 0 220px;
+    margin: 0;
+}
+@media (max-width: 1100px) {
+    .economy-mini-trend {
+        display: none;
+    }
+}
+.finance-controls {
+    border-top: 1px solid var(--border-default);
+    margin-top: var(--space-3);
+    padding-top: var(--space-3);
+}
+.finance-controls .ui-field {
+    max-width: 24rem;
+}
+.finance-controls button {
+    margin: var(--space-2);
+}
+@media (max-width: 850px) {
+    .economy-top {
+        padding: var(--space-2);
+        grid-template-columns: minmax(0, 1fr);
+    }
+    .economy-top .economy-actions {
+        grid-column: 1;
+        grid-row: 3;
+    }
+    .economy-top .economy-summary {
+        display: grid;
+        grid-template-columns: repeat(3, minmax(0, 1fr));
+    }
+    .economy-top [data-summary-metric='receipts'],
+    .economy-top [data-summary-metric='seasonBalance'],
+    .economy-top [data-summary-metric='spending'],
+    .economy-top [data-summary-metric='closing_treasury'],
+    .economy-top [data-summary-metric='fiscal.closing_debt'] {
+        display: none;
+    }
+    .economy-top .economy-actions button {
+        padding: 8px 10px;
+        font-size: 0.8rem;
+        margin: 0 4px 0 0;
+    }
+    .economy-top .economy-action-status {
+        font-size: var(--font-small);
+        margin-block: var(--space-1);
+    }
+    .economy-top .economy-summary span {
+        font-size: 0.75rem;
+    }
+    .economy-top .economy-preview-status {
+        font-size: 0.75rem;
+        margin-block: var(--space-1);
+    }
+    .economy-column > .ui-panel-heading {
+        display: none;
+    }
+    .no-client .game-workspace:has(.economy-workspace) .game-heading .eyebrow {
+        display: none;
+    }
+    .no-client .game-workspace:has(.economy-workspace) .game-heading h1 {
+        font-size: 1.2rem;
+        margin: 0 0 var(--space-2);
+    }
+}
+.economy-warning {
+    text-align: start;
+}
+.economy-warning-list {
+    max-height: 18vh;
+    overflow: auto;
+    margin-block: var(--space-1);
 }

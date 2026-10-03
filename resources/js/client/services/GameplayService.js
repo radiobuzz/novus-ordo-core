@@ -3,6 +3,7 @@ import { acquisitionPlan } from './production.js';
 import { Signal } from '../runtime/Signal.js';
 
 const commands = new Set([
+    'repayDebt',
     'savePendingPolicies',
     'applyProductionPlan',
     'deploy',
@@ -27,9 +28,15 @@ export class GameplayService {
         this.changed = new Signal();
         this.economicDraftChanged = new Signal();
         this.economicRevision = 0;
+        this.economicHistoryReads = new Map();
         this.outcome = null;
         this.needsReview = false;
         world.store?.subscribe(world.scope, (state) => {
+            const context = state.snapshot ? this.economicHistoryKey(state.snapshot) : null;
+            if (context !== this.historyContext) {
+                this.economicHistoryReads.clear();
+                this.historyContext = context;
+            }
             if (!state.snapshot) {
                 this.policyState = null;
                 this.acquisitionDrafts = {};
@@ -397,6 +404,45 @@ export class GameplayService {
         if (identities.game_id !== snapshot.game_id || identities.turn_number !== snapshot.turn_number)
             throw new ApiError('conflict', 'The report snapshot changed. Refresh to continue.');
         return { news, rankings, victory, battles, nations: identities.nations, leaders: identities.leaders };
+    }
+    economicHistoryKey(snapshot) {
+        return `${snapshot.game_id}:${snapshot.setup.nation_id}:${snapshot.turn_number}:${snapshot.turn_context_revision}`;
+    }
+    async economicHistory(snapshot, window = 12) {
+        const context = this.economicHistoryKey(snapshot),
+            key = `${context}:${window}`;
+        if (this.economicHistoryReads.has(key)) return this.economicHistoryReads.get(key);
+        const generation = this.world.generation;
+        const promise = (async () => {
+            await this.check(snapshot, this.world.scope?.signal);
+            const value = await this.api.getEconomicHistory({
+                query: {
+                    game_id: snapshot.game_id,
+                    turn_number: snapshot.turn_number,
+                    turn_context_revision: snapshot.turn_context_revision,
+                    window,
+                },
+                signal: this.world.scope?.signal,
+            });
+            await this.check(snapshot, this.world.scope?.signal);
+            if (
+                generation !== this.world.generation ||
+                context !== this.economicHistoryKey(this.world.snapshot) ||
+                value.game_id !== snapshot.game_id ||
+                value.nation_id !== snapshot.setup.nation_id ||
+                value.through_turn !== snapshot.turn_number ||
+                value.turn_context_revision !== snapshot.turn_context_revision
+            )
+                throw new ApiError('conflict', 'Economic history changed. Refresh first.');
+            return value;
+        })();
+        this.economicHistoryReads.set(key, promise);
+        try {
+            return await promise;
+        } catch (error) {
+            if (this.economicHistoryReads.get(key) === promise) this.economicHistoryReads.delete(key);
+            throw error;
+        }
     }
     async rankingHistory(snapshot) {
         const key = `${snapshot.game_id}:${snapshot.turn_number}`;

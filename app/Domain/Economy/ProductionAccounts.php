@@ -443,9 +443,9 @@ final class ProductionAccounts
     }
 
     /** Equipment upkeep is a real input and wage expense, with no invented sale or capacity addition. */
-    public function maintain(string $territory, string $owner, string $resource, string $requested, string $workersPerUnit, string $wagePerUnit, string $household): string
+    public function maintain(string $territory, string $owner, string $resource, string $requested, string $workersPerUnit, string $wagePerUnit, string $household, ?string $activityResource = null): string
     {
-        return $this->atomic(function () use ($territory, $owner, $resource, $requested, $workersPerUnit, $wagePerUnit, $household) {
+        return $this->atomic(function () use ($territory, $owner, $resource, $requested, $workersPerUnit, $wagePerUnit, $household, $activityResource) {
             $this->enter(1);
             if (!in_array($this->account($owner)['kind'], ['producer', 'government'], true)) throw new DomainException('Invalid maintenance owner.');
             $t = $this->opening['territories'][$territory] ?? throw new DomainException('Unknown territory.');
@@ -462,7 +462,7 @@ final class ProductionAccounts
             $this->operatingBudget[$owner] = Q::sub($this->operatingBudget[$owner], $cost);
             if ($this->account($owner)['kind'] === 'producer') $this->earnings[$owner] = Q::sub($this->earnings[$owner] ?? self::ZERO, Q::add($basis, $cost));
             $this->events[] = ['type' => 'consumption', 'owner' => $owner, 'resource' => $resource, 'quantity' => $quantity, 'cost' => $basis, 'purpose' => 'maintenance'];
-            $this->events[] = ['type' => 'maintenance', 'owner' => $owner, 'territory' => $territory, 'quantity' => $quantity, 'cost' => Q::add($basis, $cost)];
+            $this->events[] = ['type' => 'maintenance', 'resource' => $activityResource, 'owner' => $owner, 'territory' => $territory, 'quantity' => $quantity, 'cost' => Q::add($basis, $cost)];
             return $quantity;
         });
     }

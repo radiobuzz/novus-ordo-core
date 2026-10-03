@@ -1,0 +1,99 @@
+.time-series {
+    min-width: 0;
+    position: relative;
+    margin-block: var(--space-3);
+    h3 {
+        margin: var(--space-2) 0;
+    }
+    .time-series-heading {
+        display: flex;
+        align-items: center;
+        justify-content: space-between;
+        gap: var(--space-2);
+    }
+    .time-series-plot {
+        display: block;
+        width: 100%;
+        min-height: 160px;
+        max-height: 300px;
+        color: var(--text-muted);
+        background: var(--surface-control);
+        border-radius: var(--radius);
+    }
+    .time-series-frame {
+        overflow-x: auto;
+    }
+    .time-series-plot text {
+        fill: currentColor;
+        font-size: 11px;
+    }
+    .time-series-plot:focus-visible {
+        outline: 2px solid var(--focus-ring);
+    }
+    .time-series-grid {
+        stroke: var(--border-default);
+    }
+    .time-series-selection {
+        stroke: var(--text-primary);
+        stroke-dasharray: 3 3;
+    }
+    .time-series-marker {
+        stroke: var(--accent-command);
+        opacity: 0.5;
+        stroke-dasharray: 2 5;
+    }
+    .time-series-legend {
+        display: flex;
+        flex-wrap: wrap;
+        gap: var(--space-2);
+    }
+    .time-series-legend button {
+        min-height: 32px;
+        border: 0;
+        border-bottom: 3px solid var(--series-color);
+        background: var(--surface-control);
+        padding: var(--space-2);
+    }
+    .time-series-legend button[aria-pressed='false'] {
+        opacity: 0.5;
+    }
+    .time-series-readout {
+        font-size: var(--font-small);
+        min-height: 2em;
+    }
+    .time-series-table {
+        overflow: auto;
+    }
+}
+.time-series--compact {
+    .time-series-heading {
+        position: absolute;
+        top: 0;
+        right: 0;
+    }
+    h3,
+    .time-series-legend,
+    .time-series-readout,
+    details {
+        display: none;
+    }
+    .time-series-plot {
+        min-height: 0;
+        height: 64px;
+    }
+}
+.economic-history-controls {
+    display: flex;
+    flex-wrap: wrap;
+    gap: var(--space-3);
+    margin-block: var(--space-2);
+}
+.economic-history-controls label {
+    display: grid;
+    gap: var(--space-1);
+    flex: 1;
+    min-width: 130px;
+}
+.economic-history-status {
+    color: var(--text-muted);
+}

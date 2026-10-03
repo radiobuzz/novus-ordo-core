@@ -1,5 +1,9 @@
 # Economy and policies — philosophical foundation
 
+**2026-10-03 replacement planning:** after the isolated indicator trials, the user agreed to an aggregate income foundation, shared public/private productive capacity, automatic development taper, ordinary upkeep and civilian-first supply followed by government acquisitions. The [replacement implementation plan](indicator-economy-replacement-plan.md) records the proposed database changes, removal scope, packages and fresh-game cutover. Policy values and underlying game coefficients must remain adjustable; founding percentages are balancing work, not frozen numbers. This is planning authorization, not a live reset or migration. Earlier dated uncertainty and alternative accounting proposals below describe prior stages; the new plan takes precedence for this replacement.
+
+**2026-10-01 playtest backlog:** [deferred follow-ups](civilian-economy-live-integration.md#deferred-playtest-follow-ups) now track showing the treasury reserve target, making it player-adjustable, and considering an immediate one-time debt repayment. These are recorded for later, not implemented or a decision to replace the current economy.
+
 **2026-09-30 follow-up:** retain the discussion of NO2's eight development indices plus unrest/informal activity, distinct loyalty, and viable public/private development. The [indicator-led alternative](indicator-economy-alternative.md) records one possible implementation. After discussion with a friend experienced in macroeconomics, the user remains undecided and wants to preserve the current system while exploring whether it can be improved. Removing civilian wallets and adopting aggregate income are not settled decisions. UI design is deferred; no implementation occurs in this documentation update.
 
 Discussion captured: 2026-09-23.

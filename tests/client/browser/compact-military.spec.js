@@ -62,7 +62,7 @@ test("compact artwork badges show remaining shared budget and draft counts; deta
             name: "Infantry: costs and details",
             exact: true,
         })
-        .focus();
+        .click();
     await expect(page.getByRole("tooltip")).toContainText(
         "Deployment cost: 3 Treasury",
     );

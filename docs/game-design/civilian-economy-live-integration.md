@@ -2,6 +2,29 @@
 
 2026-10-01. Authorized after the isolated [civilian milestone](civilian-economy-milestone.md). The objective is now an actual new game, real readiness-driven turns, persistent economic outcomes and a readable player view. This extends the transactional economy; it does not adopt the indicator-led alternative or replace database policy definitions.
 
+## Deferred playtest follow-ups
+
+Recorded 2026-10-01 at the user's request; the 2026-10-02 implementation authorization delivered the finance controls below together with the [economic workspace](../client/economic-workspace-results.md). Unchecked balance and map items remain backlog. Add concrete playtest issues here as they arise.
+
+- [ ] **Infrastructure return on investment — balance question.** Higher infrastructure increases recurring maintenance, while its productivity and development benefits do not automatically translate into extra sales or tax receipts. The player finds the return hard to judge. In a later balance pass, compare development spending, ongoing upkeep and realized economic/fiscal benefits over several seasons, distinguishing maintenance from expansion. This is an open question, not a confirmed balance defect or a decision to redesign infrastructure; the economic system is still evolving. No immediate tuning or UI work requested.
+- [x] **Show the treasury reserve target.** Debt & cash displays the actual target with explicit help. It protects cash from automatic repayment of older debt, not ordinary spending. The default is 20 credits; actual treasury and physical stocks remain distinct.
+- [x] **Let the player manage the target.** Fresh default catalogues include Treasury reserve through `finance.treasury_reserve`, allowing zero and taking effect next season. Existing games keep their own definitions. This season's temporary borrowing still settles before the reserve protects older principal.
+- [x] **Repay debt now.** Explicit amount/result confirmation, limited to outstanding principal and treasury after accepted command commitments. It may deliberately go below the automatic reserve, never borrows to repay, transfers cash to the lender and records a current-turn action. Completed reports remain unchanged; normal command reconciliation and rollback apply.
+
+These controls serve different needs: the target manages ongoing cash retention, while a manual repayment handles an exceptional surplus. Slow repayment after heavy military spending is not, by itself, evidence that the economy needs rebalancing.
+
+### Candidate economic map layers
+
+Recorded 2026-10-01. Deferred candidates, not permission to implement new simulations or invent local data. Prefer last completed season, explicit units and territory-level display for territorial results.
+
+- [ ] **Disposable household income per resident.** Income received by residents after taxes, including supported transfers, before consumption spending. Not household savings, producer retained profits, government treasury or money left after essentials. Define attribution from the current pooled accounts before enabling a local map. Review/reuse the existing gated `netIncome` layer rather than adding a duplicate with misleading semantics.
+- [ ] **Income before tax per resident.** A companion comparison to distinguish low earnings from heavy taxation. Use the same household income boundary and period as disposable income. The existing gated `income` layer concerns total civilian income and needs a semantics/data review, not a simple rename.
+- [ ] **Development investment.** Actual public/private investment by territory during the season, with a source filter. Show realized investment, not merely a funding percentage or available geological potential.
+- [ ] **Productive capacity utilization.** Actual output versus the supported full-operation capacity for a selected resource; reveal idle/underperforming areas. Define the denominator explicitly and distinguish no capacity from zero utilization. Keep maintenance condition available as explanatory detail.
+- [ ] **Civilian needs met.** Fulfillment of food or household-goods needs, with a resource selector. Distinguish unavailable supply from unaffordable purchases where the simulation can establish the cause. National pooled consumption is not evidence of a particular territory's fulfillment; local attribution is required first.
+
+Infrastructure, unrest and informal-activity layers already have catalogue entries; improve their explanations where necessary instead of duplicating them. Never spread a national average over territories and present it as a measured local outcome. Income aggregation must not count retained producer profit and its eventual household distribution twice.
+
 ## What runs in the game
 
 There is still one live settlement path: `EconomyService` → `ProductionEconomySeason` → `ProductionAccounts`. Previews and real turns call the same resolver. `CivilianProduction` adds civilian requirements, subsistence, input planning and upkeep inside its existing phases. The one-region `CivilianEconomySeason` remains a research harness, not a second live resolver; recipe ordering and condition progression now share `CivilianProduction` with it.
@@ -167,3 +190,65 @@ Reference prices, coefficients, stock buffers and allocation priorities are prov
 The initial catalogue founds manufacturing in the private pool. Funded public replenishment now supplements that pool, and government continues buying its own required inputs. Fully public or arbitrary cross-owner industrial supply networks are not covered; government opening reserves do not silently become a private input subsidy. Finite ore can still constrain consumer goods even after public mines participate. Existing mines may recover condition, but an exhausted development ceiling needs access to additional suitable territory, not simply a higher funding percentage.
 
 The existing simple development allocator still operates under existing policies; no new investor AI, mine-location algorithm or infrastructure-placement planner was added in this milestone. Full resource-chain expansion, deeper investment behavior, trade and more interactive economic situations remain later work. The maintenance-chain restart path is bounded by installed assets, investment permissions, cash and workers; arbitrary severe collapses or geographically insufficient resources are not guaranteed to recover without intervention.
+
+
+## Current-model repair trial — 2026-10-02
+
+**Status: isolated experiment, not a deployed fix.** The user selected trying repairs to the current economy before considering the indicator-led alternative. Production PHP, game-owned rules, policies, UI and live turns were not changed by this trial. The generic resource and policy foundations remain in use. No migration, compatibility layer, companies, bank or additional resource was introduced.
+
+### Findings in plain language
+
+Money and investment are being decided at the wrong moments. Households can receive income after their purchasing opportunity has passed. Factories can consequently see unsold goods and withhold expansion. Businesses retain money which does not reliably return to customers or fund useful construction. Public development can meanwhile continue adding capacity without a corresponding requirement, with subsequent upkeep costs. The result can be declining purchasing power despite spare workers and installed factories.
+
+This is not only a tax-rate calibration problem. Paying out more profits alone improved the first 100 seasons but failed a longer growing-population run. Restricting services to funded purchases alone was also insufficient. Successful accounting reconciliation by itself did not make those candidates economically successful.
+
+### Candidate under test
+
+The [experimental patch](../../scripts/research/economy-repair-candidate.patch) is applied to temporary PHP copies only by the [research runner](../../scripts/research/economy-repair.php). It is not imported by the application and is not a second game mode. The runner rejects patch mismatches rather than silently falling back.
+
+The candidate combines:
+
+- Public construction requirements capped by the gap between demand plus the existing capacity buffer and usable installed capacity, within geographic growth ceilings. Civilian, procurement and industrial requirements remain separate actual ledger flows.
+- Customer-funded service work after essential infrastructure spending. Up to eight bounded settlement passes allow paid wages and distributed earned profits to fund further purchases within a season. Existing goods production and recipes are never restarted; construction still produces next season.
+- Further purchases of still-unmet essentials as household funds arrive. Opening government reserves and stock assigned to acquisitions remain protected.
+- Profit payouts capped by a forward operating-cash reserve, using targets bounded by condition-adjusted installed capacity rather than the full unbuilt demand target. The explicit experimental payout fraction is **1**, compared with the baseline **0.8**. This is a balancing hypothesis, not an adopted rule or automatic release of historical savings.
+- Private development budgets and demand evaluated after settlement. Remaining consumer inventory offsets future expansion headroom instead of any positive residue automatically vetoing it.
+- Residual civilian service opportunities expanding with workforce and the existing core/neutral capacity factor; public/private ownership shares are preserved. This is a hypothesis about ordinary activity, not free physical factory construction.
+
+Cash, inventory, cost basis, tax and debt still use `ProductionAccounts`. The ledger reconstructs flows at every close. The runner independently checks total cash, treasury reconciliation and worker bounds each season. No balances, inventories, debts, wages, prices or yields are topped up to achieve a passing result. The rule and timing changes are a combined prototype; the result does not prove each component necessary or individually balanced.
+
+### Scenarios and results
+
+The founding scenario uses the existing five-territory, **5-million-person** fixture and current canonical defaults: 25% income tax, fully funded infrastructure, mixed investment, no income support or discretionary public resource expansion. An infantry affordability benchmark pays **9 deployment credits through the actual committed-payroll ledger in season 1**, then **3 upkeep credits each season**. It does not create actual divisions, reserve recruits, simulate troop labor, battles, damage or fuel-consuming units.
+
+The large-country scenario starts from the [read-only turn-330 capture](../../tests/client/fixtures/production-accounting/economy-repair-current.json), approximately 40.5 million residents in 15 territories. Both baseline and candidate use the same fixed test package: 25% tax, 100% infrastructure funding, zero income support, 50% public expansion funding for food, household goods, ore, materials and equipment; acquisition orders are preserved. This is a scenario, not a recommended universal policy package. In particular, its saved ore order requests 1.5 units with only a 1-credit spending limit, so an acquisition warning is not evidence of a new systemic failure.
+
+Growth follows the current food-dependent seasonal growth rule, with existing territorial population ceilings and fixed workforce proportions. Borders and the policy package stay fixed; no mid-run rescue actions are taken.
+
+| Case | Seasons | Closing treasury / debt | Observed outcome |
+| --- | ---: | --- | --- |
+| Founding + three-division upkeep, baseline, growing population | 100 | 20 / 20.150122 | Food, household goods and upkeep supplied, but debt accumulates; a positive cash-change figure alone hides financing. |
+| Same founding package, candidate, growing population | 100 | 94.891058 / 0 | Food, household goods, productive upkeep, infrastructure and payroll fully funded throughout; population reaches 13.21 million. |
+| Founding + three-division upkeep, candidate, fixed population | 300 | 65.671549 / 0 | All essentials and payroll supplied throughout. Accounts and output settle to a stationary result; the final 20-season mean cash change is zero. Services stabilize below their maximum desired quantity, rather than being guaranteed at full demand. |
+| Founding candidate, extended growth on the same land | 300 | 107.746880 / 0 | Payroll and upkeep remain funded, but food/goods shortages return: **164** goods-shortage seasons. Financial solvency is not success if civilian requirements fail. |
+| Large country + three-division upkeep, baseline test package | 100 | 14.141040 / 125.901257 | Significant debt and late supply deterioration; eight infrastructure shortfall seasons. |
+| Same large-country package, candidate | 100 | 45.340594 / 0 | Payroll and both upkeep systems funded throughout, but **59** goods-shortage seasons remain. Final goods supply is 10.020219 of 10.526314 requested; this is fiscal improvement, not a solved supply system. |
+
+Exact checkpoint reports and summaries are saved in [results JSONL](../../scripts/research/economy-repair-results.jsonl). These final results charge deployment through the shared payroll ledger; earlier scratch comparisons transferred the deployment amount directly and are not the authoritative numbers above.
+
+The extended founding run also exceeds a demonstrable land limit: at 33.334286 million people, food need is **11.667000**, while total mapped commercial food potential is **7.593987**. Even adding the generous aggregate subsistence ceiling (**1.898497**) gives at most **9.492484** food, before worker or maintenance constraints. Cash-flow repair cannot make this unchanged land feed that population under the current resource rules. This does not prove that every goods shortage is similarly unavoidable or that the current population-growth/food-balance coefficients are appropriate.
+
+The extended founding run ends with installed-capacity constraints on food, materials, ore and household goods. The large-country run includes input, local worker and installed-capacity constraints while national workers remain unused. **Installed-capacity constraints do not alone prove exhausted geological potential.** Further work must separate genuine land/input limits from stalled investment, local allocation and the timing of affordability reports. More cash or a higher funding slider cannot be presumed to resolve every case.
+
+### Reproduce and next gate
+
+```bash
+php8.3 scripts/research/economy-repair.php baseline founding_army,current_reasonable_army 100 growing
+php8.3 scripts/research/economy-repair.php candidate founding_army,current_reasonable_army 100 growing
+php8.3 scripts/research/economy-repair.php candidate founding_army 300 fixed
+php8.3 scripts/research/economy-repair.php candidate founding_army 300 growing
+```
+
+The prototype also passes the existing **410** coordinated production checks, **27** public/private supply checks and **23** civilian production checks. Those are useful regression coverage, not certification of the new settlement rules. Database lifecycle/rollback, presentation parity, punitive-tax and excessive-army scenarios have not been validated for this candidate.
+
+The next gate is to settle the smallest production repair around household purchasing, retained operating funds and investment timing (including reserving useful construction funds before payouts rather than simply maximizing dividends), then add focused new regressions and verify forecast/settlement/rollback in an isolated game. Resolve or clearly justify the growing-country supply failures before calling it balanced. Integration must update explanations of public funding and preserve game-owned rules explicitly; do not silently retune an ongoing game. No new policies or indicator-system replacement is selected by this experiment.

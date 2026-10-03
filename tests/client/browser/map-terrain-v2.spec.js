@@ -61,7 +61,7 @@ test('v2 renders without old artwork and survives coast, mountain, zoom and dens
     page,
 }) => {
     test.setTimeout(120000);
-    await page.route('**/terrain-atlas-*.png', (route) => route.abort());
+    await page.route('**/terrain-atlas-*.webp', (route) => route.abort());
     const errors = [];
     page.on('pageerror', (e) => errors.push(e.message));
     await page.goto('/map-lab');

@@ -1,4 +1,5 @@
 import { Button } from '../../ui/Button.js';
+import { ChartExpansion, chartExpandButton } from '../../ui/ChartExpansion.js';
 import { dataTable } from '../../ui/DataTable.js';
 import { formatStat } from '../../ui/dom.js';
 import { el } from '../../ui/element.js';
@@ -32,8 +33,13 @@ function currentChart(ranking, names, colors, i18n) {
     const maximum = Math.max(0, ...values.map(({ value }) => (Number.isFinite(value) ? value : 0)));
     return el(
         'article',
-        { class: 'ranking-current-chart' },
-        el('h3', { text: ranking.title }),
+        { class: 'ranking-current-chart', 'data-chart-kind': 'current', 'data-chart-key': ranking.key },
+        el(
+            'header',
+            { class: 'ranking-chart-heading' },
+            el('h3', { text: ranking.title }),
+            chartExpandButton(i18n, ranking.title),
+        ),
         values.length
             ? el(
                   'ol',
@@ -245,6 +251,54 @@ export class RankingsView {
             this.currentPanel,
             this.historyPanel,
         );
+        this.expansion = new ChartExpansion(scope, i18n, {
+            title: () => this.expandedMetric()?.title ?? '',
+            render: () => {
+                const metric = this.expandedMetric();
+                if (this.expandedSpec.kind === 'current')
+                    return currentChart(metric, this.names, this.nationColors, i18n);
+                return el(
+                    'div',
+                    {},
+                    el(
+                        'div',
+                        { class: 'ranking-nation-filters' },
+                        metric.series
+                            .filter((series) => this.selectedNationIds.has(series.nation_id))
+                            .map((series) =>
+                                el(
+                                    'span',
+                                    { class: 'ranking-nation-filter' },
+                                    el('span', {
+                                        class: 'ranking-line-sample',
+                                        'aria-hidden': 'true',
+                                        style: `--ranking-color:${nationPalette(this.nationColors, series.nation_id).paint}`,
+                                    }),
+                                    this.names.get(series.nation_id) ?? `Nation ${series.nation_id}`,
+                                ),
+                            ),
+                    ),
+                    lineChart(
+                        metric,
+                        this.selectedNationIds,
+                        this.names,
+                        this.nationColors,
+                        this.history.through_turn,
+                        i18n,
+                    ),
+                    historyTable(metric, this.selectedNationIds, this.names, i18n),
+                );
+            },
+        });
+        const enlarge = (event) => {
+            if (event.type === 'click' && !event.target.closest('.chart-expand-button')) return;
+            const source = event.target.closest('[data-chart-kind]');
+            if (!source) return;
+            this.expandedSpec = { kind: source.dataset.chartKind, key: source.dataset.chartKey };
+            this.expansion.open();
+        };
+        scope.listen(this.element, 'click', enlarge);
+        scope.listen(this.element, 'dblclick', enlarge);
         this.selectTab('current');
         scope.listen(this.currentButton.element, 'click', () => this.selectTab('current'));
         scope.listen(this.historyButton.element, 'click', () => this.selectTab('history'));
@@ -274,6 +328,7 @@ export class RankingsView {
         this.nationColors = nationColors;
         const nextContext = `${snapshot.game_id}:${snapshot.turn_number}`;
         if (nextContext !== this.context) {
+            this.expansion.close();
             this.context = nextContext;
             this.snapshot = snapshot;
             this.history = null;
@@ -298,6 +353,15 @@ export class RankingsView {
             ),
         );
         if (this.history) this.renderHistory();
+        if (this.expansion.dialog) this.expansion.refresh({ render: true });
+    }
+
+    expandedMetric() {
+        return this.expandedSpec?.kind === 'current'
+            ? this.rankings
+                  .map((ranking, index) => ({ ...ranking, key: metricKey(ranking, index) }))
+                  .find((ranking) => ranking.key === this.expandedSpec.key)
+            : this.history?.rankings.find((ranking) => ranking.key === this.expandedSpec?.key);
     }
 
     selectTab(name) {
@@ -451,13 +515,18 @@ export class RankingsView {
             historyTable(metric, this.selectedNationIds, this.names, this.i18n),
         );
         visual.replaceChildren(
-            lineChart(
-                metric,
-                this.selectedNationIds,
-                this.names,
-                this.nationColors,
-                this.history.through_turn,
-                this.i18n,
+            el(
+                'div',
+                { 'data-chart-kind': 'history', 'data-chart-key': metric.key },
+                el('header', { class: 'ranking-chart-heading' }, chartExpandButton(this.i18n, metric.title)),
+                lineChart(
+                    metric,
+                    this.selectedNationIds,
+                    this.names,
+                    this.nationColors,
+                    this.history.through_turn,
+                    this.i18n,
+                ),
             ),
             exact,
         );

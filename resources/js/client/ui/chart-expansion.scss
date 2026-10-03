@@ -1,0 +1,65 @@
+.chart-expand-button {
+    width: 32px;
+    min-height: 32px;
+    padding: var(--space-1);
+    flex: none;
+}
+.no-client .chart-dialog {
+    width: min(1500px, calc(100vw - 24px));
+    max-height: 94dvh;
+    padding: 0;
+    border: 1px solid var(--border-default);
+    border-radius: var(--radius);
+    background: var(--surface-panel);
+    color: var(--text-primary);
+    box-shadow: var(--shadow-panel);
+    &[open] {
+        display: flex;
+        flex-direction: column;
+    }
+    &::backdrop {
+        background: var(--surface-glass-end);
+    }
+    .chart-dialog-heading {
+        display: flex;
+        align-items: center;
+        justify-content: space-between;
+        gap: var(--space-3);
+        padding: var(--space-3);
+        border-bottom: 1px solid var(--border-default);
+        h2 {
+            margin: 0;
+            font: 1.25rem var(--font-display);
+        }
+    }
+    .chart-dialog-body {
+        min-height: 0;
+        overflow: auto;
+        padding: var(--space-3);
+    }
+    .chart-expand-button,
+    .time-series-heading,
+    .ranking-chart-heading {
+        display: none;
+    }
+    .time-series-plot,
+    .ranking-history-chart {
+        height: min(60dvh, 650px);
+        max-height: none;
+    }
+}
+@media (max-width: 850px) {
+    .chart-expand-button {
+        width: 44px;
+        min-height: 44px;
+    }
+    .no-client .chart-dialog {
+        .time-series-plot {
+            min-width: 720px;
+            height: auto;
+        }
+        .ranking-history-chart {
+            height: auto;
+        }
+    }
+}

@@ -1,5 +1,5 @@
 {
-  "name": "Production economy — civilian-balanced opening v2",
+  "name": "Production economy — civilian finance v4",
   "description": "Funded public/private production, earned income, development and food security.",
   "policies": [
     {
@@ -581,6 +581,132 @@
           ]
         }
       ]
+    },
+    {
+      "key": "treasury_reserve",
+      "category_key": "finance",
+      "labels": {
+        "en": "Treasury reserve target",
+        "fr": "Réserve de trésorerie cible"
+      },
+      "descriptions": {
+        "en": "Cash kept before automatic repayment of older debt. Ordinary spending can use it; temporary borrowing is repaid first. Zero keeps no repayment reserve.",
+        "fr": "Fonds conservés avant le remboursement automatique des dettes antérieures. Les dépenses ordinaires peuvent les utiliser; les emprunts temporaires sont remboursés en premier. Zéro supprime cette réserve."
+      },
+      "sort_order": 90,
+      "status": "active",
+      "options": [
+        {
+          "key": "standard",
+          "labels": {
+            "en": "Standard",
+            "fr": "Standard"
+          },
+          "descriptions": {},
+          "is_default": true,
+          "sort_order": 0,
+          "retired": false,
+          "effects": [
+            {
+              "key": "reserve",
+              "effect_type": "finance.treasury_reserve",
+              "arguments": {
+                "account": "treasury",
+                "amount": {
+                  "parameter": "amount"
+                }
+              },
+              "sort_order": 0
+            }
+          ]
+        }
+      ],
+      "parameters": [
+        {
+          "key": "amount",
+          "labels": {
+            "en": "Cash to retain (credits)",
+            "fr": "Fonds à conserver (crédits)"
+          },
+          "value_type": "decimal",
+          "unit_key": "credits",
+          "default_value": "20",
+          "min_value": "0",
+          "max_value": "1000000",
+          "step": "1",
+          "sort_order": 0
+        }
+      ],
+      "conditions": []
+    },
+    {
+      "key": "income_support",
+      "category_key": "social_support",
+      "labels": {
+        "en": "Income support",
+        "fr": "Soutien au revenu"
+      },
+      "descriptions": {
+        "en": "Transfers funded government money to households before their purchases each season. Helps purchasing power; does not create goods or earned income. Payments use available treasury and eligible borrowing, and may reduce funds for other programs. Disabled means no payment; the entered amount is retained.",
+        "fr": "Transfère des fonds publics aux ménages avant leurs achats chaque saison. Soutient le pouvoir d’achat sans créer de biens ni de revenus gagnés. Les versements utilisent le trésor et les emprunts admissibles, et peuvent réduire les fonds disponibles pour les autres programmes. Aucun versement lorsque désactivé; le montant saisi est conservé."
+      },
+      "sort_order": 10,
+      "status": "active",
+      "options": [
+        {
+          "key": "disabled",
+          "labels": {
+            "en": "Disabled",
+            "fr": "Désactivé"
+          },
+          "descriptions": {},
+          "is_default": true,
+          "sort_order": 0,
+          "retired": false,
+          "effects": []
+        },
+        {
+          "key": "enabled",
+          "labels": {
+            "en": "Enabled",
+            "fr": "Activé"
+          },
+          "descriptions": {},
+          "is_default": false,
+          "sort_order": 1,
+          "retired": false,
+          "effects": [
+            {
+              "key": "household_transfer",
+              "effect_type": "budget.income_support",
+              "arguments": {
+                "recipient": "households",
+                "amount": {
+                  "parameter": "amount"
+                }
+              },
+              "sort_order": 0
+            }
+          ]
+        }
+      ],
+      "parameters": [
+        {
+          "key": "amount",
+          "labels": {
+            "en": "Seasonal funding (credits)",
+            "fr": "Financement saisonnier (crédits)"
+          },
+          "value_type": "decimal",
+          "unit_key": "credits",
+          "default_value": "0",
+          "min_value": "0",
+          "max_value": "1000000",
+          "step": "0.01",
+          "sort_order": 0
+        }
+      ],
+      "conditions": []
     }
   ]
 }

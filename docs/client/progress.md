@@ -1,5 +1,83 @@
 # Client planning progress
 
+## 2026-10-03 — Explain annexation maintenance warnings
+
+Implemented the agreed territory-specific zero-workforce explanation in Budget & Policies and the treasury disclosure, with EN/FR interpolation and preserved severity. The server confirms annexation from the prior ownership snapshot and sufficient infrastructure funding from the reserved programme budget. Only fully explained overlapping warnings are consolidated; other territory failures and ore acquisition warnings remain. No change to economic calculations, workforce activation, policies, saved history or live balances. Eight explanation cases, localization/header tests, 410 production checks, build and read-only live season-9/16 checks pass. UI skill guided reuse of the existing warning presentation.
+
+## 2026-10-02 — Playable income support
+
+Added Enabled/Disabled income support with a recurring national credit amount through the generic policy effect/parameter machinery and existing transfer ledger. It starts disabled; funded transfers precede household purchases, remain distinct from earned income and can be capped by available treasury. Budget/Civilian economy previews show requested/paid support, purchases, unmet needs and affordability constraints. Public expansion is visibly inactive under private-only investment while retaining valid and invalid drafts. No schema change, new data owner or alternate economic engine.
+
+The production build, 410 resolver checks, isolated 20-season civilian checks plus three support settlements/rollback/replay, financial projections/generated contracts and five budget Chromium journeys pass. Desktop/mobile previews inspected. The authorized local game #28 received only the disabled zero-funded definition; no season was advanced or player choice enacted. Fresh games use the v4 template. The game-UI and client-data skills guided implementation; [details and limits](../game-design/income-support-first-pass.md).
+
+## 2026-10-02 — Treasury change priority
+
+Made Change in treasury the prominent fixed summary figure, visible on desktop and mobile with signed positive/negative styling and explicit help. Kept seasonal balance distinct from cash movement so financing does not conceal operating deficits. Debt & cash now starts with treasury change and opening/closing treasury; repayment controls follow the report. Reused authoritative fields through a small null-safe projection, retained table nodes and existing controls. No economy, command, data lifecycle or schema change. Game-UI skill guided feature composition and semantic emphasis.
+
+Production build, three financial/history checks and four budget Chromium journeys pass. The focused case distinguishes positive treasury change from a negative seasonal balance, checks that the report precedes repayment controls, and verifies the primary figure remains visible in French mobile. Desktop preview inspected; diff whitespace checks pass.
+
+## 2026-10-02 — Shared chart enlargement
+
+Added a presentation-only ChartExpansion native dialog and enlargement buttons across summary, national/industry/planner and ranking graphs. Double-click also opens it; Escape/cross closes with focus restoration. TimeSeriesChart retains selected season and legend visibility, reuses current recorded points and supports exact observations in the enlarged view. SVG coordinate conversion preserves click selection under letterboxing. Narrow screens scroll readable charts; Scope cleans up dialogs on navigation. No extra history reads, data ownership, economic changes or migrations.
+
+Five Chromium tests pass, including mini/full/ranking double-click, button/keyboard activation, retained state, scope cleanup, no additional reads and French/mobile layout. Desktop/mobile previews were inspected; production build, three economic history checks and diff whitespace checks pass. The game-UI and client-data skills guided the presentation and lifecycle boundary.
+
+## 2026-10-02 — Budget workspace polish
+
+Fixed a missing Revenue translation that appeared as “Something went wrong” despite successful financial reads. Flattened the fixed summary to figures/sparkline above and statuses/actions below; review remains in the fixed top area. The summary uses the shared chart's compact presentation with a larger plot, no tiny axes and a non-scaling line. Empty policy groups were absent from Tabs but still occupied layout space, squeezing the selected scroller; they are now explicitly hidden. Policy content fills its column through a bounded grid host and thin theme scrollbars. No economic rule, read lifecycle, schema or live game data changes.
+
+Focused Chromium checks cover the actual Revenue/Recettes heading, compact top height, sparkline size/no axis labels, full-height policy content without unnecessary scrolling, draft retention, repayment confirmation, hidden validation, French mobile, debt header and explicit help. Build and history projection checks pass. The game-UI skill guided the shared presentation boundary and semantic scrollbar styling.
+
+## 2026-10-02 — Economic workspace implementation
+
+Implemented [tabbed Budget & Policies, national/industry graphs and finance controls](economic-workspace-results.md). The permanent summary/actions, independent desktop tabs and mobile side switch retain the existing shared economic draft. Help stays click-only. TimeSeriesChart supplies semantic palettes, keyboard/click season selection, legend toggles and exact tables; industry reports are reused in the planner. Recorded reads share context/revision fencing and compact per-industry observations begin in newly resolved reports. Treasury reserve is a next-season policy in fresh catalogues; manual repayment is a confirmed current-turn command with funded lender counterparty.
+
+Production/accounting checks, isolated 20-season two-nation persistence/replay/history/repayment checks, client read-race/projection checks and Chromium layout/confirmation/validation checks passed. No application DB mutation, migration, reset or economic tuning. The game-UI and client-data skills guided shared controls, semantic roles and ownership. Local financial map attribution and infrastructure ROI/balance remain deferred.
+
+## 2026-10-02 — Economic graph planning
+
+Inspected seasonal economy/resource persistence, capacity snapshots, national report accounting and existing ranking SVG/history reads. Recorded the [phased graph plan](economic-history-graphs-plan.md): national trends, reusable industry presets, shared presentation/read boundaries and explicit gaps in industry profitability history. Linked it into the budget tab proposal with fixed top actions. Game-UI and client-data skills guided reuse and lifecycle planning. Documentation only; no runtime tests, migrations, live data changes or economic tuning.
+
+## 2026-10-01 — Explicit help activation
+
+Shared Tooltip and CompactMessage details now open only on click/tap or Enter/Space; hovering or focusing never opens them. This covers deployment instructions, unit/draft details and shared field help. Click again, Escape or outside click dismisses; Scope cleanup and viewport positioning remain intact. Triggers expose expanded state. The game-UI skill guided fixing the shared component rather than deployment-specific behavior.
+
+Production build and two isolated Chromium deployment/help journeys passed, covering hover/focus staying closed, explicit keyboard/click opening, dismissal, compact-message details, narrow viewport bounds and panel disposal. No live game state changed. The budget/policy proposal now records contextual help blocks and permanently visible action controls in the compact top panel; the larger tab redesign remains planned.
+
+## 2026-10-01 — Budget/policy tab evaluation
+
+Reviewed EconomyPanel's stacked reports, ungrouped policies, retained controls and shared Tabs. Recorded the [proposed reorganization](budget-policy-tabs-plan.md): permanent balance overview, independent budget/policy groups, one draft/save, bounded scrolling and narrow-layout behavior. Used the game-UI and client-data skills to preserve component reuse, preview ownership and refresh guarantees. Documentation only; no browser/build verification or implementation claimed for this planning task.
+
+## 2026-10-01 — Debt minibar
+
+- Added current debt beside treasury, with saved-forecast trend, interest and remaining-credit details in the existing Disclosure. Quiet zero/amber debt/red server credit warnings use semantic tokens and explicit labels.
+- Header surplus/deficit excludes borrowing and principal repayments; no backend economic behavior or shared data ownership change.
+- Focused projection checks, isolated Chromium refresh/keyboard/EN-FR/narrow-layout journey and production build passed. Screenshots inspected. No schema change or live-game mutation; no new UI framework/component.
+
+## 2026-10-01 — Non-blocking shared map overviews
+
+Replaced the renderer's per-instance, synchronous whole-world `Path2D` compilation with a model-shared bounded raster cache. Main map/minimap consumers reuse terrain, relief, analysis and overlay surfaces when their requested variant matches; different variants still share one six-surface LRU and never repeat a monolithic path build. Work advances in five-millisecond animation-frame slices, displays partial geography immediately and exposes `overviewPending`/`overviewProgress`. Ownership updates invalidate only mutable ownership/control rasters. Static geography, picking, layer semantics, camera state, renderer ownership and game data are unchanged; no worker, endpoint or backend state was added.
+
+The change directly addresses the supplied browser profile's roughly nine-second `drawOverviewCells → overviewCache` main-thread tasks. A new Chromium regression switches a settled 22,200-cell world to an uncached analysis view, waits for complete progressive preparation and requires every observed overview task to remain below 100ms. In the same fixture browser, the heavy geography journey fell from about 33 to 18 seconds and the ready 11,400-cell overview reports an 11ms draw. Visual inspection retained terrain, relief, rivers, analysis, labels and map boundaries.
+
+Verification: production build; five focused Node map/terrain suites; all six Map Lab and two Terrain V2 Chromium journeys; all three live map-layer integration journeys; and a representative production World journey. The game-UI skill guided a shared renderer/cache boundary with bounded memory rather than a second minimap path. No live game/database state changed. Physical-browser profiling remains required to quantify the real host improvement; national-border and unit-miniature work remain separate possible costs if a new trace exposes them.
+
+## 2026-10-01 — Terrain atlas bandwidth reduction
+
+Kept the original 1536 × 1024 generated PNG and prompt as the terrain authoring source. Gameplay now imports a checked-in 768 × 512 quality-88 WebP derivative made offline from that master; there is no request-time PHP/browser conversion or new loader. Its 256 × 256 swatches remain above the existing renderer's 192 × 192 sprite and 128 × 128 material resolutions. The game-UI skill guided preserving the shared asset/renderer boundary and documenting the derivative rather than replacing map presentation.
+
+Measured Vite output is 119,174 bytes instead of 2,960,323 bytes, a 95.97% reduction. The original master remains in source but is absent from the gameplay build graph. Visual inspection retained all six terrain identities and panel boundaries. Production build passes; six focused Map Lab Chromium journeys pass with atlas readiness and completed transitions, and both focused Terrain V2 journeys pass, including its deliberate atlas-failure fallback. No live game/database state changed. Physical devices, non-Chromium rendering, WAN throttling and the separate five-miniature startup payload remain unverified.
+
+## 2026-10-01 — Entry slideshow bandwidth reduction
+
+Preserved slideshow composition, original artwork, published/draft configuration and game state. Added bounded WebP derivatives for nine bundled images (eight slides plus fallback) and 21 existing uploads. `EntrySlideImage` and `entry:optimize-images` own explicit offline/upload conversion; public URL resolution never transcodes on a page read. Future admin uploads use the same conversion, with validated source paths, decoded-size limits, atomic delivery-file publication and original fallback when a derivative is absent.
+
+The existing AtmosphereBackground now loads the current image and one successor, clears outgoing image sources after fades, decodes asynchronously and avoids hidden-tab downloads. The game-UI skill guided component reuse and preserving reduced motion, controls, localization and owned cleanup. No client data-service, economy, map transfer or server compression changes.
+
+Measurements: published 21-slide playlist 51,082,351 → 5,145,156 bytes; live guest Chromium observed two opening slide responses totaling 679,406 bytes. Existing published URLs resolve to derivatives for all 21 images and the fallback. Originals and saved playlist records were not changed. Bundled derivatives are repository assets; deployments with existing uploads should run `php artisan entry:optimize-images` with GD WebP support. Uploaded originals and derivatives remain instance-local.
+
+Verification: production build, generated-client/PHP contracts, 11 isolated PHP image checks (size/type/aspect ratio, original preservation, idempotence, source validation and URL resolution), live guest network measurement and visual inspection of a converted slide. All 11 entry/slideshow Chromium journeys pass, including full loop timing, exactly two initial slide requests, hidden-tab/reduced-motion loading, broken-image fallback, login/wizard focus and EN/FR mobile behavior, session recovery and administration preview/save/publish. No WAN throttling, physical-device or non-Chromium performance claim; the separate map/turn slowdown remains unprofiled.
+
 ## 2026-10-01 — Resource-capacity calibration (backend, existing projections)
 
 Tested all six goods against the turn-108 economy. Ore was at its geographic ceiling; food, raw materials and manufacturing had development headroom. The civilian v2 catalogue now converts ore geography to 3× developable potential, while an operating reserve of 0.75 lets private factories invest instead of retaining all available capital. No UI, data ownership or save-path changes: existing authoritative planner forecasts expose the new capacity additions. Saved map layers retain their raw geographic source values; they are not installed output.

@@ -252,17 +252,34 @@ class GameplayWorkspace extends Component {
     nation() {
         const { identity, nation } = this.data;
         const economicSummary = el('div', { class: 'economy-summary' });
-        const economicPanel = section(this.services.i18n.t('economy.outlook'), economicSummary,
-            el('a', { href: '#/economy', text: this.services.i18n.t('economy.title') }));
+        const economicPanel = section(
+            this.services.i18n.t('economy.outlook'),
+            economicSummary,
+            el('a', { href: '#/economy', text: this.services.i18n.t('economy.title') }),
+        );
         this.updates.push(() => {
             const current = this.data.economy?.current;
             economicPanel.hidden = !current;
             if (!current) return;
-            economicSummary.replaceChildren(...['civilian_income', 'income_per_person', 'infrastructure', 'unrest', 'informal'].map(key => {
-                const percent = ['infrastructure', 'unrest', 'informal'].includes(key);
-                return el('div', {}, el('span', { text: this.services.i18n.t(`economy.${key}`) }),
-                    el('strong', { text: this.number(current[key] * (percent ? 100 : key === 'income_per_person' ? 1e6 : 1)) + (percent ? '%' : '') }));
-            }));
+            economicSummary.replaceChildren(
+                ...['civilian_income', 'income_per_person', 'infrastructure', 'unrest', 'informal'].map(
+                    (key) => {
+                        const percent = ['infrastructure', 'unrest', 'informal'].includes(key);
+                        return el(
+                            'div',
+                            {},
+                            el('span', { text: this.services.i18n.t(`economy.${key}`) }),
+                            el('strong', {
+                                text:
+                                    this.number(
+                                        current[key] *
+                                            (percent ? 100 : key === 'income_per_person' ? 1e6 : 1),
+                                    ) + (percent ? '%' : ''),
+                            }),
+                        );
+                    },
+                ),
+            );
         });
         this.content.append(economicPanel);
         const formal = el('p');
@@ -363,8 +380,13 @@ class GameplayWorkspace extends Component {
         this.services.i18n.changed.subscribe(this.scope, () =>
             planner.setLabel(this.services.i18n.t('planner.open')),
         );
-        const resources = el('details', { class: 'economy-resources' }, el('summary', { text: this.services.i18n.t('economy.resources') }), planner.element);
-        this.content.append(resources);
+        const resources = el(
+            'details',
+            { class: 'economy-resources' },
+            el('summary', { text: this.services.i18n.t('economy.resources') }),
+            planner.element,
+        );
+        economy.budgetPanels.get('civilian').append(resources);
         resources.append(
             section(
                 'Resource budget',
@@ -375,21 +397,23 @@ class GameplayWorkspace extends Component {
                 this.liveTable(
                     ['Resource', 'Production', 'Reserves', 'Upkeep', 'Expenses', 'Available', 'Balance'],
                     () =>
-                        this.data.definitions.resources.filter(r => r.role !== 'treasury').map((r) => [
-                            resourceName(this.data, r.resource_key, this.services.i18n),
-                            ...[
-                                'production',
-                                'stockpiles',
-                                'upkeep',
-                                'expenses',
-                                'available_production',
-                                'balances',
-                            ].map((key) =>
-                                key === 'stockpiles' && !r.can_be_stocked
-                                    ? 'Not stockpiled'
-                                    : this.number(this.data.budget[key][r.resource_key]),
-                            ),
-                        ]),
+                        this.data.definitions.resources
+                            .filter((r) => r.role !== 'treasury')
+                            .map((r) => [
+                                resourceName(this.data, r.resource_key, this.services.i18n),
+                                ...[
+                                    'production',
+                                    'stockpiles',
+                                    'upkeep',
+                                    'expenses',
+                                    'available_production',
+                                    'balances',
+                                ].map((key) =>
+                                    key === 'stockpiles' && !r.can_be_stocked
+                                        ? 'Not stockpiled'
+                                        : this.number(this.data.budget[key][r.resource_key]),
+                                ),
+                            ]),
                 ),
             ),
         );

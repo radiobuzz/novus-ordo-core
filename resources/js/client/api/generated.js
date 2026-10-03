@@ -63,6 +63,10 @@ export const endpoints = {
         "method": "GET",
         "path": "/nation/diplomacy"
     },
+    "getEconomicHistory": {
+        "method": "GET",
+        "path": "/nation/economic-history"
+    },
     "getEntrySession": {
         "method": "GET",
         "path": "/client/session"
@@ -186,6 +190,10 @@ export const endpoints = {
     "readyForNextTurn": {
         "method": "POST",
         "path": "/ready-for-next-turn"
+    },
+    "repayDebt": {
+        "method": "POST",
+        "path": "/nation/finance/repay"
     },
     "respondNationOffer": {
         "method": "POST",

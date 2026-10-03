@@ -4,12 +4,14 @@ set -euo pipefail
 cd "$(dirname "$0")/../.."
 case "${1:-lifecycle}" in
  lifecycle) production_suite=production-lifecycle; production_browser=production-lifecycle-browser ;;
+ history) production_suite=economic-history-lifecycle; production_browser='' ;;
+ support) production_suite=income-support-lifecycle; production_browser='' ;;
  civilian) production_suite=civilian-lifecycle; production_browser=production-lifecycle-browser ;;
  capacity) production_suite=resource-calibration-lifecycle; production_browser='' ;;
  state) production_suite=production-state; production_browser='' ;;
  policies) production_suite=policy-foundation; production_browser=policy-http ;;
  resources) production_suite=resource-foundation; production_browser=resource-browser ;;
- *) echo 'Usage: bash tests/client/run-production-checks.sh [capacity|civilian|lifecycle|state|policies|resources] [--browser]' >&2; exit 2 ;;
+ *) echo 'Usage: bash tests/client/run-production-checks.sh [support|history|capacity|civilian|lifecycle|state|policies|resources] [--browser]' >&2; exit 2 ;;
 esac
 if [ -n "${2:-}" ] && [ "$2" != --browser ]; then exit 2; fi
 production_test_root=$(mktemp -d /tmp/no7-entry-db-XXXXXXXX)

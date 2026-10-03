@@ -100,6 +100,11 @@ test('world rankings use readable current charts and lazy turn history', async (
     await expect(rankings.locator('.ranking-bar').first()).toContainText('The Aurelian Union');
     const diagnostics = await page.evaluate(() => window.novusClientDiagnostics());
     expect(historyReads).toBe(0);
+    await rankings.locator('.ranking-bars').first().dblclick();
+    await expect(page.getByRole('dialog', { name: 'Population', exact: true })).toBeVisible();
+    await expect(page.locator('.chart-dialog .ranking-bar').first()).toContainText('The Aurelian Union');
+    await page.keyboard.press('Escape');
+    expect(historyReads).toBe(0);
 
     const historyTab = page.getByRole('tab', { name: 'History' });
     await historyTab.click();
@@ -107,6 +112,13 @@ test('world rankings use readable current charts and lazy turn history', async (
     await expect(rankings.locator('.ranking-series-line')).toHaveCount(2);
     const firstPath = await rankings.locator('.ranking-series-line').first().getAttribute('d');
     expect(firstPath.match(/M/g)).toHaveLength(2);
+    await rankings.locator('.ranking-history-chart').dblclick();
+    await expect(page.getByRole('dialog', { name: 'Population', exact: true })).toBeVisible();
+    await expect(
+        page.locator('.chart-dialog').getByRole('table', { name: 'Population exact history' }),
+    ).toBeVisible();
+    await page.locator('.chart-dialog').getByRole('button', { name: 'Close', exact: true }).click();
+    expect(historyReads).toBe(1);
     await rankings.getByText('View exact historical data').click();
     await expect(rankings.getByRole('table', { name: 'Population exact history' })).toBeVisible();
     await expect(rankings.getByRole('cell', { name: '126,000 · rank 1' })).toBeVisible();
@@ -131,5 +143,10 @@ test('world rankings use readable current charts and lazy turn history', async (
     expect(await page.evaluate(() => document.documentElement.scrollWidth <= innerWidth)).toBe(true);
     await page.screenshot({ path: '/tmp/no7-rankings-current-mobile.png', fullPage: true });
     await page.getByRole('tab', { name: 'History' }).click();
+    await rankings
+        .getByRole('button', { name: 'Enlarge Army size (number of divisions)', exact: true })
+        .click();
+    await expect(page.getByRole('dialog')).toBeInViewport();
+    await page.keyboard.press('Escape');
     await page.screenshot({ path: '/tmp/no7-rankings-history-mobile.png', fullPage: true });
 });

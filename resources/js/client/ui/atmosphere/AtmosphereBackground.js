@@ -75,28 +75,37 @@ export class AtmosphereBackground {
             });
             image.dataset.effect = slide.effect ?? 'none';
             image.style.objectPosition = `${slide.focus_x ?? 50}% ${slide.focus_y ?? 50}%`;
-            const item = { image, slide, status: 'loading' };
+            image.decoding = 'async';
+            const item = { image, slide, status: 'idle' };
             const settle = () => {
+                if (scope.closed || item.status !== 'loading') return;
                 item.status = image.naturalWidth > 0 ? 'loaded' : 'failed';
-                cancelDeadline();
+                item.cancelDeadline?.();
             };
             scope.listen(image, 'load', settle);
             scope.listen(image, 'error', settle);
-            const cancelDeadline = scope.timeout(() => {
-                item.status = 'failed';
-            }, 8000);
-            image.src = slide.url ?? slide.src;
-            if (image.complete) settle();
+            item.load = () => {
+                if (item.status !== 'idle' || document.hidden || scope.closed) return;
+                item.status = 'loading';
+                item.cancelDeadline = scope.timeout(() => {
+                    item.status = 'failed';
+                    image.removeAttribute('src');
+                }, 30000);
+                image.src = slide.url ?? slide.src;
+                if (image.complete) settle();
+            };
             return item;
         });
+        scope.own(() => items.forEach(({ image }) => image.removeAttribute('src')));
         this.root.replaceChildren(
             ...items.map(({ image }) => image),
             el('div', { class: 'atmosphere-shade' }),
         );
         let current = null;
         const show = (index) => {
-            if (scope.closed) return;
+            if (scope.closed || document.hidden) return;
             const item = items[index];
+            item.load();
             if (item.status === 'loading') {
                 scope.timeout(() => show(index), 100);
                 return;
@@ -113,7 +122,7 @@ export class AtmosphereBackground {
                     this.root.prepend(fallback);
                     return;
                 }
-                show((index + 1) % items.length);
+                scope.timeout(() => show((index + 1) % items.length), 0);
                 return;
             }
             const previous = current;
@@ -131,17 +140,24 @@ export class AtmosphereBackground {
             this.root.dataset.phase = 'fading-in';
             scope.timeout(
                 () => {
-                    if (previous && previous !== item)
+                    if (previous && previous !== item) {
                         previous.image.classList.remove('is-visible', 'is-animating');
+                        previous.image.removeAttribute('src');
+                        previous.status = 'idle';
+                    }
                     item.image.style.zIndex = '0';
                     this.root.dataset.phase = 'holding';
                     if (reduced || document.hidden || items.length < 2) return;
+                    // Only the visible slide and its immediate successor need image data.
+                    items[(index + 1) % items.length].load();
                     scope.timeout(() => {
                         if (index < items.length - 1) show(index + 1);
                         else {
                             this.root.dataset.phase = 'fading-out';
                             item.image.classList.remove('is-visible', 'is-animating');
                             scope.timeout(() => {
+                                item.image.removeAttribute('src');
+                                item.status = 'idle';
                                 current = null;
                                 this.root.dataset.phase = 'black';
                                 // Paint the black endpoint before starting the first fade-in again.

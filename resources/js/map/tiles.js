@@ -1,4 +1,4 @@
-import atlasUrl from '../map-lab/assets/terrain-atlas-v1.png?url';
+import atlasUrl from '../map-lab/assets/terrain-atlas-v1-runtime.webp?url';
 import { axialKey, axialToPixel, directions, traceHex } from './hex.js';
 import { isWater } from './water.js';
 import { materialFor } from './geography.js';

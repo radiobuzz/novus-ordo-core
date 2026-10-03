@@ -1,5 +1,17 @@
 # Shared game data — implementation plan
 
+## Income support — 2026-10-02
+
+The new policy uses the existing service-owned seasonal draft, authoritative preview and combined save. Support, purchases and unmet needs are projected from existing report fields; there is no extra endpoint, polling loop, optimistic settlement or second draft. Public-investment permission is presentation derived from the same current/pending/draft policy choices; retained invalid inputs still block submission. Fresh defaults and the explicit disabled catalogue addition are documented in [the first-pass results](../game-design/income-support-first-pass.md). Isolated settlement, forecast/actual equality, conservation and rollback checks pass; browser checks cover retained controls and seasonal submission.
+
+## Economic workspace and history — 2026-10-02
+
+[Implemented results](economic-workspace-results.md): `getEconomicHistory` reads compact recorded owner reports, bounded to 12/24/96 completed seasons. NationContext resolves ownership; turn/revision is checked before and after reading. GameplayService deduplicates windows by game/nation/turn/revision, clears them on context loss and rejects late rollback responses. Economy and embedded planner reports share the read, not presentation selections. No report-specific polling or independent draft/save path.
+
+Budget/policy tabs retain their controls, tables and shared seasonal draft. Hidden validation still blocks saving; summary/details use the same authoritative preview generation. `seasonalBalance` provides the shared header/budget projection excluding financing. `repayDebt` uses the existing command lane, context checks and refresh reconciliation; confirmation uses current uncommitted cash/debt. Completed reports are not rewritten by current-turn repayment.
+
+Settlement records minimal per-industry observations in existing reports. Missing old observations stay unknown; past seasons are not recomputed. No migration or live backfill. Rollback removes observations/actions through existing nation-detail history. The client-data skill guided these boundaries; isolated lifecycle, shared-read/race and real-browser checks are recorded in the results document.
+
 ## Public investment in the shared seasonal draft — 2026-10-01
 
 `GameplayService.setPolicyParameter` edits the existing service-owned policy package, preserving other pending choices, confirmed data and base-signature conflict detection. The planner discovers resource funding through catalogue effects (`publicInvestmentControl`), including role targets; it does not maintain a parallel investment model. EconomyPanel synchronizes retained policy controls on the same economic-draft signal. Preview generation fencing, atomic policy/acquisition submission, reset and refresh ownership remain unchanged. No additional endpoint, polling loop or optimistic economic settlement was introduced.

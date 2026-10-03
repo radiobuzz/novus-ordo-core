@@ -1,0 +1,1584 @@
+{
+  "purpose": "Fixed-population, fixed-supply indicator hypothesis. No application/DB imports.\n\nAggregate income is an economic measurement, not a conserved civilian cash pool.\nGovernment taxes/spending reconcile. Physical production, goods ownership,\nmarket prices, borrowing, population growth and military are outside this trial.\nEvery coefficient is an authored test assumption, not an empirical estimate.\n",
+  "config": {
+    "status": "Isolated hypothesis; coefficients are proposals, not game rules",
+    "seasons": 300,
+    "population": 5000000,
+    "territories": 5,
+    "opening_treasury": 50,
+    "reference_income_per_million": 40,
+    "initial": {
+      "economic": 0.5,
+      "health": 0.65,
+      "education": 0.65,
+      "infrastructure": 0.65,
+      "dynamism": 0.5,
+      "crime": 0.2,
+      "inequality": 0.35,
+      "environment": 0.75,
+      "unrest": 0.03,
+      "informal": 0.05
+    },
+    "rates": {
+      "social": 0.06,
+      "dynamism": 0.08,
+      "economic": 0.08,
+      "economic_max_step": 0.03,
+      "infrastructure_growth": 0.01,
+      "infrastructure_decay": 0.015,
+      "avoidance_rise": 1.0,
+      "avoidance_recovery": 0.06
+    },
+    "costs_per_million": {
+      "health": 1.7,
+      "education": 2.0,
+      "police": 0.4,
+      "welfare": 0.4,
+      "environment": 0.25,
+      "public_development": 0.6,
+      "infrastructure_upkeep": 0.9,
+      "infrastructure_point": 40
+    },
+    "hypothesis": {
+      "condition_weights": {
+        "health": 0.3,
+        "education": 0.3,
+        "infrastructure": 0.25,
+        "security": 0.15
+      },
+      "public_service_floor_share": 0.25,
+      "service_target_floor": 0.35,
+      "service_target_provision": 0.45,
+      "private_service_bonus": 0.12,
+      "public_infrastructure_target": 0.8,
+      "private_infrastructure_floor": 0.55,
+      "private_infrastructure_dynamism": 0.4,
+      "private_tax_tolerance": 0.4,
+      "public_tax_tolerance": 0.95,
+      "private_development_share": 0.12,
+      "public_development_momentum": 0.65,
+      "inequality_hardship_threshold": 0.55,
+      "inequality_hardship_width": 0.45,
+      "inequality_floor": 0.25,
+      "inequality_private_dynamism": 0.5,
+      "inequality_economic": 0.25,
+      "inequality_welfare": 0.3,
+      "informal_tax": 0.15,
+      "informal_unrest_base": 0.5,
+      "environment_floor": 0.9,
+      "environment_economic": 0.4,
+      "environment_private_dynamism": 0.1,
+      "environment_protection": 0.25,
+      "health_hardship": 0.15,
+      "health_pollution": 0.12,
+      "education_hardship": 0.15,
+      "crime_floor": 0.35,
+      "crime_police": 0.25,
+      "crime_hardship": 0.25,
+      "crime_unrest": 0.15,
+      "crime_tax_pressure": 0.25,
+      "unrest_floor": 0.02,
+      "unrest_hardship": 0.25,
+      "unrest_service_shortfall": 0.3,
+      "unrest_excess_tax": 0.4,
+      "dynamism_tax_floor": 0.4,
+      "dynamism_tax_response": 0.6,
+      "dynamism_health_weight": 0.3,
+      "dynamism_education_weight": 0.7,
+      "unrest_economic_penalty": 0.4
+    },
+    "scenarios": [
+      {
+        "name": "mixed_default",
+        "public_share": 0.5,
+        "tax": 0.25
+      },
+      {
+        "name": "private_default",
+        "public_share": 0.0,
+        "tax": 0.2
+      },
+      {
+        "name": "public_default",
+        "public_share": 1.0,
+        "tax": 0.45
+      },
+      {
+        "name": "public_high_tax",
+        "public_share": 1.0,
+        "tax": 0.9
+      },
+      {
+        "name": "public_tax_raised",
+        "public_share": 1.0,
+        "tax": 0.45,
+        "switch_season": 101,
+        "changes": {
+          "tax": 0.9
+        }
+      },
+      {
+        "name": "private_high_tax",
+        "public_share": 0.0,
+        "tax": 0.8
+      },
+      {
+        "name": "private_no_welfare",
+        "public_share": 0.0,
+        "tax": 0.2,
+        "welfare": 0.0
+      },
+      {
+        "name": "private_welfare_restored",
+        "public_share": 0.0,
+        "tax": 0.2,
+        "welfare": 0.0,
+        "switch_season": 101,
+        "changes": {
+          "welfare": 1.0
+        }
+      },
+      {
+        "name": "mixed_underfunded_services",
+        "public_share": 0.5,
+        "tax": 0.25,
+        "health": 0.3,
+        "education": 0.3
+      },
+      {
+        "name": "mixed_no_public_development",
+        "public_share": 0.5,
+        "tax": 0.25,
+        "public_development": 0.0
+      },
+      {
+        "name": "public_no_development",
+        "public_share": 1.0,
+        "tax": 0.45,
+        "public_development": 0.0
+      },
+      {
+        "name": "mixed_infrastructure_damage",
+        "public_share": 0.5,
+        "tax": 0.25,
+        "damage_season": 40
+      },
+      {
+        "name": "mixed_very_low_tax",
+        "public_share": 0.5,
+        "tax": 0.05
+      }
+    ]
+  },
+  "checks": [
+    {
+      "check": "mixed_default: all spending funded without credit for 300 seasons",
+      "passed": true
+    },
+    {
+      "check": "mixed_default: development raises income",
+      "passed": true
+    },
+    {
+      "check": "mixed_default: final 20 seasons income drift below 0.2%",
+      "passed": true
+    },
+    {
+      "check": "mixed_default: infrastructure spending settles",
+      "passed": true
+    },
+    {
+      "check": "private_default: all spending funded without credit for 300 seasons",
+      "passed": true
+    },
+    {
+      "check": "private_default: development raises income",
+      "passed": true
+    },
+    {
+      "check": "private_default: final 20 seasons income drift below 0.2%",
+      "passed": true
+    },
+    {
+      "check": "private_default: infrastructure spending settles",
+      "passed": true
+    },
+    {
+      "check": "public_default: all spending funded without credit for 300 seasons",
+      "passed": true
+    },
+    {
+      "check": "public_default: development raises income",
+      "passed": true
+    },
+    {
+      "check": "public_default: final 20 seasons income drift below 0.2%",
+      "passed": true
+    },
+    {
+      "check": "public_default: infrastructure spending settles",
+      "passed": true
+    },
+    {
+      "check": "public_high_tax: all spending funded without credit for 300 seasons",
+      "passed": true
+    },
+    {
+      "check": "public_high_tax: development raises income",
+      "passed": true
+    },
+    {
+      "check": "public_high_tax: final 20 seasons income drift below 0.2%",
+      "passed": true
+    },
+    {
+      "check": "public_high_tax: infrastructure spending settles",
+      "passed": true
+    },
+    {
+      "check": "Removing welfare raises inequality",
+      "passed": true
+    },
+    {
+      "check": "Unmanaged inequality reduces long-term income",
+      "passed": true
+    },
+    {
+      "check": "Welfare removal offers a short-term saving",
+      "passed": true
+    },
+    {
+      "check": "Restoring welfare allows recovery",
+      "passed": true
+    },
+    {
+      "check": "Benefits recover within 1% of maintained-welfare path",
+      "passed": true
+    },
+    {
+      "check": "Underfunding education and health reduces income",
+      "passed": true
+    },
+    {
+      "check": "Public economy responds to funded public development",
+      "passed": true
+    },
+    {
+      "check": "Mixed economy develops more slowly without public investment",
+      "passed": true
+    },
+    {
+      "check": "Infrastructure damage lowers following-season income",
+      "passed": true
+    },
+    {
+      "check": "Infrastructure damage recovers under unchanged policy",
+      "passed": true
+    },
+    {
+      "check": "Very low taxes cannot finance the unchanged public programme",
+      "passed": true
+    },
+    {
+      "check": "High public taxes increase the black market despite political tolerance",
+      "passed": true
+    },
+    {
+      "check": "NO2-inspired tax pressure increases crime independently of tax unrest",
+      "passed": true
+    },
+    {
+      "check": "A nominal 90% tax collects less than 90% of national income",
+      "passed": true
+    },
+    {
+      "check": "Heavy private taxes reduce long-term prosperity",
+      "passed": true
+    },
+    {
+      "check": "Paired tax-hike countries have identical history before the change",
+      "passed": true
+    },
+    {
+      "check": "Tax avoidance reacts in the tax-hike season",
+      "passed": true
+    },
+    {
+      "check": "Tax hike cannot collect at the previous lower avoidance rate",
+      "passed": true
+    },
+    {
+      "check": "Lower taxes do not instantly eliminate inherited avoidance",
+      "passed": true
+    },
+    {
+      "check": "Dividing identical territory does not change national results",
+      "passed": true
+    },
+    {
+      "check": "Changing money units does not change behaviour",
+      "passed": true
+    }
+  ],
+  "sensitivity": [
+    {
+      "income_scale": 0.8,
+      "cost_scale": 0.8,
+      "unfunded_seasons": 0,
+      "minimum_treasury": 52.06000000000001,
+      "last_balance": 12.286006028633825,
+      "last_income": 130.7202330740619
+    },
+    {
+      "income_scale": 0.8,
+      "cost_scale": 1,
+      "unfunded_seasons": 0,
+      "minimum_treasury": 37.28557933512623,
+      "last_balance": 7.623955589715578,
+      "last_income": 130.7202330740619
+    },
+    {
+      "income_scale": 0.8,
+      "cost_scale": 1.2,
+      "unfunded_seasons": 35,
+      "minimum_treasury": 0.0,
+      "last_balance": 2.961899176020708,
+      "last_income": 130.7201994780828
+    },
+    {
+      "income_scale": 1,
+      "cost_scale": 0.8,
+      "unfunded_seasons": 0,
+      "minimum_treasury": 56.73,
+      "last_balance": 20.01955797471053,
+      "last_income": 163.40029134257736
+    },
+    {
+      "income_scale": 1,
+      "cost_scale": 1,
+      "unfunded_seasons": 0,
+      "minimum_treasury": 52.574999999999996,
+      "last_balance": 15.357507535792283,
+      "last_income": 163.40029134257736
+    },
+    {
+      "income_scale": 1,
+      "cost_scale": 1.2,
+      "unfunded_seasons": 0,
+      "minimum_treasury": 44.01642525591025,
+      "last_balance": 10.69545709687403,
+      "last_income": 163.40029134257736
+    },
+    {
+      "income_scale": 1.2,
+      "cost_scale": 0.8,
+      "unfunded_seasons": 0,
+      "minimum_treasury": 61.4,
+      "last_balance": 27.75310992078723,
+      "last_income": 196.08034961109283
+    },
+    {
+      "income_scale": 1.2,
+      "cost_scale": 1,
+      "unfunded_seasons": 0,
+      "minimum_treasury": 57.245,
+      "last_balance": 23.091059481868985,
+      "last_income": 196.08034961109283
+    },
+    {
+      "income_scale": 1.2,
+      "cost_scale": 1.2,
+      "unfunded_seasons": 0,
+      "minimum_treasury": 53.09,
+      "last_balance": 18.42900904295073,
+      "last_income": 196.08034961109283
+    }
+  ],
+  "results": [
+    {
+      "scenario": "mixed_default",
+      "initial_policy": {
+        "name": "mixed_default",
+        "public_share": 0.5,
+        "tax": 0.25
+      },
+      "first": {
+        "season": 1,
+        "population": 5000000,
+        "income": 100.0,
+        "income_per_million": 20.0,
+        "tax_receipts": 23.35,
+        "opening_treasury": 50,
+        "treasury": 52.574999999999996,
+        "requested_spending": 20.775,
+        "paid_spending": 20.775,
+        "balance": 2.575000000000003,
+        "public_funding_coverage": 1.0,
+        "spending": {
+          "health": 5.3125,
+          "education": 6.25,
+          "police": 2.0,
+          "welfare": 2.0,
+          "environment": 1.25,
+          "public_development": 1.5,
+          "infrastructure_maintenance": 1.4625000000000001,
+          "infrastructure_development": 1.0
+        },
+        "private_provision_coverage": 1.0,
+        "private_construction": 0.5,
+        "indicators": {
+          "economic": 0.50756378,
+          "health": 0.659,
+          "education": 0.6608,
+          "infrastructure": 0.6575,
+          "dynamism": 0.48522,
+          "crime": 0.19427,
+          "inequality": 0.34099999999999997,
+          "environment": 0.7605,
+          "unrest": 0.0294,
+          "informal": 0.066
+        },
+        "economic_target": 0.66443,
+        "momentum": 0.575
+      },
+      "last": {
+        "season": 300,
+        "population": 5000000,
+        "income": 163.40029134257736,
+        "income_per_million": 32.680058268515474,
+        "tax_receipts": 38.66775973038352,
+        "opening_treasury": 4246.393231185293,
+        "treasury": 4261.750738721085,
+        "requested_spending": 23.31025219459124,
+        "paid_spending": 23.31025219459124,
+        "balance": 15.357507535792283,
+        "public_funding_coverage": 1.0,
+        "spending": {
+          "health": 6.322942143272325,
+          "education": 7.438755462673324,
+          "police": 2.380401748055464,
+          "welfare": 2.380401748055464,
+          "environment": 1.4877510925346649,
+          "public_development": 1.5,
+          "infrastructure_maintenance": 1.8000000000000003,
+          "infrastructure_development": 0.0
+        },
+        "private_provision_coverage": 1.0,
+        "private_construction": 0.0,
+        "indicators": {
+          "economic": 0.8170014575557633,
+          "health": 0.8031077821252928,
+          "education": 0.8270261929727746,
+          "infrastructure": 0.8,
+          "dynamism": 0.4504362867669445,
+          "crime": 0.103000001090868,
+          "inequality": 0.26685930197004903,
+          "environment": 0.8006779188636601,
+          "unrest": 0.020000000086767302,
+          "informal": 0.053422502183560594
+        },
+        "economic_target": 0.8170014758615711,
+        "momentum": 0.5502181467873228
+      },
+      "minimum_treasury": 52.574999999999996,
+      "unfunded_seasons": 0,
+      "late_income_drift": 1.514427252302049e-07,
+      "late_infrastructure_spending_drift": 0.0
+    },
+    {
+      "scenario": "private_default",
+      "initial_policy": {
+        "name": "private_default",
+        "public_share": 0.0,
+        "tax": 0.2
+      },
+      "first": {
+        "season": 1,
+        "population": 5000000,
+        "income": 100.0,
+        "income_per_million": 20.0,
+        "tax_receipts": 18.86,
+        "opening_treasury": 50,
+        "treasury": 58.985,
+        "requested_spending": 9.875,
+        "paid_spending": 9.875,
+        "balance": 8.985,
+        "public_funding_coverage": 1.0,
+        "spending": {
+          "health": 2.125,
+          "education": 2.5,
+          "police": 2.0,
+          "welfare": 2.0,
+          "environment": 1.25,
+          "public_development": 0.0,
+          "infrastructure_maintenance": 0.0,
+          "infrastructure_development": 0.0
+        },
+        "private_provision_coverage": 1.0,
+        "private_construction": 1.0,
+        "indicators": {
+          "economic": 0.5065772,
+          "health": 0.6608,
+          "education": 0.6626000000000001,
+          "infrastructure": 0.655,
+          "dynamism": 0.4882464,
+          "crime": 0.19427,
+          "inequality": 0.3485,
+          "environment": 0.759,
+          "unrest": 0.0294,
+          "informal": 0.05699999999999999
+        },
+        "economic_target": 0.66443,
+        "momentum": 0.5
+      },
+      "last": {
+        "season": 300,
+        "population": 5000000,
+        "income": 165.48637499931348,
+        "income_per_million": 33.0972749998627,
+        "tax_receipts": 31.60293296614887,
+        "opening_treasury": 5584.865237028989,
+        "treasury": 5604.653136135783,
+        "requested_spending": 11.815033859354662,
+        "paid_spending": 11.815033859354662,
+        "balance": 19.787899106794207,
+        "public_funding_coverage": 1.0,
+        "spending": {
+          "health": 2.5424756406206233,
+          "education": 2.9911478124948507,
+          "police": 2.3929182499958808,
+          "welfare": 2.3929182499958808,
+          "environment": 1.4955739062474254,
+          "public_development": 0.0,
+          "infrastructure_maintenance": 0.0,
+          "infrastructure_development": 0.0
+        },
+        "private_provision_coverage": 1.0,
+        "private_construction": 0.0,
+        "indicators": {
+          "economic": 0.8274318961655702,
+          "health": 0.8350850296889849,
+          "education": 0.8631123457427785,
+          "infrastructure": 0.7603839784182371,
+          "dynamism": 0.5259355786606866,
+          "crime": 0.103000001090868,
+          "inequality": 0.4198254652211994,
+          "environment": 0.7664346154868422,
+          "unrest": 0.020000000086767302,
+          "informal": 0.0451500020385372
+        },
+        "economic_target": 0.8274323781238262,
+        "momentum": 0.525935596806476
+      },
+      "minimum_treasury": 58.985,
+      "unfunded_seasons": 0,
+      "late_income_drift": 1.0924290009293532e-06,
+      "late_infrastructure_spending_drift": 0.0
+    },
+    {
+      "scenario": "public_default",
+      "initial_policy": {
+        "name": "public_default",
+        "public_share": 1.0,
+        "tax": 0.45
+      },
+      "first": {
+        "season": 1,
+        "population": 5000000,
+        "income": 100.0,
+        "income_per_million": 20.0,
+        "tax_receipts": 40.410000000000004,
+        "opening_treasury": 50,
+        "treasury": 58.735,
+        "requested_spending": 31.675,
+        "paid_spending": 31.675,
+        "balance": 8.735000000000003,
+        "public_funding_coverage": 1.0,
+        "spending": {
+          "health": 8.5,
+          "education": 10.0,
+          "police": 2.0,
+          "welfare": 2.0,
+          "environment": 1.25,
+          "public_development": 3.0,
+          "infrastructure_maintenance": 2.9250000000000003,
+          "infrastructure_development": 2.0
+        },
+        "private_provision_coverage": 1.0,
+        "private_construction": 0.0,
+        "indicators": {
+          "economic": 0.50855036,
+          "health": 0.6572,
+          "education": 0.659,
+          "infrastructure": 0.66,
+          "dynamism": 0.4761408,
+          "crime": 0.19427,
+          "inequality": 0.33349999999999996,
+          "environment": 0.762,
+          "unrest": 0.0294,
+          "informal": 0.10200000000000001
+        },
+        "economic_target": 0.66443,
+        "momentum": 0.65
+      },
+      "last": {
+        "season": 300,
+        "population": 5000000,
+        "income": 160.38699321255947,
+        "income_per_million": 32.077398642511895,
+        "tax_receipts": 65.93018085855168,
+        "opening_treasury": 8823.959988150054,
+        "treasury": 8855.237595742212,
+        "requested_spending": 34.65257326639486,
+        "paid_spending": 34.65257326639486,
+        "balance": 31.27760759215682,
+        "public_funding_coverage": 1.0,
+        "spending": {
+          "health": 10.039868326920265,
+          "education": 11.811609796376782,
+          "police": 2.3623219592753566,
+          "welfare": 2.3623219592753566,
+          "environment": 1.4764512245470978,
+          "public_development": 3.0,
+          "infrastructure_maintenance": 3.6000000000000005,
+          "infrastructure_development": 0.0
+        },
+        "private_provision_coverage": 1.0,
+        "private_construction": 0.0,
+        "indicators": {
+          "economic": 0.8019349634738344,
+          "health": 0.7795071687355688,
+          "education": 0.7999999986984907,
+          "infrastructure": 0.8,
+          "dynamism": 0.2791374782158919,
+          "crime": 0.103000001090868,
+          "inequality": 0.15048374402337544,
+          "environment": 0.8292260116450145,
+          "unrest": 0.020000000086767302,
+          "informal": 0.08651250276365416
+        },
+        "economic_target": 0.8019349337007589,
+        "momentum": 0.65
+      },
+      "minimum_treasury": 58.735,
+      "unfunded_seasons": 0,
+      "late_income_drift": 1.1801242037399531e-07,
+      "late_infrastructure_spending_drift": 0.0
+    },
+    {
+      "scenario": "public_high_tax",
+      "initial_policy": {
+        "name": "public_high_tax",
+        "public_share": 1.0,
+        "tax": 0.9
+      },
+      "first": {
+        "season": 1,
+        "population": 5000000,
+        "income": 100.0,
+        "income_per_million": 20.0,
+        "tax_receipts": 73.53,
+        "opening_treasury": 50,
+        "treasury": 91.855,
+        "requested_spending": 31.675,
+        "paid_spending": 31.675,
+        "balance": 41.855000000000004,
+        "public_funding_coverage": 1.0,
+        "spending": {
+          "health": 8.5,
+          "education": 10.0,
+          "police": 2.0,
+          "welfare": 2.0,
+          "environment": 1.25,
+          "public_development": 3.0,
+          "infrastructure_maintenance": 2.9250000000000003,
+          "infrastructure_development": 2.0
+        },
+        "private_provision_coverage": 1.0,
+        "private_construction": 0.0,
+        "indicators": {
+          "economic": 0.50855036,
+          "health": 0.6572,
+          "education": 0.659,
+          "infrastructure": 0.66,
+          "dynamism": 0.4761408,
+          "crime": 0.20702,
+          "inequality": 0.33349999999999996,
+          "environment": 0.762,
+          "unrest": 0.0294,
+          "informal": 0.183
+        },
+        "economic_target": 0.66443,
+        "momentum": 0.65
+      },
+      "last": {
+        "season": 300,
+        "population": 5000000,
+        "income": 154.1520560276098,
+        "income_per_million": 30.83041120552196,
+        "tax_receipts": 111.83542829214494,
+        "opening_treasury": 22387.195466519926,
+        "treasury": 22464.822560820106,
+        "requested_spending": 34.2083339919672,
+        "paid_spending": 34.2083339919672,
+        "balance": 77.62709430017773,
+        "public_funding_coverage": 1.0,
+        "spending": {
+          "health": 9.88087742870405,
+          "education": 11.624561680828293,
+          "police": 2.3249123361656587,
+          "welfare": 2.3249123361656587,
+          "environment": 1.4530702101035367,
+          "public_development": 3.0,
+          "infrastructure_maintenance": 3.6000000000000005,
+          "infrastructure_development": 0.0
+        },
+        "private_provision_coverage": 1.0,
+        "private_construction": 0.0,
+        "indicators": {
+          "economic": 0.7707602780916031,
+          "health": 0.7810035423080799,
+          "education": 0.7999999986984907,
+          "infrastructure": 0.8,
+          "dynamism": 0.2131300455316472,
+          "crime": 0.31549999924706296,
+          "inequality": 0.14269007361025104,
+          "environment": 0.8416958843060136,
+          "unrest": 0.020000000086767302,
+          "informal": 0.19390249995098374
+        },
+        "economic_target": 0.7707602545574755,
+        "momentum": 0.65
+      },
+      "minimum_treasury": 91.855,
+      "unfunded_seasons": 0,
+      "late_income_drift": 9.77803442948961e-08,
+      "late_infrastructure_spending_drift": 0.0
+    },
+    {
+      "scenario": "public_tax_raised",
+      "initial_policy": {
+        "name": "public_tax_raised",
+        "public_share": 1.0,
+        "tax": 0.45,
+        "switch_season": 101,
+        "changes": {
+          "tax": 0.9
+        }
+      },
+      "first": {
+        "season": 1,
+        "population": 5000000,
+        "income": 100.0,
+        "income_per_million": 20.0,
+        "tax_receipts": 40.410000000000004,
+        "opening_treasury": 50,
+        "treasury": 58.735,
+        "requested_spending": 31.675,
+        "paid_spending": 31.675,
+        "balance": 8.735000000000003,
+        "public_funding_coverage": 1.0,
+        "spending": {
+          "health": 8.5,
+          "education": 10.0,
+          "police": 2.0,
+          "welfare": 2.0,
+          "environment": 1.25,
+          "public_development": 3.0,
+          "infrastructure_maintenance": 2.9250000000000003,
+          "infrastructure_development": 2.0
+        },
+        "private_provision_coverage": 1.0,
+        "private_construction": 0.0,
+        "indicators": {
+          "economic": 0.50855036,
+          "health": 0.6572,
+          "education": 0.659,
+          "infrastructure": 0.66,
+          "dynamism": 0.4761408,
+          "crime": 0.19427,
+          "inequality": 0.33349999999999996,
+          "environment": 0.762,
+          "unrest": 0.0294,
+          "informal": 0.10200000000000001
+        },
+        "economic_target": 0.66443,
+        "momentum": 0.65
+      },
+      "last": {
+        "season": 300,
+        "population": 5000000,
+        "income": 154.1519599351963,
+        "income_per_million": 30.830391987039256,
+        "tax_receipts": 111.83537906307569,
+        "opening_treasury": 18241.53629056629,
+        "treasury": 18319.163342483986,
+        "requested_spending": 34.20832714538273,
+        "paid_spending": 34.20832714538273,
+        "balance": 77.62705191769297,
+        "public_funding_coverage": 1.0,
+        "spending": {
+          "health": 9.880874978347505,
+          "education": 11.624558798055888,
+          "police": 2.3249117596111777,
+          "welfare": 2.3249117596111777,
+          "environment": 1.453069849756986,
+          "public_development": 3.0,
+          "infrastructure_maintenance": 3.6000000000000005,
+          "infrastructure_development": 0.0
+        },
+        "private_provision_coverage": 1.0,
+        "private_construction": 0.0,
+        "indicators": {
+          "economic": 0.7707598121315132,
+          "health": 0.7810024074007947,
+          "education": 0.7999999986984907,
+          "infrastructure": 0.8,
+          "dynamism": 0.21313089854762243,
+          "crime": 0.3154991038074246,
+          "inequality": 0.14269063563046278,
+          "environment": 0.8416949850736748,
+          "unrest": 0.020000000086767302,
+          "informal": 0.1939023522987029
+        },
+        "economic_target": 0.7707600392054391,
+        "momentum": 0.65
+      },
+      "minimum_treasury": 58.735,
+      "unfunded_seasons": 0,
+      "late_income_drift": 2.9019818247326713e-07,
+      "late_infrastructure_spending_drift": 0.0
+    },
+    {
+      "scenario": "private_high_tax",
+      "initial_policy": {
+        "name": "private_high_tax",
+        "public_share": 0.0,
+        "tax": 0.8
+      },
+      "first": {
+        "season": 1,
+        "population": 5000000,
+        "income": 100.0,
+        "income_per_million": 20.0,
+        "tax_receipts": 66.8,
+        "opening_treasury": 50,
+        "treasury": 106.925,
+        "requested_spending": 9.875,
+        "paid_spending": 9.875,
+        "balance": 56.925,
+        "public_funding_coverage": 1.0,
+        "spending": {
+          "health": 2.125,
+          "education": 2.5,
+          "police": 2.0,
+          "welfare": 2.0,
+          "environment": 1.25,
+          "public_development": 0.0,
+          "infrastructure_maintenance": 0.0,
+          "infrastructure_development": 0.0
+        },
+        "private_provision_coverage": 1.0,
+        "private_construction": 1.0,
+        "indicators": {
+          "economic": 0.5065772,
+          "health": 0.6608,
+          "education": 0.6626000000000001,
+          "infrastructure": 0.655,
+          "dynamism": 0.4761408,
+          "crime": 0.21227,
+          "inequality": 0.3485,
+          "environment": 0.759,
+          "unrest": 0.039,
+          "informal": 0.16499999999999998
+        },
+        "economic_target": 0.66443,
+        "momentum": 0.5
+      },
+      "last": {
+        "season": 300,
+        "population": 5000000,
+        "income": 137.48525547331073,
+        "income_per_million": 27.497051094662147,
+        "tax_receipts": 72.80119281932664,
+        "opening_treasury": 17861.19471449865,
+        "treasury": 17923.01040662458,
+        "requested_spending": 10.98550069339683,
+        "paid_spending": 10.98550069339683,
+        "balance": 61.815692125929814,
+        "public_funding_coverage": 1.0,
+        "spending": {
+          "health": 2.3639685036423557,
+          "education": 2.7811394160498306,
+          "police": 2.2249115328398643,
+          "welfare": 2.2249115328398643,
+          "environment": 1.3905697080249153,
+          "public_development": 0.0,
+          "infrastructure_maintenance": 0.0,
+          "infrastructure_development": 0.0
+        },
+        "private_provision_coverage": 1.0,
+        "private_construction": 0.0,
+        "indicators": {
+          "economic": 0.6874615505404315,
+          "health": 0.8015907985483971,
+          "education": 0.8183437383810923,
+          "infrastructure": 0.6877523931857268,
+          "dynamism": 0.15286052371407652,
+          "crime": 0.42699999429200386,
+          "inequality": 0.19811431995520068,
+          "environment": 0.8600222383026043,
+          "unrest": 0.17999999869849054,
+          "informal": 0.33809999689876624
+        },
+        "economic_target": 0.6903106985546865,
+        "momentum": 0.15286071094183842
+      },
+      "minimum_treasury": 106.925,
+      "unfunded_seasons": 0,
+      "late_income_drift": 0.0011741750488996978,
+      "late_infrastructure_spending_drift": 0.0
+    },
+    {
+      "scenario": "private_no_welfare",
+      "initial_policy": {
+        "name": "private_no_welfare",
+        "public_share": 0.0,
+        "tax": 0.2,
+        "welfare": 0.0
+      },
+      "first": {
+        "season": 1,
+        "population": 5000000,
+        "income": 100.0,
+        "income_per_million": 20.0,
+        "tax_receipts": 18.86,
+        "opening_treasury": 50,
+        "treasury": 60.985,
+        "requested_spending": 7.875,
+        "paid_spending": 7.875,
+        "balance": 10.985,
+        "public_funding_coverage": 1.0,
+        "spending": {
+          "health": 2.125,
+          "education": 2.5,
+          "police": 2.0,
+          "welfare": 0.0,
+          "environment": 1.25,
+          "public_development": 0.0,
+          "infrastructure_maintenance": 0.0,
+          "infrastructure_development": 0.0
+        },
+        "private_provision_coverage": 1.0,
+        "private_construction": 1.0,
+        "indicators": {
+          "economic": 0.5065772,
+          "health": 0.6608,
+          "education": 0.6626000000000001,
+          "infrastructure": 0.655,
+          "dynamism": 0.4882464,
+          "crime": 0.19427,
+          "inequality": 0.3665,
+          "environment": 0.759,
+          "unrest": 0.0294,
+          "informal": 0.05699999999999999
+        },
+        "economic_target": 0.66443,
+        "momentum": 0.5
+      },
+      "last": {
+        "season": 300,
+        "population": 5000000,
+        "income": 153.35740433881227,
+        "income_per_million": 30.671480867762458,
+        "tax_receipts": 27.951130745097995,
+        "opening_treasury": 5506.994107937503,
+        "treasury": 5525.809670005096,
+        "requested_spending": 9.13556867750444,
+        "paid_spending": 9.13556867750444,
+        "balance": 18.815562067593554,
+        "public_funding_coverage": 1.0,
+        "spending": {
+          "health": 2.4651534526599277,
+          "education": 2.900180532541092,
+          "police": 2.3201444260328734,
+          "welfare": 0.0,
+          "environment": 1.450090266270546,
+          "public_development": 0.0,
+          "infrastructure_maintenance": 0.0,
+          "infrastructure_development": 0.0
+        },
+        "private_provision_coverage": 1.0,
+        "private_construction": 0.0,
+        "indicators": {
+          "economic": 0.76678708108613,
+          "health": 0.7919755156153696,
+          "education": 0.8159600488812987,
+          "infrastructure": 0.7416527074634466,
+          "dynamism": 0.4315634357988339,
+          "crime": 0.17167024062672012,
+          "inequality": 0.6574794392282026,
+          "environment": 0.8001287322431228,
+          "unrest": 0.07971301276037157,
+          "informal": 0.08869314573994735
+        },
+        "economic_target": 0.7667887419536698,
+        "momentum": 0.4315632679192067
+      },
+      "minimum_treasury": 60.985,
+      "unfunded_seasons": 0,
+      "late_income_drift": 7.32237497268765e-07,
+      "late_infrastructure_spending_drift": 0.0
+    },
+    {
+      "scenario": "private_welfare_restored",
+      "initial_policy": {
+        "name": "private_welfare_restored",
+        "public_share": 0.0,
+        "tax": 0.2,
+        "welfare": 0.0,
+        "switch_season": 101,
+        "changes": {
+          "welfare": 1.0
+        }
+      },
+      "first": {
+        "season": 1,
+        "population": 5000000,
+        "income": 100.0,
+        "income_per_million": 20.0,
+        "tax_receipts": 18.86,
+        "opening_treasury": 50,
+        "treasury": 60.985,
+        "requested_spending": 7.875,
+        "paid_spending": 7.875,
+        "balance": 10.985,
+        "public_funding_coverage": 1.0,
+        "spending": {
+          "health": 2.125,
+          "education": 2.5,
+          "police": 2.0,
+          "welfare": 0.0,
+          "environment": 1.25,
+          "public_development": 0.0,
+          "infrastructure_maintenance": 0.0,
+          "infrastructure_development": 0.0
+        },
+        "private_provision_coverage": 1.0,
+        "private_construction": 1.0,
+        "indicators": {
+          "economic": 0.5065772,
+          "health": 0.6608,
+          "education": 0.6626000000000001,
+          "infrastructure": 0.655,
+          "dynamism": 0.4882464,
+          "crime": 0.19427,
+          "inequality": 0.3665,
+          "environment": 0.759,
+          "unrest": 0.0294,
+          "informal": 0.05699999999999999
+        },
+        "economic_target": 0.66443,
+        "momentum": 0.5
+      },
+      "last": {
+        "season": 300,
+        "population": 5000000,
+        "income": 165.47261359396757,
+        "income_per_million": 33.09452271879351,
+        "tax_receipts": 31.600197263709543,
+        "opening_treasury": 5552.599904593481,
+        "treasury": 5572.38547567947,
+        "requested_spending": 11.814626177721287,
+        "paid_spending": 11.814626177721287,
+        "balance": 19.785571085988256,
+        "public_funding_coverage": 1.0,
+        "spending": {
+          "health": 2.542387911661543,
+          "education": 2.9910446019547567,
+          "police": 2.392835681563805,
+          "welfare": 2.392835681563805,
+          "environment": 1.4955223009773784,
+          "public_development": 0.0,
+          "infrastructure_maintenance": 0.0,
+          "infrastructure_development": 0.0
+        },
+        "private_provision_coverage": 1.0,
+        "private_construction": 1.887950862311527e-05,
+        "indicators": {
+          "economic": 0.8273661454871093,
+          "health": 0.8351112792064211,
+          "education": 0.8631077213964055,
+          "infrastructure": 0.760373900074093,
+          "dynamism": 0.5259349663757447,
+          "crime": 0.10300101805809704,
+          "inequality": 0.4197545975390765,
+          "environment": 0.7665242328357084,
+          "unrest": 0.02000033773567817,
+          "informal": 0.0451532559566234
+        },
+        "economic_target": 0.8274362119594285,
+        "momentum": 0.5259347501852323
+      },
+      "minimum_treasury": 60.985,
+      "unfunded_seasons": 0,
+      "late_income_drift": 0.00012314253413182083,
+      "late_infrastructure_spending_drift": 0.0
+    },
+    {
+      "scenario": "mixed_underfunded_services",
+      "initial_policy": {
+        "name": "mixed_underfunded_services",
+        "public_share": 0.5,
+        "tax": 0.25,
+        "health": 0.3,
+        "education": 0.3
+      },
+      "first": {
+        "season": 1,
+        "population": 5000000,
+        "income": 100.0,
+        "income_per_million": 20.0,
+        "tax_receipts": 23.35,
+        "opening_treasury": 50,
+        "treasury": 60.668749999999996,
+        "requested_spending": 12.68125,
+        "paid_spending": 12.68125,
+        "balance": 10.668750000000001,
+        "public_funding_coverage": 1.0,
+        "spending": {
+          "health": 1.59375,
+          "education": 1.875,
+          "police": 2.0,
+          "welfare": 2.0,
+          "environment": 1.25,
+          "public_development": 1.5,
+          "infrastructure_maintenance": 1.4625000000000001,
+          "infrastructure_development": 1.0
+        },
+        "private_provision_coverage": 1.0,
+        "private_construction": 0.5,
+        "indicators": {
+          "economic": 0.50756378,
+          "health": 0.6471875,
+          "education": 0.6489875,
+          "infrastructure": 0.6575,
+          "dynamism": 0.48522,
+          "crime": 0.19427,
+          "inequality": 0.34099999999999997,
+          "environment": 0.7605,
+          "unrest": 0.037274999999999996,
+          "informal": 0.066
+        },
+        "economic_target": 0.66443,
+        "momentum": 0.575
+      },
+      "last": {
+        "season": 300,
+        "population": 5000000,
+        "income": 131.3820452742664,
+        "income_per_million": 26.276409054853282,
+        "tax_receipts": 28.369250658790687,
+        "opening_treasury": 4574.233300040424,
+        "treasury": 4589.762964077509,
+        "requested_spending": 12.839586621705031,
+        "paid_spending": 12.839586621705031,
+        "balance": 15.529664037085656,
+        "public_funding_coverage": 1.0,
+        "spending": {
+          "health": 1.7437954039675856,
+          "education": 2.051524004667748,
+          "police": 2.188292271645598,
+          "welfare": 2.188292271645598,
+          "environment": 1.3676826697784987,
+          "public_development": 1.5,
+          "infrastructure_maintenance": 1.8000000000000003,
+          "infrastructure_development": 0.0
+        },
+        "private_provision_coverage": 1.0,
+        "private_construction": 0.0,
+        "indicators": {
+          "economic": 0.656910230732025,
+          "health": 0.6050675747220562,
+          "education": 0.62031854054098,
+          "infrastructure": 0.8,
+          "dynamism": 0.28655884827929834,
+          "crime": 0.12268749764896385,
+          "inequality": 0.1858672252537939,
+          "environment": 0.8729080924595181,
+          "unrest": 0.15124999894794647,
+          "informal": 0.13628226445802405
+        },
+        "economic_target": 0.6569103427733333,
+        "momentum": 0.4682794252255139
+      },
+      "minimum_treasury": 60.668749999999996,
+      "unfunded_seasons": 0,
+      "late_income_drift": 2.3733709623396107e-07,
+      "late_infrastructure_spending_drift": 0.0
+    },
+    {
+      "scenario": "mixed_no_public_development",
+      "initial_policy": {
+        "name": "mixed_no_public_development",
+        "public_share": 0.5,
+        "tax": 0.25,
+        "public_development": 0.0
+      },
+      "first": {
+        "season": 1,
+        "population": 5000000,
+        "income": 100.0,
+        "income_per_million": 20.0,
+        "tax_receipts": 23.35,
+        "opening_treasury": 50,
+        "treasury": 55.074999999999996,
+        "requested_spending": 18.275,
+        "paid_spending": 18.275,
+        "balance": 5.075000000000003,
+        "public_funding_coverage": 1.0,
+        "spending": {
+          "health": 5.3125,
+          "education": 6.25,
+          "police": 2.0,
+          "welfare": 2.0,
+          "environment": 1.25,
+          "public_development": 0.0,
+          "infrastructure_maintenance": 1.4625000000000001,
+          "infrastructure_development": 0.0
+        },
+        "private_provision_coverage": 1.0,
+        "private_construction": 0.5,
+        "indicators": {
+          "economic": 0.5032886,
+          "health": 0.659,
+          "education": 0.6608,
+          "infrastructure": 0.6525,
+          "dynamism": 0.48522,
+          "crime": 0.19427,
+          "inequality": 0.34099999999999997,
+          "environment": 0.7605,
+          "unrest": 0.0294,
+          "informal": 0.066
+        },
+        "economic_target": 0.66443,
+        "momentum": 0.25
+      },
+      "last": {
+        "season": 300,
+        "population": 5000000,
+        "income": 159.7046247655355,
+        "income_per_million": 31.940924953107096,
+        "tax_receipts": 37.79320102506849,
+        "opening_treasury": 4217.119729845619,
+        "treasury": 4233.4456424121745,
+        "requested_spending": 21.467288458513536,
+        "paid_spending": 21.467288458513536,
+        "balance": 16.325912566554955,
+        "public_funding_coverage": 1.0,
+        "spending": {
+          "health": 6.2640424572007225,
+          "education": 7.3694617143537915,
+          "police": 2.358227748593213,
+          "welfare": 2.358227748593213,
+          "environment": 1.4738923428707582,
+          "public_development": 0.0,
+          "infrastructure_maintenance": 1.6434364469018372,
+          "infrastructure_development": 0.0
+        },
+        "private_provision_coverage": 1.0,
+        "private_construction": 0.0,
+        "indicators": {
+          "economic": 0.7985504273964646,
+          "health": 0.8040791354195732,
+          "education": 0.8270373759493652,
+          "infrastructure": 0.7304161986230387,
+          "dynamism": 0.45060829071184255,
+          "crime": 0.103000001090868,
+          "inequality": 0.26213159275031234,
+          "environment": 0.8083074876453514,
+          "unrest": 0.020000000086767302,
+          "informal": 0.053422502183560594
+        },
+        "economic_target": 0.8000379389902876,
+        "momentum": 0.2253044584333872
+      },
+      "minimum_treasury": 55.074999999999996,
+      "unfunded_seasons": 0,
+      "late_income_drift": 0.000837627793462007,
+      "late_infrastructure_spending_drift": 0.0
+    },
+    {
+      "scenario": "public_no_development",
+      "initial_policy": {
+        "name": "public_no_development",
+        "public_share": 1.0,
+        "tax": 0.45,
+        "public_development": 0.0
+      },
+      "first": {
+        "season": 1,
+        "population": 5000000,
+        "income": 100.0,
+        "income_per_million": 20.0,
+        "tax_receipts": 40.410000000000004,
+        "opening_treasury": 50,
+        "treasury": 63.735,
+        "requested_spending": 26.675,
+        "paid_spending": 26.675,
+        "balance": 13.735000000000003,
+        "public_funding_coverage": 1.0,
+        "spending": {
+          "health": 8.5,
+          "education": 10.0,
+          "police": 2.0,
+          "welfare": 2.0,
+          "environment": 1.25,
+          "public_development": 0.0,
+          "infrastructure_maintenance": 2.9250000000000003,
+          "infrastructure_development": 0.0
+        },
+        "private_provision_coverage": 1.0,
+        "private_construction": 0.0,
+        "indicators": {
+          "economic": 0.5,
+          "health": 0.6572,
+          "education": 0.659,
+          "infrastructure": 0.65,
+          "dynamism": 0.4761408,
+          "crime": 0.19427,
+          "inequality": 0.33349999999999996,
+          "environment": 0.762,
+          "unrest": 0.0294,
+          "informal": 0.10200000000000001
+        },
+        "economic_target": 0.66443,
+        "momentum": 0.0
+      },
+      "last": {
+        "season": 300,
+        "population": 5000000,
+        "income": 100.0,
+        "income_per_million": 20.0,
+        "tax_receipts": 41.10693737563557,
+        "opening_treasury": 4342.866254874643,
+        "treasury": 4357.298192250279,
+        "requested_spending": 26.675,
+        "paid_spending": 26.675,
+        "balance": 14.431937375635567,
+        "public_funding_coverage": 1.0,
+        "spending": {
+          "health": 8.5,
+          "education": 10.0,
+          "police": 2.0,
+          "welfare": 2.0,
+          "environment": 1.25,
+          "public_development": 0.0,
+          "infrastructure_maintenance": 2.9250000000000003,
+          "infrastructure_development": 0.0
+        },
+        "private_provision_coverage": 1.0,
+        "private_construction": 0.0,
+        "indicators": {
+          "economic": 0.5,
+          "health": 0.7939999947629474,
+          "education": 0.7999999986984907,
+          "infrastructure": 0.65,
+          "dynamism": 0.28066627216399403,
+          "crime": 0.103000001090868,
+          "inequality": 0.07500000238610076,
+          "environment": 0.949999998264654,
+          "unrest": 0.020000000086767302,
+          "informal": 0.08651250276365416
+        },
+        "economic_target": 0.7690479977329527,
+        "momentum": 0.0
+      },
+      "minimum_treasury": 63.735,
+      "unfunded_seasons": 0,
+      "late_income_drift": 0.0,
+      "late_infrastructure_spending_drift": 0.0
+    },
+    {
+      "scenario": "mixed_infrastructure_damage",
+      "initial_policy": {
+        "name": "mixed_infrastructure_damage",
+        "public_share": 0.5,
+        "tax": 0.25,
+        "damage_season": 40
+      },
+      "first": {
+        "season": 1,
+        "population": 5000000,
+        "income": 100.0,
+        "income_per_million": 20.0,
+        "tax_receipts": 23.35,
+        "opening_treasury": 50,
+        "treasury": 52.574999999999996,
+        "requested_spending": 20.775,
+        "paid_spending": 20.775,
+        "balance": 2.575000000000003,
+        "public_funding_coverage": 1.0,
+        "spending": {
+          "health": 5.3125,
+          "education": 6.25,
+          "police": 2.0,
+          "welfare": 2.0,
+          "environment": 1.25,
+          "public_development": 1.5,
+          "infrastructure_maintenance": 1.4625000000000001,
+          "infrastructure_development": 1.0
+        },
+        "private_provision_coverage": 1.0,
+        "private_construction": 0.5,
+        "indicators": {
+          "economic": 0.50756378,
+          "health": 0.659,
+          "education": 0.6608,
+          "infrastructure": 0.6575,
+          "dynamism": 0.48522,
+          "crime": 0.19427,
+          "inequality": 0.34099999999999997,
+          "environment": 0.7605,
+          "unrest": 0.0294,
+          "informal": 0.066
+        },
+        "economic_target": 0.66443,
+        "momentum": 0.575
+      },
+      "last": {
+        "season": 300,
+        "population": 5000000,
+        "income": 163.40028081917842,
+        "income_per_million": 32.68005616383569,
+        "tax_receipts": 38.66775724008037,
+        "opening_treasury": 4106.7439481573365,
+        "treasury": 4122.1014537336,
+        "requested_spending": 23.31025166381731,
+        "paid_spending": 23.31025166381731,
+        "balance": 15.357505576263058,
+        "public_funding_coverage": 1.0,
+        "spending": {
+          "health": 6.322941975555656,
+          "education": 7.438755265359596,
+          "police": 2.3804016849150704,
+          "welfare": 2.3804016849150704,
+          "environment": 1.4877510530719191,
+          "public_development": 1.5,
+          "infrastructure_maintenance": 1.8000000000000003,
+          "infrastructure_development": 0.0
+        },
+        "private_provision_coverage": 1.0,
+        "private_construction": 0.0,
+        "indicators": {
+          "economic": 0.8170014240728531,
+          "health": 0.8031089011464286,
+          "education": 0.8270262953136619,
+          "infrastructure": 0.8,
+          "dynamism": 0.4504368104233957,
+          "crime": 0.103000001090868,
+          "inequality": 0.266858811606596,
+          "environment": 0.8006793004336941,
+          "unrest": 0.020000000086767302,
+          "informal": 0.053422502183560594
+        },
+        "economic_target": 0.817001857937498,
+        "momentum": 0.5502184211625746
+      },
+      "minimum_treasury": 52.574999999999996,
+      "unfunded_seasons": 0,
+      "late_income_drift": 1.3531650805332064e-06,
+      "late_infrastructure_spending_drift": 0.0
+    },
+    {
+      "scenario": "mixed_very_low_tax",
+      "initial_policy": {
+        "name": "mixed_very_low_tax",
+        "public_share": 0.5,
+        "tax": 0.05
+      },
+      "first": {
+        "season": 1,
+        "population": 5000000,
+        "income": 100.0,
+        "income_per_million": 20.0,
+        "tax_receipts": 4.756,
+        "opening_treasury": 50,
+        "treasury": 33.981,
+        "requested_spending": 20.775,
+        "paid_spending": 20.775,
+        "balance": -16.019,
+        "public_funding_coverage": 1.0,
+        "spending": {
+          "health": 5.3125,
+          "education": 6.25,
+          "police": 2.0,
+          "welfare": 2.0,
+          "environment": 1.25,
+          "public_development": 1.5,
+          "infrastructure_maintenance": 1.4625000000000001,
+          "infrastructure_development": 1.0
+        },
+        "private_provision_coverage": 1.0,
+        "private_construction": 0.5,
+        "indicators": {
+          "economic": 0.50756378,
+          "health": 0.659,
+          "education": 0.6608,
+          "infrastructure": 0.6575,
+          "dynamism": 0.4973256,
+          "crime": 0.19427,
+          "inequality": 0.34099999999999997,
+          "environment": 0.7605,
+          "unrest": 0.0294,
+          "informal": 0.0488
+        },
+        "economic_target": 0.66443,
+        "momentum": 0.575
+      },
+      "last": {
+        "season": 300,
+        "population": 5000000,
+        "income": 83.22735330517051,
+        "income_per_million": 16.645470661034103,
+        "tax_receipts": 3.5286270347730033,
+        "opening_treasury": 0.0,
+        "treasury": 0.0,
+        "requested_spending": 18.46652963232954,
+        "paid_spending": 3.5286270347730033,
+        "balance": 0.0,
+        "public_funding_coverage": 0.19108230431100603,
+        "spending": {
+          "health": 0.9640457557234813,
+          "education": 1.1341714773217428,
+          "police": 0.3629348727429577,
+          "welfare": 0.3629348727429577,
+          "environment": 0.22683429546434858,
+          "public_development": 0.28662345646650905,
+          "infrastructure_maintenance": 0.0,
+          "infrastructure_development": 0.19108230431100603
+        },
+        "private_provision_coverage": 1.0,
+        "private_construction": 0.29991937948924174,
+        "indicators": {
+          "economic": 0.41612977814793156,
+          "health": 0.5624338201614189,
+          "education": 0.5905676686393558,
+          "infrastructure": 0.0,
+          "dynamism": 0.2999092882897537,
+          "crime": 0.32790359030930416,
+          "inequality": 0.371849733020762,
+          "environment": 0.7661339672359934,
+          "unrest": 0.17163202113572323,
+          "informal": 0.1520511239052495
+        },
+        "economic_target": 0.41604941180183896,
+        "momentum": 0.21206143864569782
+      },
+      "minimum_treasury": 0.0,
+      "unfunded_seasons": 297,
+      "late_income_drift": 0.0006006251302069037,
+      "late_infrastructure_spending_drift": 0.0001108642867779508
+    }
+  ]
+}

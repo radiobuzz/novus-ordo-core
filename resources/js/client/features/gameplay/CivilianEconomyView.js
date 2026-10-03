@@ -65,17 +65,52 @@ export class CivilianEconomyView {
                 };
             }),
         }));
+        summary.push({
+            key: 'civilian:support',
+            label: this.t('civilianSupport'),
+            values: reports.map((r) => ({
+                text: ratio(r?.support_paid, r?.support_requested),
+                tone: Number(r?.support_paid) < Number(r?.support_requested) ? 'danger' : 'neutral',
+            })),
+        });
         for (const key of consumption) {
+            summary.push({
+                key: `civilian:purchases:${key}`,
+                label: `${resourceName(nation, key, this.i18n)} · ${this.t('civilianPurchases')}`,
+                values: reports.map((r) => {
+                    const c = r?.civilian?.consumption?.[key];
+                    return {
+                        text: number(
+                            c?.private_purchase == null || c?.public_purchase == null
+                                ? null
+                                : Number(c.private_purchase) + Number(c.public_purchase),
+                        ),
+                    };
+                }),
+            });
             if (!reports.some((r) => Number(r?.civilian?.consumption?.[key]?.unmet) > 0)) continue;
+            summary.push({
+                key: `civilian:unmet:${key}`,
+                label: `${resourceName(nation, key, this.i18n)} · ${this.t('civilianUnmet')}`,
+                values: reports.map((r) => ({
+                    text: number(r?.civilian?.consumption?.[key]?.unmet),
+                    tone: Number(r?.civilian?.consumption?.[key]?.unmet) > 0 ? 'danger' : 'neutral',
+                })),
+            });
             summary.push({
                 key: `civilian:cause:${key}`,
                 label: `${resourceName(nation, key, this.i18n)} · ${this.t('civilianConstraints')}`,
                 values: reports.map((r) => ({
                     text:
                         Number(r?.civilian?.consumption?.[key]?.unmet) > 0
-                            ? (r?.civilian?.constraints?.[key] ?? [])
-                                  .map((c) => productionConstraint(nation, c, this.i18n))
-                                  .join(' · ') || this.t('civilianCauseUnknown')
+                            ? r.civilian.consumption[key].shortage_reason === 'purchasing_power'
+                                ? this.t('civilianPurchasingPower')
+                                : (r?.civilian?.constraints?.[key] ?? [])
+                                      .map((c) => productionConstraint(nation, c, this.i18n))
+                                      .join(' · ') ||
+                                  (r.civilian.consumption[key].shortage_reason === 'supply'
+                                      ? this.t('civilianSupplyShortage')
+                                      : this.t('civilianCauseUnknown'))
                             : '—',
                 })),
             });

@@ -3,7 +3,7 @@ import './tooltip.scss';
 
 let nextId = 0;
 
-/** Text-only help: hover/focus to read, click/tap to pin, Escape to dismiss. */
+/** Text-only help: explicit click/tap or keyboard activation, Escape to dismiss. */
 export class Tooltip {
     constructor({ scope, text = '', label = 'Help', trigger } = {}) {
         this.trigger =
@@ -25,39 +25,12 @@ export class Tooltip {
         this.element = el('span', { class: 'ui-tooltip-anchor' }, this.trigger, this.popup);
         this.description = this.trigger.getAttribute('aria-describedby') ?? '';
         this.trigger.setAttribute('aria-describedby', `${this.description} ${this.popup.id}`.trim());
-        let dismiss;
-        const show = () => {
-            dismiss?.();
-            dismiss = null;
-            this.show();
-        };
-        const leave = () => {
-            dismiss?.();
-            dismiss = scope.timeout(() => {
-                dismiss = null;
-                if (
-                    !this.pinned &&
-                    !this.element.matches(':hover') &&
-                    !this.element.contains(document.activeElement)
-                )
-                    this.hide();
-            }, 150);
-        };
-        scope.listen(this.element, 'pointerenter', (event) => {
-            if (event.pointerType !== 'touch') show();
-        });
-        scope.listen(this.element, 'pointerleave', leave);
-        scope.listen(this.trigger, 'focus', show);
-        scope.listen(this.trigger, 'blur', () => {
-            if (!this.pinned) this.hide();
-        });
+        this.trigger.setAttribute('aria-controls', this.popup.id);
+        this.trigger.setAttribute('aria-expanded', 'false');
         scope.listen(this.trigger, 'click', (event) => {
             event.stopPropagation();
-            if (this.pinned) this.hide();
-            else {
-                this.pinned = true;
-                show();
-            }
+            if (this.open) this.hide();
+            else this.show();
         });
         if (this.trigger.tagName !== 'BUTTON')
             scope.listen(this.trigger, 'keydown', (event) => {
@@ -117,6 +90,7 @@ export class Tooltip {
         if (!this.open) {
             this.popup.showPopover();
             this.open = true;
+            this.trigger.setAttribute('aria-expanded', 'true');
         }
         this.position();
     }
@@ -137,6 +111,6 @@ export class Tooltip {
         if (this.open && this.popup.isConnected && this.popup.matches(':popover-open'))
             this.popup.hidePopover();
         this.open = false;
-        this.pinned = false;
+        this.trigger.setAttribute('aria-expanded', 'false');
     }
 }

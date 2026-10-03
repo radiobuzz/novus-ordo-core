@@ -114,10 +114,10 @@ class EntrySlideshow extends Model
 
     public static function withPublicUrls(array $configuration): array
     {
-        $configuration['fallback_url'] = asset($configuration['fallback']);
+        $configuration['fallback_url'] = asset(\App\Services\EntrySlideImage::deliveryPath($configuration['fallback']));
         $configuration['audio']['url'] = asset($configuration['audio']['src']);
         $configuration['slides'] = array_map(function (array $slide) {
-            $slide['url'] = asset($slide['src']);
+            $slide['url'] = asset(\App\Services\EntrySlideImage::deliveryPath($slide['src']));
             return $slide;
         }, $configuration['slides']);
         return $configuration;

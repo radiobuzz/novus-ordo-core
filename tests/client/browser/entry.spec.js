@@ -95,27 +95,37 @@ test('title screen reveals login immediately and retains fields when dismissed',
 test('numbered slideshow holds each image, holds the last longer, fades to black and loops', async ({
     page,
 }) => {
+    // Audio playback can intentionally restart the presentation; isolate its visual clock here.
+    await page.route('**/intro.mp3', (route) => route.abort());
     await page.clock.install();
     await page.clock.pauseAt(new Date());
     await setup(page);
     const background = page.locator('.atmosphere');
+    await page.clock.runFor(1);
     await expect
         .poll(() =>
             page
                 .locator('.atmosphere-image')
-                .evaluateAll(
-                    (images) =>
-                        images.length === 8 &&
-                        images.every((image) => image.complete && image.naturalWidth > 0),
-                ),
+                .evaluateAll((images) => images[0].complete && images[0].naturalWidth > 0),
         )
         .toBe(true);
     await page.getByLabel('Username', { exact: true }).fill('unchanged');
-    await page.clock.runFor(0);
+    await page.clock.runFor(99);
     await expect(background).toHaveAttribute('data-slide', '1');
     await expect(background).toHaveAttribute('data-phase', 'fading-in');
     await page.clock.runFor(2200);
     for (let slide = 1; slide <= 8; slide++) {
+        await expect
+            .poll(() =>
+                page
+                    .locator('.atmosphere-image[src]')
+                    .evaluateAll(
+                        (images) =>
+                            images.length === 2 &&
+                            images.every((image) => image.complete && image.naturalWidth > 0),
+                    ),
+            )
+            .toBe(true);
         await expect(background).toHaveAttribute('data-slide', String(slide));
         await expect(background).toHaveAttribute('data-phase', 'holding');
         await page.clock.runFor((slide === 8 ? 10000 : 5000) - 1);
@@ -132,9 +142,47 @@ test('numbered slideshow holds each image, holds the last longer, fades to black
     await expect(page.getByLabel('Username', { exact: true })).toHaveValue('unchanged');
     await login(page);
     await expect(page.locator('.atmosphere-image')).toHaveCount(1);
-    await expect(page.locator('.atmosphere-image')).toHaveAttribute('src', /2026-09-26-static\.png$/);
+    await page.clock.runFor(1);
+    await expect(page.locator('.atmosphere-image')).toHaveAttribute(
+        'src',
+        /2026-09-26-static\.png\.display-v1\.webp$/,
+    );
+    await expect
+        .poll(() => page.locator('.atmosphere-image').evaluate((image) => image.naturalWidth))
+        .toBeGreaterThan(0);
     await page.clock.runFor(60000);
     await expect(background).toHaveAttribute('data-phase', 'holding');
+});
+
+test('slideshow requests only the visible image and successor, and stops loading when hidden', async ({
+    page,
+}) => {
+    await page.route('**/intro.mp3', (route) => route.abort());
+    const images = new Set();
+    page.on('request', (request) => {
+        if (request.url().endsWith('.display-v1.webp')) images.add(request.url());
+    });
+    await setup(page);
+    await expect(page.locator('.atmosphere')).toHaveAttribute('data-phase', 'holding');
+    await expect.poll(() => images.size).toBe(2);
+    await expect(page.locator('.atmosphere-image[src]')).toHaveCount(2);
+    await page.clock.install();
+    await page.evaluate(() => {
+        Object.defineProperty(document, 'hidden', { configurable: true, get: () => true });
+        document.dispatchEvent(new Event('visibilitychange'));
+    });
+    await page.clock.runFor(60000);
+    expect(images.size).toBe(2);
+    await expect(page.locator('.atmosphere-image[src]')).toHaveCount(0);
+    await page.evaluate(() => {
+        delete document.hidden;
+        document.dispatchEvent(new Event('visibilitychange'));
+    });
+    await page.emulateMedia({ reducedMotion: 'reduce' });
+    await page.clock.runFor(1000);
+    await expect(page.locator('.atmosphere-image[src]')).toHaveCount(1);
+    await page.clock.runFor(60000);
+    expect(images.size).toBe(2);
 });
 
 test('reduced motion keeps a still image and broken slideshow images fall back safely', async ({ page }) => {
@@ -145,13 +193,13 @@ test('reduced motion keeps a still image and broken slideshow images fall back s
     await page.clock.install();
     await page.clock.runFor(60000);
     await expect(page.locator('.atmosphere')).toHaveAttribute('data-slide', '1');
-    await page.route(/\/res\/bundled\/entry\/2026-09-26-\d{2}-.*\.png$/, (route) => route.abort());
+    await page.route(/\/res\/bundled\/entry\/2026-09-26-\d{2}-.*\.webp$/, (route) => route.abort());
     await page.reload();
     await page.locator('.entry-enter').click();
     await expect(page.locator('.atmosphere')).toHaveAttribute('data-phase', 'fallback');
     await expect(page.locator('.atmosphere-image.is-visible')).toHaveAttribute(
         'src',
-        /2026-09-26-static\.png$/,
+        /2026-09-26-static\.png\.display-v1\.webp$/,
     );
     await expect(page.getByRole('heading', { name: 'Welcome back' })).toBeVisible();
 });

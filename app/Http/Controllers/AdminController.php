@@ -207,9 +207,17 @@ class AdminController extends Controller
         File::ensureDirectoryExists(public_path('var'));
         $file->move(public_path('var'), $name);
         $path = "var/{$name}";
+        if ($kind === 'image') {
+            try {
+                \App\Services\EntrySlideImage::generate($path);
+            } catch (\Throwable $error) {
+                report($error);
+                throw ValidationException::withMessages(['asset' => 'Unable to optimize this image. Use an image under 20 megapixels.']);
+            }
+        }
         return response()->json([
             'src' => $path,
-            'url' => asset($path),
+            'url' => asset($kind === 'image' ? \App\Services\EntrySlideImage::deliveryPath($path) : $path),
             'name' => $originalName,
         ], 201);
     }

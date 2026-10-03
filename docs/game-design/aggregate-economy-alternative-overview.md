@@ -1,5 +1,7 @@
 # Aggregate economy — alternative overview
 
+**2026-10-03 follow-up:** the [replacement implementation plan](indicator-economy-replacement-plan.md) records the user's subsequent direction after the indicator tests and shared-capacity/allocation discussion. The overview below is historical; its public/private accounting boundary is not the current proposal. Preparing the plan does not execute a live cutover.
+
 Drafted 2026-09-29; status revised 2026-09-30. **Possibility only: the user has not selected a replacement.** Improving the current economy remains under consideration. No live calculations, database or game UI changed.
 
 **Follow-up:** the [indicator-led alternative](indicator-economy-alternative.md) details the foundational indicators, public/private development paths, possible database changes, seasonal timing and conditional delivery gates. Its details refine this overview within the alternative only. Neither document authorizes replacement, cleanup or migration. UI design remains open for the user's later brief.

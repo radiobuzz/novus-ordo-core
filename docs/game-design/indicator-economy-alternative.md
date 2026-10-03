@@ -1,5 +1,7 @@
 # Indicator-led economy — alternative under consideration
 
+**2026-10-03 follow-up:** the user has now requested a [replacement implementation plan](indicator-economy-replacement-plan.md) after the indicator trials and further agreement on shared supply and capacity. This document remains the earlier conditional proposal. Its separate public/private inventories, public in-kind allocation and package details do not override the new plan. No implementation or live reset follows automatically from either document.
+
 Drafted 2026-09-29; status revised 2026-09-30. **Unselected possibility, not an approved replacement or implementation task.** No runtime, schema or game data changed.
 
 The user has paused the replacement decision after discussing the economy with a friend experienced in macroeconomics. Improving the existing system remains an option; neither its viability nor this alternative's superiority has been established. Preserve the current system while comparing approaches. The packages and removals below describe what this alternative would entail **if selected**, not work to begin automatically.

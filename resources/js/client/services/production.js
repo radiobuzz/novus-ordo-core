@@ -1,4 +1,16 @@
 /** Exact acquisition intent; settlement and affordability belong to the server. */
+export function publicInvestmentAllowed(policies, changes = null) {
+    const choices = { ...policies?.current, ...(changes ?? policies?.pending) };
+    const effect = (policies?.catalogue?.policies ?? [])
+        .filter((p) => p.status === 'active')
+        .flatMap((p) => p.options.find((o) => o.key === choices[p.key]?.option)?.effects ?? [])
+        .find(
+            (e) =>
+                e.effect_type === 'institutions.development_ownership' && e.arguments.sector === 'production',
+        );
+    return effect?.arguments.arrangement !== 'private';
+}
+
 export function publicInvestmentControl(data, resource, changes = null) {
     const policies = data.policies;
     if (!policies?.enabled) return null;
