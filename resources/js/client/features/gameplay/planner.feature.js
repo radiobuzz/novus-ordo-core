@@ -357,20 +357,16 @@ class ProductionPlanner extends Component {
         const fields = [
             ['effectiveRequest', (r) => r.acquisition_requested],
             ['referencePrice', (r) => r.price],
-            ['publicOutput', (r) => r.production.government],
-            ['privateOutput', (r) => r.production.producer],
-            ['industryRequested', (r) => r.public_industry_requested],
-            ['industryDelivery', (r) => r.public_industry_delivery],
-            ['industryRevenue', (r) => r.public_industry_revenue],
-            ['publicDelivery', (r) => r.public_delivery],
-            ['privateDelivery', (r) => r.private_delivery],
+            ['nationalOutput', (r) => r.production.national],
+            ['industryRequested', (r) => r.industrial_requested],
+            ['acquired', (r) => r.acquired],
             ['purchaseCost', (r) => r.purchase_spending],
-            ['deliveryCost', (r) => r.public_delivery_cost],
             ['unmetDemand', (r) => r.acquisition_unmet],
             ['closingStock', (r) => r.government_closing],
-            ['publicDevelopment', (r) => r.development.government],
-            ['privateDevelopment', (r) => r.development.producer],
-            ['publicDevelopmentBudget', (r) => r.development_budget],
+            ['capacityTarget', (r) => r.capacity_target],
+            ['development', (r) => r.development.total],
+            ['publicDevelopmentBudget', (r) => r.development_spending.public],
+            ['privateDevelopmentBudget', (r) => r.development_spending.private],
         ];
         row.comparison.update(
             ['metric', 'lastActual', 'savedEstimate', 'draftEstimate'].map((k) => this.t(k)),
@@ -387,13 +383,12 @@ class ProductionPlanner extends Component {
             })),
         );
         const r = (result ?? saved).rows[key];
-        row.investmentStatus.textContent =
-            r.acquisition.public_development_permitted === false
-                ? this.t('publicInvestmentBlocked')
-                : r.acquisition.public_development_available != null &&
-                    Number(r.acquisition.public_development_available) === 0
-                  ? this.t('publicInvestmentNoCapacity')
-                  : '';
+        row.investmentStatus.textContent = publicInvestmentAllowed(
+            this.snapshot.nation.policies,
+            this.services.gameplay.policyDraft(this.snapshot).changes,
+        )
+            ? ''
+            : this.t('publicInvestmentBlocked');
         const reasons = r.acquisition.constraints.map((c) =>
             productionConstraint(this.snapshot.nation, c, this.services.i18n),
         );

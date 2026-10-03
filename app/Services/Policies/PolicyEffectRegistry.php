@@ -14,7 +14,8 @@ final class PolicyEffectRegistry {
             'allocation.production_priority' => ['target' => 'resource', 'targets' => [], 'catalogue' => true, 'value' => 'priority', 'type' => 'enum', 'values' => ['potential', 'regional', 'population'], 'neutral' => 'potential'],
             'finance.treasury_reserve' => ['target' => 'account', 'targets' => ['treasury'], 'value' => 'amount', 'type' => 'amount', 'unit' => 'credits', 'neutral' => null],
             'finance.income_tax' => ['target' => 'base', 'targets' => ['taxable_income'], 'value' => 'rate', 'type' => 'ratio', 'unit' => 'fraction_of_taxable_income', 'neutral' => '0'],
-            'budget.program_funding' => ['target' => 'program', 'targets' => ['infrastructure'], 'value' => 'funding_ratio', 'type' => 'ratio', 'unit' => 'fraction_of_program_requirement', 'neutral' => '0'],
+            'budget.program_funding' => ['target' => 'program', 'targets' => ['infrastructure','health','education','police','welfare','environment','public_development'], 'value' => 'funding_ratio', 'type' => 'ratio', 'unit' => 'fraction_of_program_requirement', 'neutral' => '0'],
+            'indicator.target_shift' => ['target' => 'indicator', 'targets' => array_values(array_diff(\App\Domain\Economy\IndicatorRules::INDICATORS, ['infrastructure','informal'])), 'value' => 'offset', 'type' => 'offset', 'unit' => 'indicator_fraction', 'neutral' => '0'],
             'budget.income_support' => ['target' => 'recipient', 'targets' => ['households'], 'value' => 'amount', 'type' => 'amount', 'unit' => 'credits', 'neutral' => '0'],
             'allocation.infrastructure_priority' => ['target' => 'program', 'targets' => ['infrastructure'], 'value' => 'priority', 'type' => 'enum', 'values' => ['regional', 'population', 'concentration'], 'neutral' => 'regional'],
             'food.reserve_target' => ['target' => 'resource_role', 'targets' => ['nutrition'], 'value' => 'seasons', 'type' => 'enum', 'values' => ['0', '0.5', '1', '2'], 'neutral' => '0'],
@@ -34,6 +35,11 @@ final class PolicyEffectRegistry {
         if (is_array($value)) {
             if (array_keys($value) !== ['parameter'] || !is_string($value['parameter']) || !isset($parameters[$value['parameter']])) PolicyValues::fail($path, 'Invalid parameter binding.');
             $parameter = $parameters[$value['parameter']];
+            if ($contract['type'] === 'offset') {
+                if ($parameter['value_type'] !== 'decimal' || $parameter['unit_key'] !== $contract['unit'] || !isset($parameter['min_value'],$parameter['max_value'])
+                    || PolicyValues::scaled($parameter['min_value']) < -1000000 || PolicyValues::scaled($parameter['max_value']) > 1000000) PolicyValues::fail($path, 'Indicator shifts require bounded signed fractions.');
+                return;
+            }
             if ($contract['type'] === 'amount') {
                 if ($parameter['value_type'] !== 'decimal' || $parameter['unit_key'] !== $contract['unit'] || !isset($parameter['min_value'], $parameter['max_value']) || PolicyValues::scaled($parameter['min_value']) < 0) PolicyValues::fail($path, 'This effect requires a nonnegative bounded currency amount.');
                 return;
@@ -41,6 +47,8 @@ final class PolicyEffectRegistry {
             if ($contract['type'] !== 'ratio' || $parameter['value_type'] !== 'decimal' || $parameter['unit_key'] !== $contract['unit']
                 || !isset($parameter['min_value'], $parameter['max_value'])
                 || PolicyValues::scaled($parameter['min_value']) < 0 || PolicyValues::scaled($parameter['max_value']) > 1_000_000) PolicyValues::fail($path, 'This effect requires a decimal ratio bounded between zero and one.');
+        } elseif ($contract['type'] === 'offset') {
+            if (abs(PolicyValues::scaled(PolicyValues::decimal($value, $path))) > 1000000) PolicyValues::fail($path, 'Indicator shifts must be within minus one and one.');
         } elseif ($contract['type'] === 'amount') {
             if (PolicyValues::scaled(PolicyValues::decimal($value, $path)) < 0) PolicyValues::fail($path, 'Currency amount must be nonnegative.');
         } elseif ($contract['type'] === 'ratio') {
@@ -65,13 +73,17 @@ final class PolicyEffectRegistry {
                 $target = $effect['arguments'][$contract['target']];
                 if (($contract['catalogue'] ?? false) && $catalogue) $target = $this->resolveTarget($catalogue, $target);
                 $slot = $effect['effect_type'] . ':' . $target;
-                if (isset($assigned[$slot])) PolicyValues::fail("choices.$key", "Conflicting exclusive effects from {$assigned[$slot]} and $key.");
+                if ($contract['type'] !== 'offset' && isset($assigned[$slot])) PolicyValues::fail("choices.$key", "Conflicting exclusive effects from {$assigned[$slot]} and $key.");
                 $assigned[$slot] = $key;
                 $value = $effect['arguments'][$contract['value']];
                 $value = is_array($value) ? $choice['parameters'][$value['parameter']] : $value;
-                $settings[$effect['effect_type']][$target] = in_array($contract['type'], ['ratio','amount'], true) ? PolicyValues::decimal($value, $slot) : $value;
+                if ($contract['type'] === 'offset') {
+                    $sum = PolicyValues::scaled($settings[$effect['effect_type']][$target]) + PolicyValues::scaled(PolicyValues::decimal($value,$slot));
+                    $settings[$effect['effect_type']][$target] = \App\Domain\Resources\Quantity::calculated($sum / 1000000);
+                } else $settings[$effect['effect_type']][$target] = in_array($contract['type'], ['ratio','amount'], true) ? PolicyValues::decimal($value, $slot) : $value;
             }
         }
+        foreach ($settings['indicator.target_shift'] as &$value) $value = \App\Domain\Resources\Quantity::calculated(max(-1,min(1,(float)$value))); unset($value);
         return $settings;
     }
 

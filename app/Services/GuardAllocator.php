@@ -33,7 +33,7 @@ final class GuardAllocator
             && $details->get($division->id)?->isActive()
         );
         if ($guards->isEmpty()) return collect();
-        $stockpiles = NationResourceStockpile::where('owner_kind', 'government')->where('game_id', $game->id)->where('turn_id', $next->id)
+        $stockpiles = NationResourceStockpile::where('game_id', $game->id)->where('turn_id', $next->id)
             ->whereIn('nation_id', $guards->pluck('nation_id')->unique())->lockForUpdate()->get()
             ->keyBy(fn (NationResourceStockpile $stockpile) => $stockpile->nation_id . ':' . $catalogue->key($stockpile->resource_id));
         $remaining = $stockpiles->mapWithKeys(fn (NationResourceStockpile $stockpile, string $key) =>
@@ -211,7 +211,7 @@ final class GuardAllocator
             $stockpile = $stockpiles[$key];
             $detail = \App\Models\NationDetail::where('nation_id', $nationId)->where('turn_id', $stockpile->turn_id)->firstOrFail();
             if ($resource === $detail->resources()->role('treasury')) {
-                app(EconomyService::class)->settleResponsePayroll($detail, $stockpile, $cost);
+                app(EconomyService::class)->settleResponseCost($detail, $stockpile, $cost);
                 $remaining[$key] = $stockpile->available_quantity;
                 continue;
             }

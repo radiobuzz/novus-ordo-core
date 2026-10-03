@@ -1,5 +1,7 @@
 # Production economy retirement — Package F
 
+> Historical implementation, superseded on 2026-10-03 by the [indicator economy replacement](indicator-economy-replacement-results.md). Wallets, wage/profit accounting and split capacity described below are not current runtime contracts.
+
 2026-09-29. Package F removes the superseded runtime and keeps the coordinated production economy as the single live calculation. No new economic mechanism, balancing pass, compatibility adapter or application-data conversion is introduced.
 
 ## Removed and retained

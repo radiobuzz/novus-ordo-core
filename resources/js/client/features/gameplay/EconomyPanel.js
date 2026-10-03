@@ -25,6 +25,7 @@ const supported = new Set([
     'finance.treasury_reserve',
     'budget.program_funding',
     'budget.income_support',
+    'indicator.target_shift',
     'allocation.infrastructure_priority',
     'production.development_funding',
     'allocation.production_priority',
@@ -133,6 +134,7 @@ export class EconomyPanel {
             [
                 'taxation',
                 'support',
+                'services',
                 'infrastructure',
                 'production',
                 'food',
@@ -718,11 +720,13 @@ export class EconomyPanel {
                         )
                       : null
                   : key.split('.').reduce((v, part) => v?.[part], report);
-        const inflows = new Set(['tax_receipts', 'public_sales', 'treasury_inflows']);
+        const inflows = new Set(['tax_receipts', 'treasury_inflows']);
         const outflows = new Set([
             'command_costs',
-            'public_payroll_paid',
-            'public_operations',
+            'military_costs_paid',
+            ...['health', 'education', 'police', 'welfare', 'environment'].map(
+                (key) => `programs.${key}.paid`,
+            ),
             'government_purchases',
             'public_development',
             'support_paid',
@@ -775,10 +779,7 @@ export class EconomyPanel {
                                 ['fiscal.borrowing', 'fiscal.closing_debt'].includes(key)
                             )
                                 tone = 'warning';
-                            else if (
-                                inflows.has(key) ||
-                                ['balance', 'wages', 'realized_profit', 'earned_income'].includes(key)
-                            )
+                            else if (inflows.has(key) || ['balance', 'earned_income'].includes(key))
                                 tone = 'ready';
                         }
                         if (key === 'closing_treasury' && amount != null)
@@ -805,8 +806,10 @@ export class EconomyPanel {
             'spending',
             [
                 'command_costs',
-                'public_payroll_paid',
-                'public_operations',
+                'military_costs_paid',
+                ...['health', 'education', 'police', 'welfare', 'environment'].map(
+                    (key) => `programs.${key}.paid`,
+                ),
                 'government_purchases',
                 'public_development',
                 'support_requested',
@@ -816,7 +819,7 @@ export class EconomyPanel {
             ],
             'cashFlowsHelp',
         );
-        section('revenue', ['tax_receipts', 'public_sales'], 'nationalActivityHelp');
+        section('revenue', ['tax_receipts'], 'nationalActivityHelp');
         section(
             'financing',
             [
@@ -836,7 +839,13 @@ export class EconomyPanel {
         );
         section(
             'nationalActivity',
-            ['wages', 'realized_profit', 'earned_income', 'private_development'],
+            [
+                'earned_income',
+                'disposable_income_estimate',
+                'private_development_allowance',
+                'private_development',
+                'private_development_unused',
+            ],
             'nationalActivityHelp',
         );
         const nutrition = this.snapshot.nation.definitions?.roles?.nutrition;
@@ -881,9 +890,18 @@ export class EconomyPanel {
         const indicatorKeys = [
             'civilian_income',
             'income_per_person',
-            'infrastructure',
-            'unrest',
-            'informal',
+            ...[
+                'economic_strength',
+                'health',
+                'education',
+                'dynamism',
+                'crime',
+                'inequality',
+                'environment',
+                'infrastructure',
+                'unrest',
+                'informal',
+            ],
         ];
         const indicatorText = (key, v) =>
             v == null
@@ -892,10 +910,10 @@ export class EconomyPanel {
                       v *
                           (key === 'income_per_person'
                               ? 1e6
-                              : ['infrastructure', 'unrest', 'informal', 'agriculture'].includes(key)
+                              : !['civilian_income', 'income_per_person'].includes(key)
                                 ? 100
                                 : 1),
-                  ) + (['infrastructure', 'unrest', 'informal', 'agriculture'].includes(key) ? '%' : '');
+                  ) + (!['civilian_income', 'income_per_person'].includes(key) ? '%' : '');
         this.outlook.replaceChildren(
             ...indicatorKeys.map((key) => {
                 const before = baseline?.expected.indicators[key],

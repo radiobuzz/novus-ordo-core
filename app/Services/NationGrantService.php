@@ -22,15 +22,13 @@ final class NationGrantService {
         abort_unless($resource['grantable'], 422, 'This resource cannot be granted.');
         $quantity = self::quantity($quantity);
         if (Q::cmp($quantity, $this->available($sender)[$key]) > 0) return false;
-        $basis = '0';
         foreach ([[$sender, true], [$recipient, false]] as [$nation, $debit]) {
             $detail = $nation->getDetail();
-            $stock = NationResourceStockpile::where('owner_kind', 'government')->where('nation_id', $nation->id)->where('turn_id', $detail->turn_id)
+            $stock = NationResourceStockpile::where('nation_id', $nation->id)->where('turn_id', $detail->turn_id)
                 ->where('resource_id', $resource['id'])->lockForUpdate()->first();
             if (!$stock) $stock = NationResourceStockpile::create($nation, $detail->getTurn(), $key, '0');
-            if ($debit) $basis = $stock->removeQuantity($quantity);
+            if ($debit) $stock->removeQuantity($quantity);
             else {
-                $stock->cost_basis = Q::add($stock->cost_basis, $basis);
                 $stock->available_quantity = Q::add($stock->available_quantity, $quantity);
                 $stock->save();
             }

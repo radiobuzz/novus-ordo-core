@@ -62,7 +62,7 @@ final class RankingHistoryService
             ->get(['turn_id', 'nation_id', DB::raw('count(*) as army_size')])
             ->keyBy(fn ($row) => $this->rowKey($row->turn_id, $row->nation_id));
 
-        $wealthValues = DB::table('nation_resource_stockpiles')->where('owner_kind', 'government')
+        $wealthValues = DB::table('nation_resource_stockpiles')
             ->where('game_id', $game->getId())
             ->whereIn('turn_id', $turnIds)
             ->where('resource_id', \App\Services\Resources\ResourceCatalogue::forGame($game)->get(\App\Services\Resources\ResourceCatalogue::forGame($game)->role('treasury'))['id'])

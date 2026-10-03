@@ -1,6 +1,6 @@
 {
-  "name": "Production economy foundation",
-  "description": "Current goods and costs; game-owned definitions.",
+  "name": "Indicator resources — minimal v1",
+  "description": "Generic seasonal capacity, civilian needs, recipe inputs and government acquisitions. One installed pool per resource; no civilian cash wallets or equipment upkeep.",
   "resources": [
     {
       "key": "money",
@@ -18,14 +18,9 @@
       "icon_key": "Capital",
       "sort_order": 0,
       "display_decimals": 2,
-      "starting_quantity": "20",
+      "starting_quantity": "50",
       "grantable": true,
-      "rules": {
-        "finance.civilian_founding": {
-          "household_cash_per_million": "10",
-          "producer_cash_per_million": "10"
-        }
-      }
+      "rules": {}
     },
     {
       "key": "recruitment",
@@ -86,23 +81,17 @@
           "per_million": "0.35",
           "priority": 0
         },
-        "production.operating": {
-          "wage_per_unit": "1"
-        },
         "exchange.reference_price": {
           "price": "2"
         },
         "development.capacity": {
           "capital_cost": "10",
-          "construction_workers": "1",
+          "construction_workers": "100000",
           "max_growth_fraction": "0.1"
         },
         "production.founding": {
           "core_developed_fraction": "0.6",
-          "neutral_developed_fraction": "0.1",
-          "public_share": "0.25",
-          "private_inventory_per_million": "0",
-          "private_inventory_unit_cost": "0"
+          "neutral_developed_fraction": "0.1"
         }
       }
     },
@@ -137,23 +126,17 @@
           },
           "geographic": true
         },
-        "production.operating": {
-          "wage_per_unit": "1"
-        },
         "exchange.reference_price": {
           "price": "2"
         },
         "development.capacity": {
           "capital_cost": "10",
-          "construction_workers": "1",
+          "construction_workers": "100000",
           "max_growth_fraction": "0.1"
         },
         "production.founding": {
           "core_developed_fraction": "0.6",
-          "neutral_developed_fraction": "0.1",
-          "public_share": "0.25",
-          "private_inventory_per_million": "0",
-          "private_inventory_unit_cost": "0"
+          "neutral_developed_fraction": "0.1"
         }
       }
     },
@@ -188,23 +171,17 @@
           },
           "geographic": true
         },
-        "production.operating": {
-          "wage_per_unit": "1"
-        },
         "exchange.reference_price": {
           "price": "2"
         },
         "development.capacity": {
           "capital_cost": "10",
-          "construction_workers": "1",
+          "construction_workers": "100000",
           "max_growth_fraction": "0.1"
         },
         "production.founding": {
           "core_developed_fraction": "0.6",
-          "neutral_developed_fraction": "0.1",
-          "public_share": "0.25",
-          "private_inventory_per_million": "0",
-          "private_inventory_unit_cost": "0"
+          "neutral_developed_fraction": "0.1"
         }
       }
     },
@@ -239,23 +216,17 @@
           },
           "geographic": true
         },
-        "production.operating": {
-          "wage_per_unit": "1"
-        },
         "exchange.reference_price": {
           "price": "2"
         },
         "development.capacity": {
           "capital_cost": "10",
-          "construction_workers": "1",
+          "construction_workers": "100000",
           "max_growth_fraction": "0.1"
         },
         "production.founding": {
           "core_developed_fraction": "0.6",
-          "neutral_developed_fraction": "0.1",
-          "public_share": "0.25",
-          "private_inventory_per_million": "0",
-          "private_inventory_unit_cost": "0"
+          "neutral_developed_fraction": "0.1"
         }
       }
     }

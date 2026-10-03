@@ -58,7 +58,10 @@ const snapshot = {
         },
         economy: {
             territories: [
-                { id: 1, state: { infrastructure: 0.65, capacity: 1.2, unrest: 0.1, informal: 0.3 } },
+                {
+                    id: 1,
+                    state: { infrastructure: 0.65, economic_strength: 0.6, unrest: 0.1, informal: 0.3 },
+                },
             ],
             last_season: {
                 territories: [
@@ -84,7 +87,7 @@ test('current Land area contract supplies density without revealing unknown popu
 test('regional state and flows use real fields, ownership and historical population', () => {
     for (const [id, value] of [
         ['infrastructure', 0.65],
-        ['capacity', 1.2],
+        ['economic_strength', 0.6],
         ['income', 100],
         ['netIncome', 0.15],
         ['workers', 25],

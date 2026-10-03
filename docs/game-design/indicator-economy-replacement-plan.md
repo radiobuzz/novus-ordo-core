@@ -1,6 +1,6 @@
 # Indicator economy replacement plan
 
-2026-10-03. Planning requested by the user after the isolated indicator trials and agreement on productive capacity and goods allocation. The user subsequently authorized proceeding directly into implementation without further confirmation. This checkpoint contains the plan; replacement runtime code and database cutover have not yet been applied.
+2026-10-03. Planning requested by the user after the isolated indicator trials and agreement on productive capacity and goods allocation. The user subsequently authorized proceeding directly into implementation without further confirmation. Implementation and the authorized local fresh-game cutover are complete. See [results, verification and remaining balance work](indicator-economy-replacement-results.md). The pre-replacement checkpoint is `d7604c5`.
 
 Replace the confusing civilian cash simulation with one policy-driven economy. Territorial indicators generate prosperity and taxable income; geography and lasting capacity produce physical goods. Keep the generic catalogues, map, seasonal history and useful interface. Remove the displaced calculations rather than maintaining two economic engines.
 
@@ -162,7 +162,7 @@ At the eventual cutover, delete disposable games through `AdminGameService::life
 - Retained UI loads with accurate graphs/layers, stable edits and scroll, and actual/saved/draft forecasts. Unsupported economic layers remain unavailable, never filled with illustrative data.
 - Balance constants remain editable. The trial's 49 checks do not prove the new goods allocation or schema. Keep the recorded founding sensitivities, high-tax revenue tradeoffs, infrastructure return and army affordability on the playtest list.
 
-The first implementation task is **Package A**. Detailed constitution wizard, provincial budgets, migration, urban visuals, trade routes, price markets and additional resources remain future work. This replacement does not silently approve or cancel those earlier ambitions.
+Packages **A–E** are implemented; the next task is fresh-game player balance testing. Detailed constitution wizard, provincial budgets, migration, urban visuals, trade routes, price markets and additional resources remain future work. This replacement does not silently approve or cancel those earlier ambitions.
 
 ## References
 

@@ -1,6 +1,6 @@
 {
-  "name": "Production economy — civilian finance v4",
-  "description": "Funded public/private production, earned income, development and food security.",
+  "name": "Indicator economy — founding v1",
+  "description": "A mixed founding economy with indicator-based prosperity and generic resource development.",
   "policies": [
     {
       "key": "income_tax",
@@ -204,8 +204,8 @@
         "fr": "Financement du développement agricole"
       },
       "descriptions": {
-        "en": "Funds gradual expansion of developed agricultural capacity. Existing farms continue producing without this program. The budget scales with buildable potential, even when food needs are already met. Paid after infrastructure; improvements produce from the following season.",
-        "fr": "Finance progressivement la capacité agricole. Les exploitations existantes continuent sans ce programme. Le budget dépend du potentiel aménageable, même lorsque les besoins alimentaires sont déjà couverts. Payé après les infrastructures; les améliorations produisent à partir de la saison suivante."
+        "en": "Funds assessed agricultural expansion when civilian needs or affordable government requests exceed capacity. Construction tapers at its target and is usable next season.",
+        "fr": "Finance la capacité agricole nécessaire aux besoins civils et aux demandes publiques finançables. Les travaux ralentissent à la cible et produisent dès la saison suivante."
       },
       "sort_order": 4,
       "status": "active",
@@ -244,7 +244,7 @@
           },
           "value_type": "decimal",
           "unit_key": "fraction_of_program_requirement",
-          "default_value": "0.00",
+          "default_value": "1.00",
           "min_value": "0.00",
           "max_value": "1.00",
           "step": "0.01",
@@ -506,11 +506,12 @@
       "key": "production_investors",
       "category_key": "economy",
       "labels": {
-        "en": "New productive investment",
-        "fr": "Nouveaux investissements productifs"
+        "en": "Economic ownership",
+        "fr": "Organisation économique"
       },
       "descriptions": {
-        "en": "Determines who may expand productive capacity. Existing assets and inventories retain their owners; this does not nationalize or privatize them."
+        "en": "Private activity responds to dynamism; public development responds to funded programmes. Both use the same lasting capacity. Changing this policy changes future stimulus, without creating goods or destroying assets.",
+        "fr": "Le dynamisme stimule l’activité privée; les programmes financés stimulent le développement public. Ils utilisent les mêmes capacités durables. Un changement modifie les incitations futures, sans créer de biens ni détruire les actifs."
       },
       "sort_order": 10,
       "status": "active",
@@ -647,8 +648,8 @@
         "fr": "Soutien au revenu"
       },
       "descriptions": {
-        "en": "Transfers funded government money to households before their purchases each season. Helps purchasing power; does not create goods or earned income. Payments use available treasury and eligible borrowing, and may reduce funds for other programs. Disabled means no payment; the entered amount is retained.",
-        "fr": "Transfère des fonds publics aux ménages avant leurs achats chaque saison. Soutient le pouvoir d’achat sans créer de biens ni de revenus gagnés. Les versements utilisent le trésor et les emprunts admissibles, et peuvent réduire les fonds disponibles pour les autres programmes. Aucun versement lorsque désactivé; le montant saisi est conservé."
+        "en": "Funded seasonal support reduces the inequality target gradually. It is government spending, not additional national income or physical goods.",
+        "fr": "Le soutien financé réduit progressivement la cible d’inégalité. Il constitue une dépense publique, sans ajouter de revenu national ni de biens."
       },
       "sort_order": 10,
       "status": "active",
@@ -702,6 +703,348 @@
           "default_value": "0",
           "min_value": "0",
           "max_value": "1000000",
+          "step": "0.01",
+          "sort_order": 0
+        }
+      ],
+      "conditions": []
+    },
+    {
+      "key": "health_funding",
+      "category_key": "social_programs",
+      "labels": {
+        "en": "Health funding",
+        "fr": "Financement · Santé"
+      },
+      "descriptions": {
+        "en": "Funds a share of assessed seasonal need. Actual funding moves territorial indicators gradually.",
+        "fr": "Finance une part des besoins saisonniers évalués. Le financement réel fait évoluer progressivement les indicateurs territoriaux."
+      },
+      "sort_order": 20,
+      "status": "active",
+      "options": [
+        {
+          "key": "enabled",
+          "labels": {
+            "en": "Enabled",
+            "fr": "Activé"
+          },
+          "descriptions": {},
+          "is_default": true,
+          "retired": false,
+          "sort_order": 0,
+          "effects": [
+            {
+              "key": "funding",
+              "effect_type": "budget.program_funding",
+              "arguments": {
+                "program": "health",
+                "funding_ratio": {
+                  "parameter": "funding_ratio"
+                }
+              },
+              "sort_order": 0
+            }
+          ]
+        }
+      ],
+      "parameters": [
+        {
+          "key": "funding_ratio",
+          "labels": {
+            "en": "Share of assessed need",
+            "fr": "Part des besoins évalués"
+          },
+          "value_type": "decimal",
+          "unit_key": "fraction_of_program_requirement",
+          "default_value": "1.00",
+          "min_value": "0.00",
+          "max_value": "1.00",
+          "step": "0.01",
+          "sort_order": 0
+        }
+      ],
+      "conditions": []
+    },
+    {
+      "key": "education_funding",
+      "category_key": "social_programs",
+      "labels": {
+        "en": "Education funding",
+        "fr": "Financement · Éducation"
+      },
+      "descriptions": {
+        "en": "Funds a share of assessed seasonal need. Actual funding moves territorial indicators gradually.",
+        "fr": "Finance une part des besoins saisonniers évalués. Le financement réel fait évoluer progressivement les indicateurs territoriaux."
+      },
+      "sort_order": 21,
+      "status": "active",
+      "options": [
+        {
+          "key": "enabled",
+          "labels": {
+            "en": "Enabled",
+            "fr": "Activé"
+          },
+          "descriptions": {},
+          "is_default": true,
+          "retired": false,
+          "sort_order": 0,
+          "effects": [
+            {
+              "key": "funding",
+              "effect_type": "budget.program_funding",
+              "arguments": {
+                "program": "education",
+                "funding_ratio": {
+                  "parameter": "funding_ratio"
+                }
+              },
+              "sort_order": 0
+            }
+          ]
+        }
+      ],
+      "parameters": [
+        {
+          "key": "funding_ratio",
+          "labels": {
+            "en": "Share of assessed need",
+            "fr": "Part des besoins évalués"
+          },
+          "value_type": "decimal",
+          "unit_key": "fraction_of_program_requirement",
+          "default_value": "1.00",
+          "min_value": "0.00",
+          "max_value": "1.00",
+          "step": "0.01",
+          "sort_order": 0
+        }
+      ],
+      "conditions": []
+    },
+    {
+      "key": "police_funding",
+      "category_key": "social_programs",
+      "labels": {
+        "en": "Public safety funding",
+        "fr": "Financement · Sécurité publique"
+      },
+      "descriptions": {
+        "en": "Funds a share of assessed seasonal need. Actual funding moves territorial indicators gradually.",
+        "fr": "Finance une part des besoins saisonniers évalués. Le financement réel fait évoluer progressivement les indicateurs territoriaux."
+      },
+      "sort_order": 22,
+      "status": "active",
+      "options": [
+        {
+          "key": "enabled",
+          "labels": {
+            "en": "Enabled",
+            "fr": "Activé"
+          },
+          "descriptions": {},
+          "is_default": true,
+          "retired": false,
+          "sort_order": 0,
+          "effects": [
+            {
+              "key": "funding",
+              "effect_type": "budget.program_funding",
+              "arguments": {
+                "program": "police",
+                "funding_ratio": {
+                  "parameter": "funding_ratio"
+                }
+              },
+              "sort_order": 0
+            }
+          ]
+        }
+      ],
+      "parameters": [
+        {
+          "key": "funding_ratio",
+          "labels": {
+            "en": "Share of assessed need",
+            "fr": "Part des besoins évalués"
+          },
+          "value_type": "decimal",
+          "unit_key": "fraction_of_program_requirement",
+          "default_value": "1.00",
+          "min_value": "0.00",
+          "max_value": "1.00",
+          "step": "0.01",
+          "sort_order": 0
+        }
+      ],
+      "conditions": []
+    },
+    {
+      "key": "welfare_funding",
+      "category_key": "social_programs",
+      "labels": {
+        "en": "Social protection funding",
+        "fr": "Financement · Protection sociale"
+      },
+      "descriptions": {
+        "en": "Funds a share of assessed seasonal need. Actual funding moves territorial indicators gradually.",
+        "fr": "Finance une part des besoins saisonniers évalués. Le financement réel fait évoluer progressivement les indicateurs territoriaux."
+      },
+      "sort_order": 23,
+      "status": "active",
+      "options": [
+        {
+          "key": "enabled",
+          "labels": {
+            "en": "Enabled",
+            "fr": "Activé"
+          },
+          "descriptions": {},
+          "is_default": true,
+          "retired": false,
+          "sort_order": 0,
+          "effects": [
+            {
+              "key": "funding",
+              "effect_type": "budget.program_funding",
+              "arguments": {
+                "program": "welfare",
+                "funding_ratio": {
+                  "parameter": "funding_ratio"
+                }
+              },
+              "sort_order": 0
+            }
+          ]
+        }
+      ],
+      "parameters": [
+        {
+          "key": "funding_ratio",
+          "labels": {
+            "en": "Share of assessed need",
+            "fr": "Part des besoins évalués"
+          },
+          "value_type": "decimal",
+          "unit_key": "fraction_of_program_requirement",
+          "default_value": "1.00",
+          "min_value": "0.00",
+          "max_value": "1.00",
+          "step": "0.01",
+          "sort_order": 0
+        }
+      ],
+      "conditions": []
+    },
+    {
+      "key": "environment_funding",
+      "category_key": "social_programs",
+      "labels": {
+        "en": "Environmental protection funding",
+        "fr": "Financement · Protection de l’environnement"
+      },
+      "descriptions": {
+        "en": "Funds a share of assessed seasonal need. Actual funding moves territorial indicators gradually.",
+        "fr": "Finance une part des besoins saisonniers évalués. Le financement réel fait évoluer progressivement les indicateurs territoriaux."
+      },
+      "sort_order": 24,
+      "status": "active",
+      "options": [
+        {
+          "key": "enabled",
+          "labels": {
+            "en": "Enabled",
+            "fr": "Activé"
+          },
+          "descriptions": {},
+          "is_default": true,
+          "retired": false,
+          "sort_order": 0,
+          "effects": [
+            {
+              "key": "funding",
+              "effect_type": "budget.program_funding",
+              "arguments": {
+                "program": "environment",
+                "funding_ratio": {
+                  "parameter": "funding_ratio"
+                }
+              },
+              "sort_order": 0
+            }
+          ]
+        }
+      ],
+      "parameters": [
+        {
+          "key": "funding_ratio",
+          "labels": {
+            "en": "Share of assessed need",
+            "fr": "Part des besoins évalués"
+          },
+          "value_type": "decimal",
+          "unit_key": "fraction_of_program_requirement",
+          "default_value": "1.00",
+          "min_value": "0.00",
+          "max_value": "1.00",
+          "step": "0.01",
+          "sort_order": 0
+        }
+      ],
+      "conditions": []
+    },
+    {
+      "key": "public_development_funding",
+      "category_key": "economy",
+      "labels": {
+        "en": "Public economic development funding",
+        "fr": "Financement · Développement économique public"
+      },
+      "descriptions": {
+        "en": "Funds a share of assessed seasonal need. Actual funding moves territorial indicators gradually.",
+        "fr": "Finance une part des besoins saisonniers évalués. Le financement réel fait évoluer progressivement les indicateurs territoriaux."
+      },
+      "sort_order": 25,
+      "status": "active",
+      "options": [
+        {
+          "key": "enabled",
+          "labels": {
+            "en": "Enabled",
+            "fr": "Activé"
+          },
+          "descriptions": {},
+          "is_default": true,
+          "retired": false,
+          "sort_order": 0,
+          "effects": [
+            {
+              "key": "funding",
+              "effect_type": "budget.program_funding",
+              "arguments": {
+                "program": "public_development",
+                "funding_ratio": {
+                  "parameter": "funding_ratio"
+                }
+              },
+              "sort_order": 0
+            }
+          ]
+        }
+      ],
+      "parameters": [
+        {
+          "key": "funding_ratio",
+          "labels": {
+            "en": "Share of assessed need",
+            "fr": "Part des besoins évalués"
+          },
+          "value_type": "decimal",
+          "unit_key": "fraction_of_program_requirement",
+          "default_value": "1.00",
+          "min_value": "0.00",
+          "max_value": "1.00",
           "step": "0.01",
           "sort_order": 0
         }

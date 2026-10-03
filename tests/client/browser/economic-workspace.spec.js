@@ -22,16 +22,25 @@ function data() {
         treasury_inflows: '10',
         treasury_outflows: '8',
         tax_receipts: '10',
-        public_sales: '0',
+        earned_income: '100',
+        disposable_income_estimate: '70',
         command_costs: '0',
-        public_payroll_paid: '0',
-        public_operations: '1',
+        military_costs_paid: '0',
+        programs: {
+            health: { paid: '1' },
+            education: { paid: '0' },
+            police: { paid: '0' },
+            welfare: { paid: '0' },
+            environment: { paid: '0' },
+        },
         government_purchases: '1',
         public_development: '1',
         private_development: '1',
         support_paid: '1',
         infrastructure: { 156: { paid: '3' } },
         indicators: {
+            economic_strength: 0.6,
+            dynamism: 0.4,
             infrastructure: 0.6,
             unrest: 0.1,
             informal: 0.1,
@@ -42,6 +51,7 @@ function data() {
             borrowing: '0',
             principal_repaid: '0',
             interest_due: '1',
+            interest_paid: '1',
             arrears: '0',
             closing_debt: '4',
             credit_limit: '20',
@@ -49,26 +59,13 @@ function data() {
         food: {},
         industries: {
             ore: {
-                owners: {
-                    government: {
-                        opening_capacity: '2',
-                        closing_capacity: '3',
-                        usable_capacity: '2',
-                        sales: '4',
-                        recognized_cost: '2',
-                        operating_result: '2',
-                        investment: '2',
-                    },
-                    producer: {
-                        opening_capacity: '3',
-                        closing_capacity: '4',
-                        usable_capacity: '3',
-                        sales: '6',
-                        recognized_cost: '4',
-                        operating_result: '2',
-                        investment: '3',
-                    },
-                },
+                opening_capacity: '5',
+                closing_capacity: '7',
+                usable_capacity: '5',
+                government_delivered: '2',
+                acquisition_spending: '4',
+                private_development: '3',
+                public_development: '2',
             },
         },
     };
@@ -125,10 +122,10 @@ test('tabbed budget preserves edits and top actions; charts share one history re
                               },
                     resources: {
                         ore: {
-                            production: { government: '1', producer: '2' },
+                            production: { national: '3' },
                             civilian_requested: '3',
                             industrial_requested: '2',
-                            development: { government: '.1', producer: '.2' },
+                            development: { total: '.3' },
                         },
                     },
                     policy_changes: season === 2 ? { income_tax: {} } : {},
@@ -172,6 +169,13 @@ test('tabbed budget preserves edits and top actions; charts share one history re
     await incomeSeries.click();
     await expect(incomeSeries).toHaveAttribute('aria-pressed', 'false');
     await incomeSeries.click();
+    await budget.getByLabel('View', { exact: true }).selectOption('activity');
+    await expect(
+        budget.getByRole('heading', { name: 'Civilian income & conditions', exact: true }),
+    ).toBeVisible();
+    await budget.locator('.time-series-plot').first().focus();
+    await page.keyboard.press('Home');
+    await expect(budget.locator('.time-series-readout').first()).toContainText('National earned income 100');
     await budget.getByLabel('Industry', { exact: true }).selectOption('ore');
     await expect(
         budget.getByRole('heading', {
@@ -179,8 +183,8 @@ test('tabbed budget preserves edits and top actions; charts share one history re
             exact: true,
         }),
     ).toBeVisible();
-    await budget.getByLabel('View', { exact: true }).selectOption('profitability');
-    await expect(budget.getByRole('heading', { name: 'Is it profitable?', exact: true })).toBeVisible();
+    await budget.getByLabel('View', { exact: true }).selectOption('acquisitions');
+    await expect(budget.getByRole('heading', { name: 'Government acquisitions', exact: true })).toBeVisible();
     await budget.locator('.time-series-plot').first().focus();
     await page.keyboard.press('Home');
     await expect(budget.locator('.time-series-readout').first()).toContainText('Season 1');
@@ -204,7 +208,7 @@ test('tabbed budget preserves edits and top actions; charts share one history re
     expect(errors).toEqual([]);
 });
 
-test('income support previews funded purchases; private ownership disables public expansion without losing values', async ({
+test('income support previews spending; private ownership disables public expansion without losing values', async ({
     page,
 }) => {
     await prepareHud(page);
@@ -234,9 +238,20 @@ test('income support previews funded purchases; private ownership disables publi
             commands: '0',
             available: '0',
             acquisition: {
-                production: { government: '0', producer: '0' },
-                development: { government: '0', producer: '0' },
+                production: { national: '0' },
+                development: { total: '0' },
+                development_spending: { public: '0', private: '0' },
                 constraints: [],
+                civilian: { fulfilled: '0', unmet: '0', requested: '0' },
+                reserve_target: '0',
+                government_closing: '0',
+                acquired: '0',
+                acquisition_requested: '0',
+                acquisition_unmet: '0',
+                industrial_requested: '0',
+                price: '1',
+                purchase_spending: '0',
+                capacity_target: '0',
             },
         };
     d.definitions.resources.push({
@@ -247,21 +262,17 @@ test('income support previews funded purchases; private ownership disables publi
     const baseline = d.economy.forecast.expected;
     baseline.support_requested = baseline.support_paid = '0';
     baseline.civilian = {
-        enabled: true,
         consumption: {
             household_goods: {
                 requested: '2',
                 fulfilled: '1',
                 unmet: '1',
-                private_purchase: '1',
-                public_purchase: '0',
-                shortage_reason: 'purchasing_power',
+                shortage_reason: 'supply',
             },
         },
         constraints: {},
         workers_used: '1000',
         workforce: '2000',
-        upkeep: {},
     };
     await page.route('**/client/gameplay*', (r) => r.fulfill({ json: d }));
     await page.route('**/nation/policies/preview', (r) => {
@@ -270,13 +281,7 @@ test('income support previews funded purchases; private ownership disables publi
         const support = body.changes.income_support ?? d.policies.current.income_support;
         const amount = support.option === 'enabled' ? support.parameters.amount : '0';
         proposed.support_requested = proposed.support_paid = amount;
-        if (Number(amount) > 0)
-            Object.assign(proposed.civilian.consumption.household_goods, {
-                fulfilled: '2',
-                unmet: '0',
-                private_purchase: '2',
-                shortage_reason: null,
-            });
+        if (Number(amount) > 0) proposed.indicators.inequality = 0.3;
         return r.fulfill({
             json: {
                 valid: true,
@@ -304,14 +309,9 @@ test('income support previews funded purchases; private ownership disables publi
     await supportGroup.getByRole('combobox').selectOption('enabled');
     await supportGroup.getByRole('spinbutton').fill('3');
     await budget.getByRole('tab', { name: 'Civilian economy', exact: true }).click();
-    await expect(budget.locator('[data-metric="civilian:support"] td').last()).toHaveText('3 / 3');
-    await expect(budget.locator('[data-metric="civilian:household_goods"] td').last()).toHaveText('2 / 2');
-    await expect(budget.locator('[data-metric="civilian:purchases:household_goods"] td').last()).toHaveText(
-        '2',
-    );
-    await expect(budget.locator('[data-metric="civilian:cause:household_goods"] td').nth(1)).toHaveText(
-        'Households cannot afford enough goods.',
-    );
+    await expect(budget.locator('[data-metric="needs:household_goods"] td').last()).toHaveText('1 / 2');
+    await budget.getByRole('tab', { name: 'Spending', exact: true }).click();
+    await expect(budget.locator('[data-metric="support_paid"] td').last()).toHaveText('−3');
     await page.screenshot({ path: '/tmp/no7-income-support-desktop.png' });
     await page.getByRole('button', { name: 'Review & save', exact: true }).click();
     await page.getByRole('button', { name: 'Save seasonal plan', exact: true }).click();
@@ -329,6 +329,7 @@ test('income support previews funded purchases; private ownership disables publi
     await expect(funding).toBeDisabled();
     await expect(funding).toHaveValue('20');
     await expect(expansion).toContainText('Inactive: only private investment is permitted.');
+    await budget.getByRole('tab', { name: 'Civilian economy', exact: true }).click();
     await page.locator('.economy-resources > summary').click();
     await page.getByRole('button', { name: 'Open production planner', exact: true }).click();
     const plannerFunding = page.locator('[data-public-investment="food"]');
@@ -339,7 +340,7 @@ test('income support previews funded purchases; private ownership disables publi
     await page.keyboard.press('Escape');
     await policy.getByRole('tab', { name: /^Institutions/ }).click();
     const ownership = policy.getByRole('combobox', {
-        name: 'New productive investment',
+        name: 'Economic ownership',
         exact: true,
     });
     await ownership.selectOption('mixed');
@@ -465,7 +466,9 @@ test('compact overview keeps a readable sparkline and gives policy tabs the full
     const d = data();
     d.economy.forecast.expected.fiscal.borrowing = '5';
     d.economy.forecast.expected.fiscal.principal_repaid = '1';
-    d.economy.forecast.warnings = [{ type: 'infrastructure_shortfall' }];
+    d.economy.forecast.warnings = [
+        { type: 'infrastructure_maintenance_shortfall', territory_id: 156, cause: 'policy_funding' },
+    ];
     await page.route('**/client/gameplay*', (r) => r.fulfill({ json: d }));
     await page.route('**/nation/economic-history*', (r) =>
         r.fulfill({

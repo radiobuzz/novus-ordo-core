@@ -7,6 +7,12 @@ export function policyGroup(policy) {
     if (types.has('budget.income_support')) return 'support';
     if ([...types].some((t) => t.startsWith('food.'))) return 'food';
     if (effects.some((e) => e.arguments?.resource === 'role:nutrition')) return 'food';
+    if (
+        effects.some(
+            (e) => e.effect_type === 'budget.program_funding' && e.arguments.program !== 'infrastructure',
+        )
+    )
+        return 'services';
     if (types.has('budget.program_funding') || types.has('allocation.infrastructure_priority'))
         return 'infrastructure';
     if (types.has('production.development_funding') || types.has('allocation.production_priority'))

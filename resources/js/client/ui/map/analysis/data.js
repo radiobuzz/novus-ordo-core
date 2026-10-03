@@ -33,7 +33,20 @@ export function availableLayers(model, snapshot, homeland = false) {
         if (['population', 'density'].includes(l.id))
             return snapshot.territories.some((t) => stat(t, 'Population') != null);
         if (!own || !snapshot.nation) return false;
-        if (['infrastructure', 'capacity', 'unrest', 'informal'].includes(l.id))
+        if (
+            [
+                'infrastructure',
+                'economic_strength',
+                'health',
+                'education',
+                'dynamism',
+                'crime',
+                'inequality',
+                'environment',
+                'unrest',
+                'informal',
+            ].includes(l.id)
+        )
             return Array.isArray(snapshot.nation.economy?.territories);
         if (['income', 'netIncome'].includes(l.id))
             return (
@@ -132,7 +145,21 @@ export function territoryValues(snapshot, id, resource, coverage = null) {
         if (id === 'population') v = p;
         else if (id === 'density') v = p != null && area > 0 ? p / area : null;
         else if (own && t.owner_nation_id === own) {
-            if (['infrastructure', 'capacity', 'unrest', 'informal'].includes(id)) v = number(state?.[id]);
+            if (
+                [
+                    'infrastructure',
+                    'economic_strength',
+                    'health',
+                    'education',
+                    'dynamism',
+                    'crime',
+                    'inequality',
+                    'environment',
+                    'unrest',
+                    'informal',
+                ].includes(id)
+            )
+                v = number(state?.[id]);
             if (id === 'income') v = number(past?.income);
             if (id === 'netIncome')
                 v =

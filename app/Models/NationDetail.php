@@ -137,7 +137,6 @@ class NationDetail extends Model
         return $this
             ->getNation()
             ->hasMany(NationResourceStockpile::class)
-            ->where('owner_kind', 'government')
             ->where('turn_id', $this->getTurn()->getId());
     }
 

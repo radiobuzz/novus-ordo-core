@@ -74,45 +74,29 @@ final class ResourceLedger
         foreach ($cat->resources as $key => $r) {
             $opening = $detail->getStockpiledQuantity($key); $physical = $result['resources'][$key] ?? null;
             $closing = $physical ? $physical['government_closing'] : ($r['kind'] === 'currency' ? $result['report']['closing_treasury'] : '0');
-            $production = $physical ? Q::add(...array_values($physical['production'])) : '0';
+            $production = $physical ? $physical['production']['national'] : '0';
             $rows[$key] = ['kind' => $r['kind'], 'opening' => $opening, 'production' => $production,
                 'commands' => $costs['commands'][$key], 'requested' => $costs['upkeep'][$key], 'available' => $available[$key],
                 'closing' => $closing, 'balance' => Q::sub($closing, $opening), 'occupied' => $costs['occupied'][$key],
                 'capacity' => $r['kind'] === 'capacity' ? Q::add(Q::add($available[$key], $costs['commands'][$key]), $costs['occupied'][$key]) : '0',
                 'acquisition' => $physical];
         }
-        $facilities = []; $pools = [];
-        foreach ($result['state']['territories'] as $id => $t) $pools[$id] = max(0, (int) $t['workforce'] - (int) ($result['used_workers'][$id] ?? 0));
-        // Read-only projections for territorial overlays. No independent allocation is written.
-        foreach ($result['resources'] as $key => $r) foreach ($r['attempts'] as $attempt) {
-            $id = $attempt['territory']; $t = $result['state']['territories'][$id];
-            $facilities[] = ['territory_id' => (int) $id, 'resource_key' => $key, 'owner_kind' => $attempt['owner'],
-                'production' => $attempt['produced'], 'capacity' => $t['capacity'][$attempt['owner']][$key],
-                'allocation' => \Brick\Math\BigDecimal::of($attempt['produced'])->multipliedBy($t['workers_per_unit'][$key])->toScale(0, \Brick\Math\RoundingMode::CEILING)->toInt(),
-                'productivity' => Q::calculated(1000000 / (float) $t['workers_per_unit'][$key])];
-        }
-        $territories = []; $activity = [];
-        foreach ($result['resources'] as $key => $resource) foreach ($resource['attempts'] as $attempt) {
-            $entry = &$activity[$attempt['territory']][$key][$attempt['owner']];
-            $entry ??= ['production' => '0', 'constraints' => []];
-            $entry['production'] = Q::add($entry['production'], $attempt['produced']);
-            $entry['constraints'] = array_values(array_unique([...$entry['constraints'], ...$attempt['constraints']]));
-            unset($entry);
-        }
+        $facilities = []; $pools = []; $territories = [];
         foreach ($result['opening_territories'] as $id => $t) {
+            $pools[$id] = max(0, (int)$t['workforce'] - (int)($result['used_workers'][$id] ?? 0));
             $sectors = [];
             foreach ($cat->producers() as $key => $_) {
-                $sector = ['potential' => $t['potential'][$key] ?? '0', 'owners' => []];
-                foreach (['government', 'producer'] as $owner) {
-                    $capacity = Q::parse($t['capacity'][$owner][$key] ?? '0');
-                    $sector['owners'][$owner] = ['capacity' => $capacity,
-                        'production' => $activity[$id][$key][$owner]['production'] ?? '0',
-                        'development' => Q::sub($result['state']['territories'][$id]['capacity'][$owner][$key] ?? '0', $capacity),
-                        'constraints' => $activity[$id][$key][$owner]['constraints'] ?? []];
-                }
-                $sectors[$key] = $sector;
+                $attempt = collect($result['resources'][$key]['attempts'])->firstWhere('territory', (string)$id);
+                $output = $attempt['produced'] ?? '0';
+                $sectors[$key] = ['potential'=>$t['potential'][$key], 'capacity'=>$t['capacity'][$key],
+                    'production'=>$output, 'development'=>Q::sub($result['state']['territories'][$id]['capacity'][$key], $t['capacity'][$key]),
+                    'constraints'=>$attempt['constraints'] ?? []];
+                $perUnit = $t['workers_per_unit'][$key] ?? null;
+                $facilities[] = ['territory_id'=>(int)$id,'resource_key'=>$key,'production'=>$output,'capacity'=>$t['capacity'][$key],
+                    'allocation'=>$perUnit ? \Brick\Math\BigDecimal::of($output)->multipliedBy($perUnit)->toScale(0,\Brick\Math\RoundingMode::CEILING)->toInt() : 0,
+                    'productivity'=>$perUnit ? Q::calculated(1000000/(float)$perUnit) : '0'];
             }
-            $territories[$id] = ['workforce' => $t['workforce'], 'workers_used' => $result['used_workers'][$id] ?? 0, 'resources' => $sectors];
+            $territories[$id] = ['workforce'=>$t['workforce'],'workers_used'=>$result['used_workers'][$id] ?? '0','resources'=>$sectors];
         }
         return ['rows' => $rows, 'territories' => $territories, 'last_resources' => $detail->resource_report,
             'facilities' => $facilities, 'pools' => $pools, 'idle_workers' => array_sum($pools),

@@ -34,7 +34,7 @@ $check($cat->get('food')['id']!==$otherCat->get('food')['id'],'Games own separat
 $reject(fn()=>$cat->key($otherCat->get('food')['id']),'Foreign reference rejected');
 $changed=$template->document();$changed['resources'][0]['starting_quantity']='99';
 Catalogue::edit($template->set['id'],1,$changed);
-$check(Catalogue::load($cat->set['id'])->get('money')['starting_quantity']==='20.000000','Template changes do not leak');
+$check(Catalogue::load($cat->set['id'])->get('money')['starting_quantity']==='50.000000','Template changes do not leak');
 $reject(fn()=>Catalogue::edit($template->set['id'],1,$changed),'Stale catalogue edit rejected');
 $found=function(Game $game,string $prefix='resource'){
     $eligible=$game->freeSuitableTerritoriesInTurn()->get()->keyBy('id');$edges=Territory::getTerritoryConnections($game);$homes=[];
@@ -45,7 +45,7 @@ $found=function(Game $game,string $prefix='resource'){
 };
 [$nation,$homes,$user]=$found($game);[$recipient]=$found($game,'recipient');
 $d=$nation->getDetail();$ledger=app(ResourceLedger::class);$snapshot=app(PlayerWorkspace::class)->export($nation);
-$check($d->getStockpiledQuantity('money')==='20.000000','Starting treasury');
+$check($d->getStockpiledQuantity('money')==='50.000000','Starting treasury');
 $check(Q::cmp($snapshot['budget']->production['money'],'0')===0,'Currency is not produced by labor');
 $check(count($snapshot['definitions']['resources'])===6,'Six current resources');
 $check(!NationResourceStockpile::where('nation_id',$nation->id)->where('resource_id',$cat->get('recruitment')['id'])->exists(),'No capacity stock');
@@ -97,7 +97,7 @@ $check($extraNation->fresh()->getDetail($extraNext)->getStockpiledQuantity('test
 $extraGame=$extraGame->fresh();$extraGame->policy_testing_enabled=true;$extraGame->save();$changed=$extraCat->document();
 foreach($changed['resources'] as &$r)if($r['key']==='test_good')$r['rules']['production.territorial_labor']['yields']['Forest']='2.5';unset($r);
 $updated=Catalogue::edit($extraCat->set['id'],1,$changed);$check($updated->set['edit_counter']===2,'Test-game edit updates counter');
-$check(Catalogue::load($otherCat->set['id'])->get('money')['starting_quantity']==='20.000000','Game edits isolated');
+$check(Catalogue::load($otherCat->set['id'])->get('money')['starting_quantity']==='50.000000','Game edits isolated');
 file_put_contents(getenv('NO7_ENTRY_TEST_ROOT').'/resource-fixture.json',json_encode(['game_id'=>$extraGame->id,'nation_id'=>$extraNation->id,'user'=>$extraUser->name]));
 file_put_contents(getenv('NO7_ENTRY_TEST_ROOT').'/diplomacy-fixture.json',json_encode(['game_id'=>$game->id,'nations'=>[$nation->id,$recipient->id]]));
 echo "$count resource checks passed.\n";

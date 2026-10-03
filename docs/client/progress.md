@@ -1,5 +1,9 @@
 # Client planning progress
 
+## 2026-10-03 — Indicator economy replacement
+
+Implemented replacement packages A–E with one indicator/physical-goods resolver, game-owned validated rules and fresh-game schema. Retired simulated civilian accounts and split capacity. The existing economic workspace, planner, history and map layers consume the new authoritative fields without new data ownership. UI/client-data skills guided retained drafts, focus, scrolling and context fencing. [Results and checks](../game-design/indicator-economy-replacement-results.md) record pure, isolated lifecycle, generic-policy/resource and real-browser evidence, plus the local cutover preserving saved maps/accounts. Remaining work is player balance testing; prices/trade, migration and additional institutional systems remain future scope.
+
 ## 2026-10-03 — Explain annexation maintenance warnings
 
 Implemented the agreed territory-specific zero-workforce explanation in Budget & Policies and the treasury disclosure, with EN/FR interpolation and preserved severity. The server confirms annexation from the prior ownership snapshot and sufficient infrastructure funding from the reserved programme budget. Only fully explained overlapping warnings are consolidated; other territory failures and ore acquisition warnings remain. No change to economic calculations, workforce activation, policies, saved history or live balances. Eight explanation cases, localization/header tests, 410 production checks, build and read-only live season-9/16 checks pass. UI skill guided reuse of the existing warning presentation.

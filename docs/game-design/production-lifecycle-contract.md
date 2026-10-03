@@ -1,5 +1,7 @@
 # Production/development Package D — live integration
 
+> Historical implementation, superseded on 2026-10-03 by the [indicator economy replacement](indicator-economy-replacement-results.md). Wallets, wage/profit accounting and split capacity described below are not current runtime contracts.
+
 2026-09-29. The coordinated production economy is now the live runtime for **fresh games**. Packages A–C supplied the accounting, storage and resolver; this package connects them to founding, turns, actions and the existing player workspace. The [fuller presentation is delivered in Package E](production-presentation-contract.md); [Package F retires obsolete source/schema/tests](production-retirement-results.md).
 
 ## Runtime and history

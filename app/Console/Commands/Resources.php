@@ -7,7 +7,7 @@ use Illuminate\Console\Command;
 use Illuminate\Support\Facades\DB;
 final class Resources extends Command
 {
-    protected $signature = 'app:resources {action : list|example|create|export|import|clone|calibrate-production} {id? : Resource set ID} {--file= : JSON document} {--counter= : Current edit counter} {--name= : Clone name}';
+    protected $signature = 'app:resources {action : list|example|create|export|import|clone} {id? : Resource set ID} {--file= : JSON document} {--counter= : Current edit counter} {--name= : Clone name}';
     protected $description = 'Author game resource catalogues; definitions are copied at game creation, never each turn.';
     public function handle(): int
     {
@@ -15,7 +15,6 @@ final class Resources extends Command
             $id = (int) $this->argument('id');
             $result = match ($this->argument('action')) {
                 'list' => DB::table('resource_sets')->orderBy('id')->get(),
-                'calibrate-production' => ResourceCatalogue::calibrateProduction(\App\Models\Game::findOrFail(ResourceCatalogue::load($id)->set['game_id']), (int) $this->option('counter')),
                 'example' => json_decode(file_get_contents(database_path('resource-templates/foundation.json')), true, flags: JSON_THROW_ON_ERROR),
                 'create' => ResourceCatalogue::createTemplate($this->document())->export(),
                 'export' => ResourceCatalogue::load($id)->document(),

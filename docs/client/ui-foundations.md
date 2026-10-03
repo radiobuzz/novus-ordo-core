@@ -1,5 +1,9 @@
 # Game UI foundations — living plan
 
+## Indicator economy replacement — 2026-10-03
+
+Budget & Policies, visible treasury change/actions, semantic colours, click-only help and chart enlargement are retained. Civilian tables show fulfilled/unmet physical needs; industry charts show supply, shared capacity/development and government acquisitions. Obsolete wallet/wage/profit/public-sales rows are removed. New indicator map layers use actual territorial state. Policy/planner inputs, tabs, focus, scroll, EN/FR and narrow layouts retain the existing components. See [implementation and verification](../game-design/indicator-economy-replacement-results.md). Earlier entries below are historical.
+
 ## Annexed-territory maintenance explanation — 2026-10-03
 
 Budget & Policies and the treasury disclosure reuse `services/economicWarnings.js` to interpolate authoritative territory IDs in EN/FR warning text. A verified newly annexed territory with zero available workforce and sufficient reserved infrastructure funding receives the agreed explanation; overlapping maintenance warnings are consolidated only when every affected territory is explained. Unrelated and mixed-cause warnings remain. `Domain/Economy/MaintenanceWarnings.php` projects diagnostics without changing settlement, and EconomyService verifies prior ownership. No new control, data owner, workforce rule or migration. Eight diagnostic cases, localized formatting/header checks, 410 production checks and the production build pass. Read-only checks of live game 29 confirm the season-9 explanation, unchanged cash/workforce, and no false warning once workers are present at season 16. No new browser-layout journey was run.

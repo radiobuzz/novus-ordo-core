@@ -21,7 +21,6 @@ final class FinanceService
             if (Q::cmp($amount, $state['debt']) > 0 || Q::cmp($amount, $available) > 0) throw ValidationException::withMessages(['amount' => 'Repayment exceeds outstanding debt or uncommitted treasury.']);
             $stock->available_quantity = Q::sub($stock->available_quantity, $amount); $stock->save();
             $state['debt'] = Q::sub($state['debt'], $amount);
-            $state['lender_cash'] = Q::add($state['lender_cash'], $amount);
             $state['cash_actions'][] = ['type' => 'principal_repayment', 'amount' => $amount, 'closing_cash' => $stock->available_quantity, 'closing_debt' => $state['debt']];
             $detail->economy_state = $state; $detail->save();
             // Completed seasonal reports remain observations of that season. This action is current-turn state.

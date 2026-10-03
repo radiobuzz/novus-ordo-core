@@ -1,0 +1,172 @@
+{
+  "description": "Saved fertile microcell geography; equal population and no retired economic state.",
+  "territories": [
+    {
+      "population": 1000000,
+      "workforce": "1000000.000000",
+      "terrain": "Plain",
+      "geography": {
+        "resources": {
+          "food": {
+            "capacity": 3.16035869530929,
+            "terrainWeights": {
+              "Plain": 0.5301207488693529,
+              "Forest": 0.2808284752116543
+            }
+          },
+          "material": {
+            "capacity": 0.48702194778572805,
+            "terrainWeights": {
+              "Plain": 0.3421052631578947,
+              "Forest": 0.15789473684210525
+            }
+          },
+          "ore": {
+            "capacity": 0.0676760851655153,
+            "terrainWeights": {
+              "Plain": 0.04035301047904098,
+              "Forest": 0.029211159559964332
+            }
+          }
+        }
+      }
+    },
+    {
+      "population": 1000000,
+      "workforce": "1000000.000000",
+      "terrain": "Plain",
+      "geography": {
+        "resources": {
+          "food": {
+            "capacity": 3.1265267683839695,
+            "terrainWeights": {
+              "Plain": 0.5487239088894498,
+              "Forest": 0.2570974610005593
+            }
+          },
+          "material": {
+            "capacity": 0.4848053932005727,
+            "terrainWeights": {
+              "Plain": 0.3421052631578947,
+              "Forest": 0.15789473684210525
+            }
+          },
+          "ore": {
+            "capacity": 0.0026880887793394835,
+            "terrainWeights": {
+              "Plain": 0.0003101954572288532,
+              "Forest": 0.0024563967116219363
+            }
+          }
+        }
+      }
+    },
+    {
+      "population": 1000000,
+      "workforce": "1000000.000000",
+      "terrain": "Plain",
+      "geography": {
+        "resources": {
+          "food": {
+            "capacity": 2.6717811267530602,
+            "terrainWeights": {
+              "Forest": 0.15938147979266704,
+              "Plain": 0.5115797242138825,
+              "Desert": 0.03350203446711959
+            }
+          },
+          "material": {
+            "capacity": 0.4737787549288805,
+            "terrainWeights": {
+              "Forest": 0.10526315789473684,
+              "Plain": 0.36842105263157887,
+              "Desert": 0.02631578947368421
+            }
+          },
+          "oil": {
+            "capacity": 0.10820401606552973,
+            "terrainWeights": {
+              "Plain": 0.09467638641451795,
+              "Forest": 0.007966303150242732,
+              "Desert": 0.011277789956854918
+            }
+          }
+        }
+      }
+    },
+    {
+      "population": 1000000,
+      "workforce": "1000000.000000",
+      "terrain": "Plain",
+      "geography": {
+        "resources": {
+          "food": {
+            "capacity": 2.170304118148145,
+            "terrainWeights": {
+              "Plain": 0.27577578614541765,
+              "Forest": 0.21665493239853928,
+              "Desert": 0.09468154664795932
+            }
+          },
+          "material": {
+            "capacity": 0.43619546801618536,
+            "terrainWeights": {
+              "Plain": 0.21052631578947367,
+              "Forest": 0.15789473684210525,
+              "Desert": 0.10526315789473684
+            }
+          },
+          "ore": {
+            "capacity": 0.013163588193613207,
+            "terrainWeights": {
+              "Forest": 0.01263966978201061,
+              "Plain": 0.001364142948195631,
+              "Desert": 0.00041577315033252234
+            }
+          },
+          "oil": {
+            "capacity": 0.07553885443945195,
+            "terrainWeights": {
+              "Plain": 0.03732403426284485,
+              "Forest": 0.012065061336140338,
+              "Desert": 0.033189074472690004
+            }
+          }
+        }
+      }
+    },
+    {
+      "population": 1000000,
+      "workforce": "1000000.000000",
+      "terrain": "Plain",
+      "geography": {
+        "resources": {
+          "food": {
+            "capacity": 1.7169632690820609,
+            "terrainWeights": {
+              "Forest": 0.1228345937633572,
+              "Plain": 0.2090358724806734,
+              "Desert": 0.13390990767736582
+            }
+          },
+          "material": {
+            "capacity": 0.38628394822897605,
+            "terrainWeights": {
+              "Forest": 0.07894736842105263,
+              "Plain": 0.18421052631578946,
+              "Desert": 0.15789473684210525
+            }
+          },
+          "ore": {
+            "capacity": 0.02505149973315892,
+            "terrainWeights": {
+              "Forest": 0.0018334802096677523,
+              "Plain": 0.008583447326633858,
+              "Desert": 0.016935029786494228
+            }
+          }
+        }
+      }
+    }
+  ]
+}

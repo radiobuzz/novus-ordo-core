@@ -9,7 +9,7 @@ use Illuminate\Database\Eloquent\Model;
 class NationResourceStockpile extends Model
 {
     use ReplicatesForTurns;
-    protected $casts = ['available_quantity' => 'decimal:6', 'cost_basis' => 'decimal:6'];
+    protected $casts = ['available_quantity' => 'decimal:6'];
     public function getAvailableQuantity(): string
     {
         return $this->available_quantity;
@@ -23,14 +23,12 @@ class NationResourceStockpile extends Model
         $this->available_quantity = $value;
         $this->save();
     }
-    /** Remove owned goods with their carried average basis; the final unit clears rounding residue. */
-    public function removeQuantity(string $quantity): string {
+    /** Government goods have quantities, not a private resale cost basis. */
+    public function removeQuantity(string $quantity): void {
+        $quantity = Q::parse($quantity);
         if (Q::cmp($quantity, $this->available_quantity) > 0) throw new \LogicException('Insufficient owned stock.');
-        $basis = Q::cmp($quantity, $this->available_quantity) === 0 ? $this->cost_basis
-            : (string) \Brick\Math\BigDecimal::of($this->cost_basis)->multipliedBy($quantity)->dividedBy($this->available_quantity, 6, \Brick\Math\RoundingMode::DOWN);
         $this->available_quantity = Q::sub($this->available_quantity, $quantity);
-        $this->cost_basis = Q::sub($this->cost_basis, $basis); $this->save();
-        return $basis;
+        $this->save();
     }
     public static function create(Nation $nation, Turn $turn, string $key, string $quantity): static
     {
@@ -46,8 +44,6 @@ class NationResourceStockpile extends Model
         $s->nation_id = $nation->id;
         $s->turn_id = $turn->id;
         $s->resource_id = $r['id'];
-        $s->owner_kind = 'government';
-        $s->cost_basis = '0.000000';
         $s->available_quantity = Q::parse($quantity);
         $s->save();
         return $s;

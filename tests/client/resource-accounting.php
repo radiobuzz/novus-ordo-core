@@ -35,7 +35,7 @@ try {
  $foreign=DB::table('resource_definitions')->where('key','money')->where('resource_set_id','!=',$cat->set['id'])->first();
  DB::beginTransaction();
  try{$stock->resource_id=$foreign->id;$stock->save();$ledger->preview($nation->fresh()->getDetail());throw new RuntimeException('Foreign stock accepted');}
- catch(\DomainException $e){$check($e->getMessage()==='Foreign resource in production snapshot.','Foreign state reference rejected');}
+ catch(\DomainException $e){$check($e->getMessage()==='Foreign stock resource.','Foreign state reference rejected');}
  finally{DB::rollBack();}
  echo "$count additional accounting checks passed.\n";
 }finally{DB::rollBack();}

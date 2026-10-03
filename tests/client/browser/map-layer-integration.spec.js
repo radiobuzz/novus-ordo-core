@@ -15,7 +15,7 @@ test('live map layers use actual geographic and territorial payloads and retain 
                 {
                     id: 156,
                     population: 42000,
-                    state: { infrastructure: 0.65, capacity: 1.1, unrest: 0.12, informal: 0.22 },
+                    state: { infrastructure: 0.65, economic_strength: 0.6, unrest: 0.12, informal: 0.22 },
                 },
             ],
             last_season: { territories: [{ id: 156, population: 40000, income: 800, tax: 200 }] },
@@ -82,7 +82,12 @@ test('economic layers update through seasons and rollback without replacing the 
                         {
                             id: 156,
                             population: 42000,
-                            state: { infrastructure, capacity: turn, unrest: 0.1, informal: 0.2 },
+                            state: {
+                                infrastructure,
+                                economic_strength: turn / 10,
+                                unrest: 0.1,
+                                informal: 0.2,
+                            },
                         },
                     ],
                 };

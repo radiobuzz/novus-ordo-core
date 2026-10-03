@@ -1,5 +1,7 @@
 # Income support — first playable policy
 
+> Historical implementation, superseded on 2026-10-03 by the [indicator economy replacement](indicator-economy-replacement-results.md). Wallets, wage/profit accounting and split capacity described below are not current runtime contracts.
+
 2026-10-02. Small extension of the existing production economy, policy catalogue and seasonal transfer engine. It does not select the alternative indicator-led economy or change production balance.
 
 ## Player choices

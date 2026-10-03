@@ -7,13 +7,12 @@ use App\Models\{Game, Nation, Turn};
 use App\Services\GameMutation;
 use Illuminate\Support\Facades\DB;
 
-/** Seasonal owned inventories, civilian cash, territorial capacity and acquisition intent. */
+/** Seasonal government stocks, territorial capacity and acquisition intent. */
 final class ProductionStateStore {
     private const SNAPSHOTS = [
-        'territory_production_states' => ['territory_id', 'resource_id', 'owner_kind', 'installed_capacity'],
-        'nation_economic_accounts' => ['nation_id', 'account_kind', 'cash'],
+        'territory_production_states' => ['territory_id', 'resource_id', 'installed_capacity'],
         'nation_resource_acquisitions' => ['nation_id', 'resource_id', 'requested_quantity', 'spending_limit', 'priority'],
-        'nation_resource_stockpiles' => ['nation_id', 'resource_id', 'owner_kind', 'available_quantity', 'cost_basis'],
+        'nation_resource_stockpiles' => ['nation_id', 'resource_id', 'available_quantity'],
     ];
 
     /** Neutral assets exist before national founding. Never seed on annexation or capture. */
@@ -35,8 +34,8 @@ final class ProductionStateStore {
     public function foundNation(Nation $nation, Turn $turn, array $coreTerritoryIds): void {
         $game = $nation->getGame(); $this->scope($game, $turn);
         app(GameMutation::class)->run($game, function () use ($nation, $game, $turn, $coreTerritoryIds) {
-            if (DB::table('nation_economic_accounts')->where('game_id', $game->id)->where('nation_id', $nation->id)->exists()) {
-                throw new \LogicException('Civilian founding assets already exist.');
+            if ($nation->getDetail($turn)->economy_state !== null) {
+                throw new \LogicException('National founding has already been completed.');
             }
             $owned = DB::table('territory_details')->where('territory_details.game_id', $game->id)->where('turn_id', $turn->id)
                 ->where('owner_nation_id', $nation->id)->whereIn('territory_id', $coreTerritoryIds)
@@ -46,29 +45,13 @@ final class ProductionStateStore {
                 throw new \LogicException('Founding requires distinct territories owned by this nation in this season.');
             }
             $catalogue = ResourceCatalogue::forGame($game);
-            $expected = count($catalogue->producers()) * 2 * count($coreTerritoryIds);
+            $expected = count($catalogue->producers()) * count($coreTerritoryIds);
             if ($this->rows('territory_production_states', $game, $turn)->whereIn('territory_id', $coreTerritoryIds)->count() !== $expected) {
                 throw new \LogicException('Initialize neutral territorial assets before founding.');
             }
             $rows = $this->capacities($catalogue, $owned, true);
             $this->rows('territory_production_states', $game, $turn)->whereIn('territory_id', $coreTerritoryIds)->delete();
             $this->insert('territory_production_states', $game, $turn, $rows);
-            $population = (int) $owned->sum('population_size');
-            $funds = $catalogue->get($catalogue->role('treasury'))['rules']['finance.civilian_founding'];
-            $accounts = [];
-            foreach (['household', 'producer'] as $kind) {
-                $accounts[] = ['nation_id' => $nation->id, 'account_kind' => $kind, 'cash' => Q::output($population, $funds[$kind . '_cash_per_million'])];
-            }
-            $this->insert('nation_economic_accounts', $game, $turn, $accounts);
-            $stocks = [];
-            foreach ($catalogue->producers() as $resource) {
-                $seed = $resource['rules']['production.founding'];
-                $quantity = Q::output($population, $seed['private_inventory_per_million']);
-                $stocks[] = ['nation_id' => $nation->id, 'resource_id' => $resource['id'], 'owner_kind' => 'producer',
-                    'available_quantity' => $quantity, 'cost_basis' => Q::mul($quantity, $seed['private_inventory_unit_cost']),
-                    'created_at' => now(), 'updated_at' => now()];
-            }
-            $this->insert('nation_resource_stockpiles', $game, $turn, $stocks);
         });
     }
 
@@ -82,7 +65,7 @@ final class ProductionStateStore {
         $quantity = Q::parse($quantity); $spendingLimit = Q::parse($spendingLimit);
         if ($priority < 0 || $priority > 2147483647) ResourceRuleRegistry::fail('Invalid acquisition priority.');
         app(GameMutation::class)->run($game, function () use ($nation, $game, $turn, $resource, $quantity, $spendingLimit, $priority) {
-            if (!$this->rows('nation_economic_accounts', $game, $turn)->where('nation_id', $nation->id)->exists()) {
+            if ($nation->getDetail($turn)->economy_state === null) {
                 throw new \LogicException('Found the nation economic state before planning acquisitions.');
             }
             DB::table('nation_resource_acquisitions')->updateOrInsert(
@@ -139,10 +122,7 @@ final class ProductionStateStore {
                 // Seasonal output units. Geography is not a stockpile and population does not recreate deposits.
                 $potential = \App\Domain\Resources\GeographicProduction::potential($resource['rules'], $key, $geography, (int) $territory->population_size);
                 $total = Q::mul($potential, $seed[$core ? 'core_developed_fraction' : 'neutral_developed_fraction']);
-                $public = Q::mul($total, $seed['public_share']);
-                foreach (['government' => $public, 'producer' => Q::sub($total, $public)] as $owner => $capacity) {
-                    $rows[] = ['territory_id' => $territory->id, 'resource_id' => $resource['id'], 'owner_kind' => $owner, 'installed_capacity' => $capacity];
-                }
+                $rows[] = ['territory_id' => $territory->id, 'resource_id' => $resource['id'], 'installed_capacity' => $total];
             }
         }
         return $rows;

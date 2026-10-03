@@ -1,0 +1,382 @@
+{
+    "scope": "Pure seasonal resolver with saved geography, fixed population, reference prices and no trade. These results do not prove live integration.",
+    "checks": 50549,
+    "worked_seasons": {
+        "homeland": {
+            "mixed": [
+                {
+                    "season": 1,
+                    "income": "100.000000",
+                    "taxes": "21.100000",
+                    "treasury": "50.325000",
+                    "debt": "0.000000",
+                    "public_development": "1.500000",
+                    "household_goods": {
+                        "fulfilled": "1.000000",
+                        "released": "0.000000",
+                        "unmet": "0.000000",
+                        "shortage_reason": null
+                    },
+                    "infrastructure": 2.4625
+                },
+                {
+                    "season": 20,
+                    "income": "109.286400",
+                    "taxes": "23.246335",
+                    "treasury": "70.198750",
+                    "debt": "0.000000",
+                    "public_development": "1.500000",
+                    "household_goods": {
+                        "fulfilled": "1.000000",
+                        "released": "0.000000",
+                        "unmet": "0.000000",
+                        "shortage_reason": null
+                    },
+                    "infrastructure": 2.678275
+                },
+                {
+                    "season": 80,
+                    "income": "130.420200",
+                    "taxes": "28.138320",
+                    "treasury": "358.444390",
+                    "debt": "0.000000",
+                    "public_development": "1.500000",
+                    "household_goods": {
+                        "fulfilled": "1.000000",
+                        "released": "0.000000",
+                        "unmet": "0.000000",
+                        "shortage_reason": null
+                    },
+                    "infrastructure": 1.8001
+                },
+                {
+                    "season": 100,
+                    "income": "132.595000",
+                    "taxes": "28.625705",
+                    "treasury": "492.667395",
+                    "debt": "0.000000",
+                    "public_development": "1.500000",
+                    "household_goods": {
+                        "fulfilled": "1.000000",
+                        "released": "0.000000",
+                        "unmet": "0.000000",
+                        "shortage_reason": null
+                    },
+                    "infrastructure": 1.8001
+                }
+            ],
+            "private": [
+                {
+                    "season": 1,
+                    "income": "100.000000",
+                    "taxes": "17.420000",
+                    "treasury": "57.545000",
+                    "debt": "0.000000",
+                    "public_development": "0.000000",
+                    "household_goods": {
+                        "fulfilled": "1.000000",
+                        "released": "0.000000",
+                        "unmet": "0.000000",
+                        "shortage_reason": null
+                    },
+                    "infrastructure": 0
+                },
+                {
+                    "season": 20,
+                    "income": "111.726800",
+                    "taxes": "19.599295",
+                    "treasury": "218.873810",
+                    "debt": "0.000000",
+                    "public_development": "0.000000",
+                    "household_goods": {
+                        "fulfilled": "1.000000",
+                        "released": "0.000000",
+                        "unmet": "0.000000",
+                        "shortage_reason": null
+                    },
+                    "infrastructure": 0
+                },
+                {
+                    "season": 80,
+                    "income": "141.399800",
+                    "taxes": "25.110315",
+                    "treasury": "945.700630",
+                    "debt": "0.000000",
+                    "public_development": "0.000000",
+                    "household_goods": {
+                        "fulfilled": "1.000000",
+                        "released": "0.000000",
+                        "unmet": "0.000000",
+                        "shortage_reason": null
+                    },
+                    "infrastructure": 0
+                },
+                {
+                    "season": 100,
+                    "income": "144.886000",
+                    "taxes": "25.743545",
+                    "treasury": "1232.042405",
+                    "debt": "0.000000",
+                    "public_development": "0.000000",
+                    "household_goods": {
+                        "fulfilled": "1.000000",
+                        "released": "0.000000",
+                        "unmet": "0.000000",
+                        "shortage_reason": null
+                    },
+                    "infrastructure": 0
+                }
+            ],
+            "public": [
+                {
+                    "season": 1,
+                    "income": "100.000000",
+                    "taxes": "33.120000",
+                    "treasury": "51.445000",
+                    "debt": "0.000000",
+                    "public_development": "3.000000",
+                    "household_goods": {
+                        "fulfilled": "1.000000",
+                        "released": "0.000000",
+                        "unmet": "0.000000",
+                        "shortage_reason": null
+                    },
+                    "infrastructure": 4.925
+                },
+                {
+                    "season": 20,
+                    "income": "108.627800",
+                    "taxes": "36.455355",
+                    "treasury": "96.848140",
+                    "debt": "0.000000",
+                    "public_development": "3.000000",
+                    "household_goods": {
+                        "fulfilled": "1.000000",
+                        "released": "0.000000",
+                        "unmet": "0.000000",
+                        "shortage_reason": null
+                    },
+                    "infrastructure": 5.06625
+                },
+                {
+                    "season": 80,
+                    "income": "126.220800",
+                    "taxes": "43.357450",
+                    "treasury": "646.428445",
+                    "debt": "0.000000",
+                    "public_development": "3.000000",
+                    "household_goods": {
+                        "fulfilled": "1.000000",
+                        "released": "0.000000",
+                        "unmet": "0.000000",
+                        "shortage_reason": null
+                    },
+                    "infrastructure": 3.5999999999999996
+                },
+                {
+                    "season": 100,
+                    "income": "127.558800",
+                    "taxes": "43.863155",
+                    "treasury": "874.047785",
+                    "debt": "0.000000",
+                    "public_development": "3.000000",
+                    "household_goods": {
+                        "fulfilled": "1.000000",
+                        "released": "0.000000",
+                        "unmet": "0.000000",
+                        "shortage_reason": null
+                    },
+                    "infrastructure": 3.5999999999999996
+                }
+            ]
+        },
+        "fertile": {
+            "mixed": [
+                {
+                    "season": 1,
+                    "income": "100.000000",
+                    "taxes": "21.100000",
+                    "treasury": "50.107865",
+                    "debt": "0.000000",
+                    "public_development": "1.717135",
+                    "household_goods": {
+                        "fulfilled": "0.781768",
+                        "released": "0.000000",
+                        "unmet": "0.218232",
+                        "shortage_reason": "supply"
+                    },
+                    "infrastructure": 2.4625
+                },
+                {
+                    "season": 20,
+                    "income": "109.286400",
+                    "taxes": "23.246335",
+                    "treasury": "69.369595",
+                    "debt": "0.000000",
+                    "public_development": "1.500000",
+                    "household_goods": {
+                        "fulfilled": "1.000000",
+                        "released": "0.000000",
+                        "unmet": "0.000000",
+                        "shortage_reason": null
+                    },
+                    "infrastructure": 2.678275
+                },
+                {
+                    "season": 80,
+                    "income": "130.420200",
+                    "taxes": "28.138320",
+                    "treasury": "357.615235",
+                    "debt": "0.000000",
+                    "public_development": "1.500000",
+                    "household_goods": {
+                        "fulfilled": "1.000000",
+                        "released": "0.000000",
+                        "unmet": "0.000000",
+                        "shortage_reason": null
+                    },
+                    "infrastructure": 1.8001
+                },
+                {
+                    "season": 100,
+                    "income": "132.595000",
+                    "taxes": "28.625705",
+                    "treasury": "491.838240",
+                    "debt": "0.000000",
+                    "public_development": "1.500000",
+                    "household_goods": {
+                        "fulfilled": "1.000000",
+                        "released": "0.000000",
+                        "unmet": "0.000000",
+                        "shortage_reason": null
+                    },
+                    "infrastructure": 1.8001
+                }
+            ],
+            "private": [
+                {
+                    "season": 1,
+                    "income": "100.000000",
+                    "taxes": "17.420000",
+                    "treasury": "57.545000",
+                    "debt": "0.000000",
+                    "public_development": "0.000000",
+                    "household_goods": {
+                        "fulfilled": "0.781768",
+                        "released": "0.000000",
+                        "unmet": "0.218232",
+                        "shortage_reason": "supply"
+                    },
+                    "infrastructure": 0
+                },
+                {
+                    "season": 20,
+                    "income": "111.726800",
+                    "taxes": "19.599295",
+                    "treasury": "218.873810",
+                    "debt": "0.000000",
+                    "public_development": "0.000000",
+                    "household_goods": {
+                        "fulfilled": "1.000000",
+                        "released": "0.000000",
+                        "unmet": "0.000000",
+                        "shortage_reason": null
+                    },
+                    "infrastructure": 0
+                },
+                {
+                    "season": 80,
+                    "income": "141.399800",
+                    "taxes": "25.110315",
+                    "treasury": "945.700630",
+                    "debt": "0.000000",
+                    "public_development": "0.000000",
+                    "household_goods": {
+                        "fulfilled": "1.000000",
+                        "released": "0.000000",
+                        "unmet": "0.000000",
+                        "shortage_reason": null
+                    },
+                    "infrastructure": 0
+                },
+                {
+                    "season": 100,
+                    "income": "144.886000",
+                    "taxes": "25.743545",
+                    "treasury": "1232.042405",
+                    "debt": "0.000000",
+                    "public_development": "0.000000",
+                    "household_goods": {
+                        "fulfilled": "1.000000",
+                        "released": "0.000000",
+                        "unmet": "0.000000",
+                        "shortage_reason": null
+                    },
+                    "infrastructure": 0
+                }
+            ],
+            "public": [
+                {
+                    "season": 1,
+                    "income": "100.000000",
+                    "taxes": "33.120000",
+                    "treasury": "51.010705",
+                    "debt": "0.000000",
+                    "public_development": "3.434295",
+                    "household_goods": {
+                        "fulfilled": "0.781768",
+                        "released": "0.000000",
+                        "unmet": "0.218232",
+                        "shortage_reason": "supply"
+                    },
+                    "infrastructure": 4.925
+                },
+                {
+                    "season": 20,
+                    "income": "108.627800",
+                    "taxes": "36.455355",
+                    "treasury": "95.620696",
+                    "debt": "0.000000",
+                    "public_development": "3.000000",
+                    "household_goods": {
+                        "fulfilled": "1.000000",
+                        "released": "0.000000",
+                        "unmet": "0.000000",
+                        "shortage_reason": null
+                    },
+                    "infrastructure": 5.06625
+                },
+                {
+                    "season": 80,
+                    "income": "126.220800",
+                    "taxes": "43.357450",
+                    "treasury": "645.201001",
+                    "debt": "0.000000",
+                    "public_development": "3.000000",
+                    "household_goods": {
+                        "fulfilled": "1.000000",
+                        "released": "0.000000",
+                        "unmet": "0.000000",
+                        "shortage_reason": null
+                    },
+                    "infrastructure": 3.5999999999999996
+                },
+                {
+                    "season": 100,
+                    "income": "127.558800",
+                    "taxes": "43.863155",
+                    "treasury": "872.820341",
+                    "debt": "0.000000",
+                    "public_development": "3.000000",
+                    "household_goods": {
+                        "fulfilled": "1.000000",
+                        "released": "0.000000",
+                        "unmet": "0.000000",
+                        "shortage_reason": null
+                    },
+                    "infrastructure": 3.5999999999999996
+                }
+            ]
+        }
+    }
+}

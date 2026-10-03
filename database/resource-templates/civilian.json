@@ -1,6 +1,6 @@
 {
-  "name": "Civilian livelihoods — resource headroom v2",
-  "description": "Civilian food, household goods and equipment upkeep, with finite subsistence and owned input stocks. Ore remains the map's aggregate metal feedstock (including copper).",
+  "name": "Indicator resources — civilian v1",
+  "description": "Generic seasonal capacity, civilian needs, recipe inputs and government acquisitions. One installed pool per resource; no civilian cash wallets or equipment upkeep.",
   "resources": [
     {
       "key": "money",
@@ -18,14 +18,9 @@
       "icon_key": "Capital",
       "sort_order": 0,
       "display_decimals": 2,
-      "starting_quantity": "20",
+      "starting_quantity": "50",
       "grantable": true,
-      "rules": {
-        "finance.civilian_founding": {
-          "household_cash_per_million": "10",
-          "producer_cash_per_million": "10"
-        }
-      }
+      "rules": {}
     },
     {
       "key": "recruitment",
@@ -86,36 +81,17 @@
           "per_million": "0.35",
           "priority": 0
         },
-        "production.operating": {
-          "wage_per_unit": "1"
-        },
         "exchange.reference_price": {
           "price": "2"
         },
         "development.capacity": {
           "capital_cost": "10",
-          "construction_workers": "1",
+          "construction_workers": "100000",
           "max_growth_fraction": "0.1"
         },
         "production.founding": {
           "core_developed_fraction": "0.6",
-          "neutral_developed_fraction": "0.1",
-          "public_share": "0.25",
-          "private_inventory_per_million": "0",
-          "private_inventory_unit_cost": "0"
-        },
-        "production.maintenance": {
-          "resource": "equipment",
-          "per_capacity": "0.01",
-          "workers_per_unit": "10000",
-          "wage_per_unit": "1",
-          "condition_decay": "0.08",
-          "condition_recovery": "0.04"
-        },
-        "production.subsistence": {
-          "per_million": "0.12",
-          "potential_share": "0.25",
-          "workers_per_unit": "1000000"
+          "neutral_developed_fraction": "0.1"
         }
       }
     },
@@ -150,31 +126,17 @@
           },
           "geographic": true
         },
-        "production.operating": {
-          "wage_per_unit": "1"
-        },
         "exchange.reference_price": {
           "price": "2"
         },
         "development.capacity": {
           "capital_cost": "10",
-          "construction_workers": "1",
+          "construction_workers": "100000",
           "max_growth_fraction": "0.1"
         },
         "production.founding": {
           "core_developed_fraction": "0.6",
-          "neutral_developed_fraction": "0.1",
-          "public_share": "0.25",
-          "private_inventory_per_million": "0.2",
-          "private_inventory_unit_cost": "1"
-        },
-        "production.maintenance": {
-          "resource": "equipment",
-          "per_capacity": "0.01",
-          "workers_per_unit": "10000",
-          "wage_per_unit": "1",
-          "condition_decay": "0.08",
-          "condition_recovery": "0.04"
+          "neutral_developed_fraction": "0.1"
         }
       }
     },
@@ -210,31 +172,17 @@
           "geographic": true,
           "potential_multiplier": "3"
         },
-        "production.operating": {
-          "wage_per_unit": "1"
-        },
         "exchange.reference_price": {
           "price": "2"
         },
         "development.capacity": {
           "capital_cost": "10",
-          "construction_workers": "1",
+          "construction_workers": "100000",
           "max_growth_fraction": "0.1"
         },
         "production.founding": {
           "core_developed_fraction": "0.6",
-          "neutral_developed_fraction": "0.1",
-          "public_share": "0.25",
-          "private_inventory_per_million": "0.2",
-          "private_inventory_unit_cost": "1"
-        },
-        "production.maintenance": {
-          "resource": "equipment",
-          "per_capacity": "0.01",
-          "workers_per_unit": "10000",
-          "wage_per_unit": "1",
-          "condition_decay": "0.08",
-          "condition_recovery": "0.04"
+          "neutral_developed_fraction": "0.1"
         }
       }
     },
@@ -269,98 +217,17 @@
           },
           "geographic": true
         },
-        "production.operating": {
-          "wage_per_unit": "1"
-        },
         "exchange.reference_price": {
           "price": "2"
         },
         "development.capacity": {
           "capital_cost": "10",
-          "construction_workers": "1",
+          "construction_workers": "100000",
           "max_growth_fraction": "0.1"
         },
         "production.founding": {
           "core_developed_fraction": "0.6",
-          "neutral_developed_fraction": "0.1",
-          "public_share": "0.25",
-          "private_inventory_per_million": "0",
-          "private_inventory_unit_cost": "0"
-        },
-        "production.maintenance": {
-          "resource": "equipment",
-          "per_capacity": "0.01",
-          "workers_per_unit": "10000",
-          "wage_per_unit": "1",
-          "condition_decay": "0.08",
-          "condition_recovery": "0.04"
-        }
-      }
-    },
-    {
-      "key": "equipment",
-      "kind": "stock",
-      "role": null,
-      "labels": {
-        "en": "Equipment",
-        "fr": "Équipement"
-      },
-      "descriptions": {},
-      "unit_labels": {
-        "en": "units",
-        "fr": "unités"
-      },
-      "icon_key": "Material",
-      "sort_order": 6,
-      "display_decimals": 2,
-      "starting_quantity": "0",
-      "grantable": true,
-      "rules": {
-        "production.territorial_labor": {
-          "geographic": false,
-          "yields": {
-            "Water": "0",
-            "Plain": "4",
-            "River": "4",
-            "Desert": "4",
-            "Tundra": "4",
-            "Mountain": "4",
-            "Forest": "4"
-          }
-        },
-        "production.operating": {
-          "wage_per_unit": "1"
-        },
-        "exchange.reference_price": {
-          "price": "4"
-        },
-        "development.capacity": {
-          "capital_cost": "10",
-          "construction_workers": "1",
-          "max_growth_fraction": "0.1"
-        },
-        "production.founding": {
-          "core_developed_fraction": "0.6",
-          "neutral_developed_fraction": "0.1",
-          "public_share": "0",
-          "private_inventory_per_million": "0.15",
-          "private_inventory_unit_cost": "2"
-        },
-        "production.maintenance": {
-          "resource": "equipment",
-          "per_capacity": "0.01",
-          "workers_per_unit": "10000",
-          "wage_per_unit": "1",
-          "condition_decay": "0.08",
-          "condition_recovery": "0.04"
-        },
-        "production.manufacturing": {
-          "capacity_per_million": "0.4"
-        },
-        "production.inputs": {
-          "resources": {
-            "ore": "0.5"
-          }
+          "neutral_developed_fraction": "0.1"
         }
       }
     },
@@ -395,31 +262,17 @@
             "Forest": "4"
           }
         },
-        "production.operating": {
-          "wage_per_unit": "1"
-        },
         "exchange.reference_price": {
           "price": "4"
         },
         "development.capacity": {
           "capital_cost": "10",
-          "construction_workers": "1",
+          "construction_workers": "100000",
           "max_growth_fraction": "0.1"
         },
         "production.founding": {
           "core_developed_fraction": "0.6",
-          "neutral_developed_fraction": "0.1",
-          "public_share": "0",
-          "private_inventory_per_million": "0.2",
-          "private_inventory_unit_cost": "2"
-        },
-        "production.maintenance": {
-          "resource": "equipment",
-          "per_capacity": "0.01",
-          "workers_per_unit": "10000",
-          "wage_per_unit": "1",
-          "condition_decay": "0.08",
-          "condition_recovery": "0.04"
+          "neutral_developed_fraction": "0.1"
         },
         "production.manufacturing": {
           "capacity_per_million": "0.6"

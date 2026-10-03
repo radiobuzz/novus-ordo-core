@@ -1,5 +1,7 @@
 # Civilian economy — playable integration
 
+> Historical implementation, superseded on 2026-10-03 by the [indicator economy replacement](indicator-economy-replacement-results.md). Wallets, wage/profit accounting and split capacity described below are not current runtime contracts.
+
 2026-10-01. Authorized after the isolated [civilian milestone](civilian-economy-milestone.md). The objective is now an actual new game, real readiness-driven turns, persistent economic outcomes and a readable player view. This extends the transactional economy; it does not adopt the indicator-led alternative or replace database policy definitions.
 
 ## Deferred playtest follow-ups

@@ -8,13 +8,13 @@ use Illuminate\Support\Facades\DB;
 final class EconomicHistoryService
 {
     private function economy(array $report): array {
-        $keys = ['treasury_inflows','treasury_outflows','opening_treasury','closing_treasury','command_costs','response_costs','public_payroll_paid','public_operations','government_purchases','public_development','private_development','support_paid','tax_receipts','public_sales','wages','realized_profit','earned_income','fiscal','industries'];
+        $keys = ['treasury_inflows','treasury_outflows','opening_treasury','closing_treasury','command_costs','response_costs','military_costs_paid','programs','government_purchases','public_development','private_development','support_paid','tax_receipts','earned_income','disposable_income_estimate','indicators','fiscal','industries'];
         $out = array_intersect_key($report, array_flip($keys));
         $out['infrastructure'] = array_map(fn ($row) => ['paid' => $row['paid']], $report['infrastructure'] ?? []);
         return $out;
     }
     private function resources(array $rows): array {
-        return array_map(fn ($row) => array_intersect_key($row, array_flip(['production','civilian_requested','industrial_requested','development'])), $rows);
+        return array_map(fn ($row) => array_intersect_key($row, array_flip(['production','civilian_requested','industrial_requested','development','development_spending'])), $rows);
     }
     public function export(Nation $nation, Turn $through, int $window): EconomicHistoryInfo
     {

@@ -1,8 +1,8 @@
 ## About Novus Ordo
 
-Production/development **Packages A–F** deliver the coordinated economy, player presentation and retirement of the old calculators/bids/facilities. See [the runtime contract](docs/game-design/production-lifecycle-contract.md), [player presentation](docs/game-design/production-presentation-contract.md) and [cleanup, verification and fresh-world rollout](docs/game-design/production-retirement-results.md).
+The current runtime is the [indicator economy replacement](docs/game-design/indicator-economy-replacement-results.md): territorial conditions generate income, lasting capacity produces goods, and generic policies/resources remain game-owned. It replaces civilian cash/wage/profit accounting while retaining geography, seasonal history and Budget & Policies. **Fresh games are required; preserve saved maps when deleting disposable games through the admin lifecycle.**
 
-The [playable civilian economy](docs/game-design/civilian-economy-live-integration.md) connects recurring demand, subsistence, input chains and productive upkeep to fresh games, actual turns and Budget & Policies. It includes the isolated laboratory, 20-turn lifecycle evidence, rollout details and remaining limits.
+Earlier production/civilian integration documents describe retired implementations. The pre-replacement source checkpoint is `d7604c5`.
 
 Novus Ordo is an online strategy game. This repository contains its continuous development history.
 

@@ -1,5 +1,7 @@
 # Production presentation — Package E
 
+> Historical implementation, superseded on 2026-10-03 by the [indicator economy replacement](indicator-economy-replacement-results.md). Wallets, wage/profit accounting and split capacity described below are not current runtime contracts.
+
 2026-09-29. Player presentation of the coordinated production economy. No new economic rules, tables, migrations or game resets.
 
 ## Delivered screens

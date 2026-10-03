@@ -162,7 +162,7 @@ class TerritoryDetail extends Model
 
     public function assignHomeToOwner(Nation $newOwner): void {
         $this->owner_nation_id = $newOwner->getId();
-        if ($newOwner->getGame()->economy_rules !== null) $this->economy_state = \App\Services\EconomyService::seed(true, $this->population_size);
+        if ($newOwner->getGame()->economy_rules !== null) $this->economy_state = \App\Services\EconomyService::seed(true, $this->population_size, $newOwner->getGame()->economy_rules['indicator']);
         NationTerritoryLoyalty::setLoyaltyRatioIfNotSet($newOwner, $this->getTerritory(), $this->getTurn(), TerritoryDetail::HOME_TERRITORY_STARTING_LOYALTY_RATIO);
         $this->save();
     }

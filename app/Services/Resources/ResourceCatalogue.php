@@ -186,43 +186,13 @@ final class ResourceCatalogue
         if (!GameMutation::holds($game)) {
             throw new \LogicException('Resource deletion requires the game lock.');
         }
-        foreach (['territory_production_states', 'nation_resource_acquisitions', 'nation_economic_accounts', 'nation_resource_stockpiles'] as $table) {
+        foreach (['territory_production_states', 'nation_resource_acquisitions', 'nation_resource_stockpiles'] as $table) {
             DB::table($table)->where('game_id', $game->id)->delete();
         }
         // Offers belong to this game through their relation; delete before restrictive resource FKs.
         DB::table('nation_offers')->whereIn('relation_id', DB::table('nation_relations')->where('game_id', $game->id)->select('id'))->delete();
         DB::table('resource_sets')->where('game_id', $game->id)->delete();
     }
-    /** Explicit versioned balance upgrade, never a read-time reseed or a stock grant. */
-    public static function calibrateProduction(Game $game, int $counter): array
-    {
-        return app(GameMutation::class)->run($game, function () use ($game, $counter) {
-            $game = $game->fresh(); $old = self::forGame($game);
-            abort_unless((int) $old->set['edit_counter'] === $counter, 409, 'Resource definitions changed.');
-            $ore = $old->get('ore'); $rule = $ore['rules']['production.territorial_labor'] ?? [];
-            abort_unless(($rule['geographic'] ?? false) && $game->economy_rules !== null, 409, 'Calibration requires a geographic ore economy.');
-            $multiplier = Q::parse($rule['potential_multiplier'] ?? '1');
-            $rules = $game->economy_rules;
-            $reserve = Q::parse($rules['production']['operating_reserve'] ?? '1');
-            if ($multiplier === '3.000000' && $reserve === '0.750000')
-                return ['game_id' => $game->id, 'changed' => false, 'edit_counter' => $counter];
-            abort_unless(in_array($multiplier, ['1.000000', '3.000000'], true) && in_array($reserve, ['1.000000', '0.750000'], true), 409, 'Custom calibration requires explicit review.');
-            $document = $old->document();
-            foreach ($document['resources'] as &$r) if ($r['key'] === 'ore') $r['rules']['production.territorial_labor']['potential_multiplier'] = '3';
-            unset($r);
-            app(ResourceRuleRegistry::class)->validate($document);
-            // Update just this numeric rule; all identities, map deposits, stocks,
-            // installed assets, conditions, orders and policy choices are preserved.
-            $rule['potential_multiplier'] = '3.000000';
-            DB::table('resource_rules')->where('resource_id', $ore['id'])->where('handler', 'production.territorial_labor')
-                ->update(['parameters' => json_encode($rule, JSON_THROW_ON_ERROR), 'updated_at' => now()]);
-            DB::table('resource_sets')->where('id', $old->set['id'])->update(['edit_counter' => $counter + 1, 'updated_at' => now()]);
-            $rules['production']['operating_reserve'] = '0.75'; $game->economy_rules = $rules; $game->save();
-            return ['game_id' => $game->id, 'changed' => true, 'edit_counter' => $counter + 1,
-                'ore_potential_multiplier' => '3', 'operating_reserve' => '0.75'];
-        });
-    }
-
     public static function edit(int $id, int $counter, array $document): self
     {
         $next = app(ResourceRuleRegistry::class)->validate($document);

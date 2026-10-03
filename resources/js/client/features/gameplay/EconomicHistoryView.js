@@ -106,8 +106,8 @@ export class EconomicHistoryView {
     setViews() {
         const current = this.view.value;
         const keys = this.resource
-            ? ['supply', 'development', 'profitability']
-            : ['budget', 'cash', 'spending'];
+            ? ['supply', 'development', 'acquisitions']
+            : ['budget', 'cash', 'spending', 'activity'];
         this.view.replaceChildren(...keys.map((key) => el('option', { value: key, text: this.t(key) })));
         if (keys.includes(current)) this.view.value = current;
     }
@@ -174,6 +174,11 @@ export class EconomicHistoryView {
                 { keys: ['receipts', 'spending'], unit: units, title: 'budget' },
                 { keys: ['balance'], unit: units, title: 'balance' },
             ];
+        if (view === 'activity')
+            plots = [
+                { keys: ['earnedIncome', 'disposableIncome'], unit: units, title: 'activity' },
+                { keys: ['economicStrength', 'dynamism'], unit: '%', title: 'conditions' },
+            ];
         if (view === 'cash')
             plots = [
                 { keys: ['treasury'], unit: units, title: 'treasury' },
@@ -198,24 +203,19 @@ export class EconomicHistoryView {
                     title: 'investment',
                     stacked: true,
                 },
-                { keys: ['publicCapacity', 'privateCapacity'], unit: physical, title: 'capacity' },
+                { keys: ['capacity'], unit: physical, title: 'capacity' },
             ];
-        if (view === 'profitability')
+        if (view === 'acquisitions')
             plots = [
-                { keys: ['sales', 'costs'], unit: units, title: 'profitability' },
-                { keys: ['result'], unit: units, title: 'result' },
-            ];
-        // Missing historical summaries stay gaps. Capacity additions remain useful before new summaries exist.
-        if (view === 'development' && !points.some((p) => p.values.publicInvestment != null))
-            plots = [
-                { keys: ['publicGrowth', 'privateGrowth'], unit: physical, title: 'growth', stacked: true },
+                { keys: ['acquisitions'], unit: physical, title: 'acquisitions' },
+                { keys: ['acquisitionSpending'], unit: units, title: 'acquisitionSpending' },
             ];
         this.note.textContent = this.t(
             this.resource
                 ? view === 'supply'
                     ? 'supplyHelp'
-                    : view === 'profitability'
-                      ? 'profitHelp'
+                    : view === 'acquisitions'
+                      ? 'acquisitionHelp'
                       : 'developmentHelp'
                 : 'nationalHelp',
         );
@@ -232,13 +232,5 @@ export class EconomicHistoryView {
                     markers,
                 });
         });
-        const profitOption = this.view.querySelector('[value="profitability"]');
-        if (profitOption) {
-            profitOption.disabled = !points.some((p) => p.values.sales != null);
-            if (profitOption.disabled && this.view.value === 'profitability') {
-                this.view.value = 'supply';
-                this.paint();
-            }
-        }
     }
 }

@@ -262,23 +262,33 @@ class GameplayWorkspace extends Component {
             economicPanel.hidden = !current;
             if (!current) return;
             economicSummary.replaceChildren(
-                ...['civilian_income', 'income_per_person', 'infrastructure', 'unrest', 'informal'].map(
-                    (key) => {
-                        const percent = ['infrastructure', 'unrest', 'informal'].includes(key);
-                        return el(
-                            'div',
-                            {},
-                            el('span', { text: this.services.i18n.t(`economy.${key}`) }),
-                            el('strong', {
-                                text:
-                                    this.number(
-                                        current[key] *
-                                            (percent ? 100 : key === 'income_per_person' ? 1e6 : 1),
-                                    ) + (percent ? '%' : ''),
-                            }),
-                        );
-                    },
-                ),
+                ...[
+                    'civilian_income',
+                    'income_per_person',
+                    'economic_strength',
+                    'health',
+                    'education',
+                    'dynamism',
+                    'crime',
+                    'inequality',
+                    'environment',
+                    'infrastructure',
+                    'unrest',
+                    'informal',
+                ].map((key) => {
+                    const percent = !['civilian_income', 'income_per_person'].includes(key);
+                    return el(
+                        'div',
+                        {},
+                        el('span', { text: this.services.i18n.t(`economy.${key}`) }),
+                        el('strong', {
+                            text:
+                                this.number(
+                                    current[key] * (percent ? 100 : key === 'income_per_person' ? 1e6 : 1),
+                                ) + (percent ? '%' : ''),
+                        }),
+                    );
+                }),
             );
         });
         this.content.append(economicPanel);

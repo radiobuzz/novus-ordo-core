@@ -1,5 +1,9 @@
 # Shared game data — implementation plan
 
+## Indicator economy replacement — 2026-10-03
+
+The retained GameplayService seasonal draft, combined policy/acquisition save and history read owner now project indicator income, government spending and shared resource capacity. Preview and settlement use the same backend resolver. No extra endpoint, subscription, polling loop, private wallet or optimistic settlement was introduced. History remains recorded actual seasons; rollback fencing and missing observations remain unchanged. See [implementation and verification](../game-design/indicator-economy-replacement-results.md). Earlier entries below are historical.
+
 ## Income support — 2026-10-02
 
 The new policy uses the existing service-owned seasonal draft, authoritative preview and combined save. Support, purchases and unmet needs are projected from existing report fields; there is no extra endpoint, polling loop, optimistic settlement or second draft. Public-investment permission is presentation derived from the same current/pending/draft policy choices; retained invalid inputs still block submission. Fresh defaults and the explicit disabled catalogue addition are documented in [the first-pass results](../game-design/income-support-first-pass.md). Isolated settlement, forecast/actual equality, conservation and rollback checks pass; browser checks cover retained controls and seasonal submission.

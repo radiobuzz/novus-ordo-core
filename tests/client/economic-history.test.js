@@ -7,21 +7,41 @@ import { GameplayService } from '../../resources/js/client/services/GameplayServ
 
 test('financing stays out of income/spending and category totals reconcile', () => {
     const r = {
+        earned_income: '100',
+        disposable_income_estimate: '70',
+        indicators: { economic_strength: 0.6, dynamism: 0.4 },
         treasury_inflows: '18',
         treasury_outflows: '15',
         closing_treasury: '23',
         opening_treasury: '20',
         command_costs: '2',
-        public_payroll_paid: '1',
-        public_operations: '1',
+        military_costs_paid: '1',
+        programs: {
+            health: { paid: '1' },
+            education: { paid: '0' },
+            police: { paid: '0' },
+            welfare: { paid: '0' },
+            environment: { paid: '0' },
+        },
         government_purchases: '2',
         public_development: '2',
         support_paid: '1',
         infrastructure: { 1: { paid: '1' } },
-        fiscal: { borrowing: '5', principal_repaid: '3', closing_debt: '7', interest_due: '2', arrears: '1' },
+        fiscal: {
+            borrowing: '5',
+            principal_repaid: '3',
+            closing_debt: '7',
+            interest_due: '2',
+            interest_paid: '1',
+            arrears: '1',
+        },
     };
     const p = nationalPoint({ season: 4, economy: r });
     assert.equal(p.values.balance, 1);
+    assert.equal(p.values.earnedIncome, 100);
+    assert.equal(p.values.disposableIncome, 70);
+    assert.equal(p.values.economicStrength, 60);
+    assert.equal(p.values.dynamism, 40);
     assert.equal(seasonFinance(r).treasuryChange, 3);
     assert.equal(treasuryChange({ opening_treasury: '20', closing_treasury: '18' }), -2);
     assert.equal(treasuryChange({ opening_treasury: '20' }), null);
@@ -31,29 +51,33 @@ test('financing stays out of income/spending and category totals reconcile', () 
     assert.equal(nationalPoint({ season: 5, economy: null }).values.receipts, undefined);
     assert.equal(nationalPoint({ season: 5, economy: { fiscal: {} } }).values.interest, null);
 });
-test('generic industries retain missing financial observations and use recorded costs', () => {
+test('generic industries use recorded capacity and acquisition costs without synthetic profits', () => {
     const record = {
         season: 2,
         resources: {
             unusual_good: {
-                production: { producer: '2', government: '1' },
+                production: { national: '3' },
                 civilian_requested: '4',
                 industrial_requested: '2',
-                development: { government: '1', producer: '2' },
+                development: { total: '3' },
             },
         },
         economy: {},
     };
-    assert.equal(industryPoint(record, 'unusual_good').values.sales, null);
+    assert.equal(industryPoint(record, 'unusual_good').values.acquisitionSpending, null);
     record.economy.industries = {
         unusual_good: {
-            owners: {
-                government: { sales: '5', recognized_cost: '3', operating_result: '2' },
-                producer: { sales: '7', recognized_cost: '6', operating_result: '1' },
-            },
+            closing_capacity: '10',
+            usable_capacity: '8',
+            government_delivered: '2',
+            acquisition_spending: '5',
+            private_development: '7',
+            public_development: '3',
         },
     };
-    assert.equal(industryPoint(record, 'unusual_good').values.result, 3);
+    assert.equal(industryPoint(record, 'unusual_good').values.acquisitionSpending, 5);
+    assert.equal(industryPoint(record, 'unusual_good').values.capacity, 10);
+    assert.equal(industryPoint(record, 'unusual_good').values.result, undefined);
     assert.equal(industryPoint(record, 'unusual_good').values.production, 3);
     assert.equal(policyGroup({ options: [{ effects: [{ effect_type: 'something_future' }] }] }), 'other');
     assert.equal(

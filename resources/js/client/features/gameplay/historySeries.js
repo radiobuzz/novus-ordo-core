@@ -4,7 +4,7 @@ const sum = (...v) =>
     v.some((x) => x == null) ? null : Math.round(v.reduce((a, b) => a + Number(b), 0) * 1e6) / 1e6;
 export const spendingKeys = [
     'military',
-    'operations',
+    'services',
     'purchases',
     'development',
     'support',
@@ -12,27 +12,32 @@ export const spendingKeys = [
     'interest',
     'other',
 ];
-
 export function nationalPoint(record) {
     const r = record.economy;
     if (!r) return { season: record.season, values: {} };
     const f = seasonFinance(r);
     const values = {
+        earnedIncome: n(r.earned_income),
+        disposableIncome: n(r.disposable_income_estimate),
+        economicStrength:
+            r.indicators?.economic_strength == null ? null : n(r.indicators.economic_strength) * 100,
+        dynamism: r.indicators?.dynamism == null ? null : n(r.indicators.dynamism) * 100,
         receipts: f.receipts,
         spending: f.spending,
         balance: f.balance,
         treasury: n(r.closing_treasury),
         debt: n(r.fiscal?.closing_debt),
-        military: sum(n(r.command_costs), n(r.public_payroll_paid), Number(r.response_costs ?? 0)),
-        operations: n(r.public_operations),
+        military: sum(n(r.command_costs), n(r.military_costs_paid), Number(r.response_costs ?? 0)),
+        services: sum(
+            ...['health', 'education', 'police', 'welfare', 'environment'].map((key) =>
+                n(r.programs?.[key]?.paid),
+            ),
+        ),
         purchases: n(r.government_purchases),
         development: n(r.public_development),
         support: n(r.support_paid),
         infrastructure: Object.values(r.infrastructure ?? {}).reduce((a, row) => a + Number(row.paid), 0),
-        interest:
-            n(r.fiscal?.interest_due) == null || n(r.fiscal?.arrears) == null
-                ? null
-                : n(r.fiscal.interest_due) - n(r.fiscal.arrears),
+        interest: n(r.fiscal?.interest_paid),
     };
     const known = sum(...spendingKeys.slice(0, -1).map((key) => values[key]));
     values.other = known == null || f.spending == null ? null : Math.round((f.spending - known) * 1e6) / 1e6;
@@ -42,26 +47,21 @@ export function nationalPoint(record) {
 }
 export function industryPoint(record, key) {
     const r = record.resources?.[key],
-        details = record.economy?.industries?.[key],
-        g = details?.owners?.government,
-        p = details?.owners?.producer;
+        d = record.economy?.industries?.[key];
     return {
         season: record.season,
         values: r
             ? {
-                  production: sum(n(r.production?.government), n(r.production?.producer)),
+                  production: n(r.production?.national),
                   civilian: n(r.civilian_requested),
                   industry: n(r.industrial_requested),
-                  usable: details ? sum(n(g?.usable_capacity), n(p?.usable_capacity)) : null,
-                  publicCapacity: g ? n(g.closing_capacity) : null,
-                  privateCapacity: p ? n(p.closing_capacity) : null,
-                  publicGrowth: n(r.development?.government),
-                  privateGrowth: n(r.development?.producer),
-                  publicInvestment: g ? n(g.investment) : null,
-                  privateInvestment: p ? n(p.investment) : null,
-                  sales: details ? sum(n(g?.sales), n(p?.sales)) : null,
-                  costs: details ? sum(n(g?.recognized_cost), n(p?.recognized_cost)) : null,
-                  result: details ? sum(n(g?.operating_result), n(p?.operating_result)) : null,
+                  usable: n(d?.usable_capacity),
+                  capacity: n(d?.closing_capacity),
+                  growth: n(r.development?.total),
+                  publicInvestment: n(d?.public_development),
+                  privateInvestment: n(d?.private_development),
+                  acquisitions: n(d?.government_delivered),
+                  acquisitionSpending: n(d?.acquisition_spending),
               }
             : {},
     };

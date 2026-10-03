@@ -67,13 +67,10 @@ try {
         .click();
     const civilian = page.locator('.economy-civilian');
     await expect(civilian).toBeVisible();
-    await expect(civilian.locator('[data-metric="civilian:food"]')).toBeVisible();
-    await expect(civilian.locator('[data-metric="civilian:household_goods"]')).toBeVisible();
-    await civilian.locator('details > summary').click();
-    await expect(civilian.locator('[data-metric="civilian:household_cash"]')).toBeVisible();
+    await expect(civilian.locator('[data-metric="needs:food"]')).toBeVisible();
+    await expect(civilian.locator('[data-metric="needs:household_goods"]')).toBeVisible();
     await civilian.evaluate((node) => {
         window.civilianTable = node.querySelector('table');
-        window.civilianDetails = node.querySelector('details');
     });
     const tax = page.getByRole('group', { name: 'Income tax', exact: true }).getByRole('spinbutton');
     // Editing a lower policy must retain the report DOM, focus and page scroll.
@@ -104,12 +101,7 @@ try {
         'Policy preview replaced the report or lost focus',
     );
     assert.ok(
-        await civilian.evaluate(
-            (node) =>
-                window.civilianTable === node.querySelector('table') &&
-                window.civilianDetails === node.querySelector('details') &&
-                window.civilianDetails.open,
-        ),
+        await civilian.evaluate((node) => window.civilianTable === node.querySelector('table')),
         'Civilian preview replaced its table or reset the disclosure',
     );
     assert.ok(Math.abs(afterPolicy.scroll - policyPosition.scroll) < 3, 'Policy preview jumped the page');
@@ -255,7 +247,7 @@ try {
     await expect(row.getByRole('columnheader', { name: 'Last season · actual' })).toBeVisible();
     await expect(
         row.getByRole('rowheader', {
-            name: 'Private purchase expense · money',
+            name: 'Government acquisition spending · money',
         }),
     ).toBeVisible();
     await expect(quantity).toHaveValue('4.123456');

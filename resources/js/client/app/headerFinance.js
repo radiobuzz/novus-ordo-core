@@ -11,7 +11,7 @@ export function headerFinance(economy) {
         debt === null || closingDebt === null ? null : Math.round((closingDebt - debt) * 1e6) / 1e6;
     const restricted = Boolean(fiscal?.default_episode || fiscal?.credit_lock > 0);
     const warning = (economy?.forecast?.warnings ?? []).some(({ type }) =>
-        ['credit_low', 'default'].includes(type),
+        ['credit_low', 'interest_default'].includes(type),
     );
     return {
         debt,
