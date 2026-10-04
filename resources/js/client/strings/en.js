@@ -1,4 +1,39 @@
 export default {
+    'demography.title': 'Demography & Development',
+    'demography.overview': 'Overview',
+    'demography.nationTabs': 'Nation sections',
+    'demography.population': 'Population',
+    'demography.growth': 'Seasonal population growth',
+    'demography.facts': 'Population facts',
+    'demography.growthHelp': 'Modelled natural growth rate; excludes annexation and territory loss.',
+    'demography.development': 'Economy & development',
+    'demography.conditions': 'Living conditions',
+    'demography.pressures': 'Social pressures',
+    'demography.current': 'Current conditions',
+    'demography.change': 'Seasonal change',
+    'demography.points': 'pp',
+    'demography.higher': 'Higher is better',
+    'demography.lower': 'Lower is better',
+    'demography.failed': 'Indicator history unavailable. Current conditions remain visible.',
+    'demography.note':
+        'National indices combine territorial conditions, weighted by population. Charts show recorded seasons on a 0–100% scale. Changes compare consecutive seasons; annexation can also change the national average. These indices are not real-world measurements. Policy markers show timing, not causation.',
+    'demography.help_economic_strength':
+        'The overall strength of the civilian economy. This is an index, not government cash or production in units.',
+    'demography.help_dynamism':
+        'The initiative and investment conditions that support private economic activity.',
+    'demography.help_infrastructure':
+        'The current condition of infrastructure. This shows delivered conditions, not the policy commitment or funding percentage.',
+    'demography.help_health':
+        'Population health conditions; a stronger workforce and better living conditions.',
+    'demography.help_education': 'Education and skills supporting productive activity.',
+    'demography.help_environment':
+        'Environmental quality. A higher value means healthier surroundings, not more pollution.',
+    'demography.help_inequality':
+        'Disparity of living conditions and income. This is a game index, not a measured Gini coefficient.',
+    'demography.help_crime': 'Pressure from criminal activity. Lower values indicate safer conditions.',
+    'demography.help_unrest': 'Social discontent and disruption. Lower values indicate calmer conditions.',
+    'demography.help_informal':
+        'Economic activity outside the formal taxable economy. Lower values mean less tax avoidance.',
     'history.earnedIncome': 'National earned income',
     'history.disposableIncome': 'Disposable income estimate',
     'history.economicStrength': 'Economic strength',
@@ -15,7 +50,7 @@ export default {
     'planner.privateDevelopmentBudget': 'Private expansion spending · money',
     'planner.capacityTarget': 'Assessed capacity target',
     'economy.cause_no_workforce': 'no workforce available',
-    'economy.cause_policy_funding': 'maintenance funding policy below requirements',
+    'economy.cause_policy_funding': 'chosen funding is below the policy commitment’s requirement',
     'economy.cause_treasury_shortfall': 'insufficient treasury and available credit',
     'economy.cause_construction_workforce': 'insufficient available construction workforce',
     'economy.new_borrowing': 'New borrowing is required to cover spending.',
@@ -23,6 +58,9 @@ export default {
     'economy.military_funding_shortfall': 'Military upkeep is underfunded; divisions risk desertion.',
     'economy.infrastructure_maintenance_shortfall':
         'Territory #{territory} cannot complete infrastructure maintenance ({cause}).',
+    'economy.infrastructure_development_shortfall':
+        'Territory #{territory} cannot complete this season’s promised infrastructure improvements ({cause}).',
+    'economy.infrastructure_required': 'Infrastructure commitment · assessed requirement',
     'economy.program_funding_shortfall': 'The {program} programme cannot be fully funded.',
     'economy.civilian_supply_shortfall': 'Civilian supply of {resource} falls short by {missing} units.',
     'economy.programs.environment.paid': 'Environmental protection funding',

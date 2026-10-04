@@ -637,3 +637,66 @@ test('charts enlarge from double-click or a button with retained selection and n
     await expect(page.locator('.chart-dialog')).toHaveCount(0);
     expect(errors).toEqual([]);
 });
+
+test('named infrastructure commitment keeps funding separate and saves both through the shared draft', async ({
+    page,
+}) => {
+    await prepareHud(page);
+    const d = data(),
+        errors = [];
+    let submitted = null;
+    page.on('pageerror', (e) => errors.push(e.message));
+    d.economy.forecast.expected.infrastructure_required = '3';
+    d.economy.forecast.expected.infrastructure_requested = '3';
+    await page.route('**/client/gameplay*', (r) => r.fulfill({ json: d }));
+    await page.route('**/nation/policies/preview', async (r) => {
+        const body = r.request().postDataJSON();
+        const forecast = structuredClone(d.economy.forecast);
+        forecast.expected.infrastructure_requested = String(
+            3 * Number(body.changes.infrastructure_investment?.parameters.funding_ratio ?? 1),
+        );
+        return r.fulfill({ json: { valid: true, violations: [], indicator_forecast: forecast } });
+    });
+    await page.route('**/nation/policies/pending', async (r) => {
+        if (r.request().method() !== 'PUT') return r.continue();
+        submitted = r.request().postDataJSON();
+        d.policies.pending = structuredClone(submitted.changes);
+        return r.fulfill({ json: d.policies });
+    });
+    await page.goto('/client?game_id=1#/economy');
+    const policy = page.locator('.economy-column').last();
+    await policy.getByRole('tab', { name: /^Infrastructure/ }).click();
+    const row = policy.locator('[data-policy-key="infrastructure_investment"]');
+    const select = row.getByRole('combobox');
+    const funding = row.getByRole('spinbutton');
+    await expect(select).toHaveValue('high');
+    await expect(funding).toHaveValue('100');
+    await expect(row).not.toContainText('configuration only');
+    await select.selectOption('minimal');
+    await expect(funding).toHaveValue('100');
+    await select.selectOption('none');
+    await expect(row.locator('[data-policy-option-description]')).toContainText(
+        'Existing infrastructure still needs maintenance',
+    );
+    await select.selectOption('moderate');
+    await funding.fill('75');
+    await expect(page.locator('.economy-top')).toContainText('Unsaved');
+    await page.getByRole('button', { name: 'Review & save', exact: true }).click();
+    await expect(page.locator('.economy-review')).toContainText('Moderate · 75%');
+    await page.getByRole('button', { name: 'Save seasonal plan', exact: true }).click();
+    await expect
+        .poll(() => submitted?.changes.infrastructure_investment)
+        .toEqual({ option: 'moderate', parameters: { funding_ratio: '0.75' } });
+    await expect(select).toHaveValue('moderate');
+    await expect(funding).toHaveValue('75');
+    await page.reload();
+    await page
+        .locator('.economy-column')
+        .last()
+        .getByRole('tab', { name: /^Infrastructure/ })
+        .click();
+    await expect(
+        page.locator('[data-policy-key="infrastructure_investment"]').getByRole('combobox'),
+    ).toHaveValue('moderate');
+    expect(errors).toEqual([]);
+});

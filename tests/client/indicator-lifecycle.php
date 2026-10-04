@@ -22,12 +22,15 @@ $check(count($snapshot['territory_production_states'])===$game->territories()->c
 foreach($workspace['production_planning']['territories'] as $id=>$territory)foreach($territory['resources'] as $key=>$r)
     $check(Q::add($r['capacity'],$r['development'])===$forecast['state']['territories'][$id]['capacity'][$key],'Inspector current and future capacity disagree');
 $counter=$workspace['policies']['edit_counter'];$plans=$ledger->plans($detail);$plans['ore']=['quantity'=>'0.123456','spending_limit'=>'2','priority'=>0];
-$changes=['income_tax'=>['option'=>'standard','parameters'=>['rate'=>'0.3']]];
+$changes=['income_tax'=>['option'=>'standard','parameters'=>['rate'=>'0.3']],
+    'infrastructure_investment'=>['option'=>'moderate','parameters'=>['funding_ratio'=>'1']]];
 $preview=$policies->preview($nation,$turn,$counter,$changes,$plans);
 $check($preview['valid'] && $snapshot===$store->snapshot($game,$turn),'Combined draft preview invalid or wrote state');
+$check(Q::cmp($preview['settings']['budget.program_target']['infrastructure'],'0.5')===0,'Named commitment missing from combined preview');
 $policies->submit($nation,$turn,$counter,$changes,$plans);
 $check($ledger->plans($detail)['ore']['quantity']==='0.123456','Exact acquisition intent lost');
 $check($policies->state($nation,$turn)['current']['income_tax']['parameters']['rate']==='0.25','Pending choice applied before seasonal boundary');
+$check($policies->state($nation,$turn)['current']['infrastructure_investment']['option']==='high','Named commitment applied before seasonal boundary');
 $check($economy->resolve($detail)['report']===$preview['indicator_forecast']['expected'],'Saved draft forecast differs');
 $saved=$store->snapshot($game,$turn);$bad=$plans;$bad['ore']['spending_limit']='-1';
 try{$policies->submit($nation,$turn,$counter,[],$bad);throw new RuntimeException('Invalid acquisition accepted');}catch(\Illuminate\Validation\ValidationException){}
@@ -56,6 +59,7 @@ for($season=0;$season<20;$season++){
         $d=$n->getDetail($next);$actual=$d->economy_report;unset($actual['deserted_divisions']);
         $check($actual===json_decode(json_encode($forecasts[$n->id]['report']),true),'Settled seasonal report differs from preview');
         $check($d->resource_report===$forecasts[$n->id]['resources'],'Persisted resource report differs');
+        $check($d->economy_report['infrastructure'][array_key_first($d->economy_report['infrastructure'])]['target']===($n->id===$nation->id?'0.500000':'0.750000'),'Named policy target was not settled per nation');
         $check($d->getStockpiledQuantity($cat->role('treasury'))===$actual['closing_treasury'],'Stored treasury differs from report');
     }
 }

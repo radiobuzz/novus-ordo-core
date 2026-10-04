@@ -20,6 +20,8 @@ import { createLayers } from '../../ui/map/layers.js';
 import { militaryOverlay } from '../../ui/map/militaryOverlay.js';
 import { RankingsView } from './RankingsView.js';
 import { EconomyPanel } from './EconomyPanel.js';
+import { DemographyView } from './DemographyView.js';
+import { Tabs } from '../../ui/Tabs.js';
 import '../world/world.scss';
 
 const title = (value) => value.replace(/([a-z])([A-Z])/g, '$1 $2').replaceAll('_', ' ');
@@ -250,7 +252,29 @@ class GameplayWorkspace extends Component {
         return control;
     }
     nation() {
-        const { identity, nation } = this.data;
+        const { identity } = this.data;
+        const overview = el('div', { class: 'game-cards' });
+        const demography = new DemographyView(this.scope, this.services);
+        const tabs = new Tabs(this.scope, {
+            label: this.services.i18n.t('demography.nationTabs'),
+            onSelect: (key) => demography.update(this.snapshot, { load: key === 'demography' }),
+        });
+        const labels = () => {
+            tabs.setLabel(this.services.i18n.t('demography.nationTabs'));
+            tabs.setItems([
+                { key: 'overview', label: this.services.i18n.t('demography.overview'), panel: overview },
+                {
+                    key: 'demography',
+                    label: this.services.i18n.t('demography.title'),
+                    panel: demography.element,
+                },
+            ]);
+        };
+        this.content.className = 'nation-workspace';
+        this.content.append(tabs.element, overview, demography.element);
+        labels();
+        this.services.i18n.changed.subscribe(this.scope, labels);
+        this.updates.push(() => demography.update(this.snapshot, { load: tabs.selected === 'demography' }));
         const economicSummary = el('div', { class: 'economy-summary' });
         const economicPanel = section(
             this.services.i18n.t('economy.outlook'),
@@ -262,20 +286,7 @@ class GameplayWorkspace extends Component {
             economicPanel.hidden = !current;
             if (!current) return;
             economicSummary.replaceChildren(
-                ...[
-                    'civilian_income',
-                    'income_per_person',
-                    'economic_strength',
-                    'health',
-                    'education',
-                    'dynamism',
-                    'crime',
-                    'inequality',
-                    'environment',
-                    'infrastructure',
-                    'unrest',
-                    'informal',
-                ].map((key) => {
+                ...['civilian_income', 'income_per_person', 'economic_strength'].map((key) => {
                     const percent = !['civilian_income', 'income_per_person'].includes(key);
                     return el(
                         'div',
@@ -291,7 +302,7 @@ class GameplayWorkspace extends Component {
                 }),
             );
         });
-        this.content.append(economicPanel);
+        overview.append(economicPanel);
         const formal = el('p');
         const stats = el('div');
         const ready = new StatusBadge({ label: '', tone: 'accent' });
@@ -351,7 +362,7 @@ class GameplayWorkspace extends Component {
                 metrics[i].update({ value: this.number(value) }),
             );
         });
-        this.content.append(
+        overview.append(
             identityCard,
             section(
                 'Command summary',

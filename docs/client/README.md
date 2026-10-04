@@ -1,5 +1,7 @@
 # Novus Ordo client planning
 
+2026-10-04 planning: [Nation institutions and identity](../game-design/nation-institutions-and-identity-plan.md) adds proposed Government / Civil liberties wizard steps and a dedicated Nation editor using existing policy, identity and media foundations. Institutions share the seasonal draft; identity/leader saves use the existing command lane. Revolution/amendment mechanics and economic formula changes are deferred. Documentation only.
+
 2026-10-02: [Economic workspace results](economic-workspace-results.md) — independent Budget/Policies tabs, permanent financial summary and save controls, shared national/industry graphs, recorded settlement summaries, reserve policy and confirmed manual repayment. No reset or migration; complete industry financial history begins with newly resolved seasons. The [layout](budget-policy-tabs-plan.md) and [graph](economic-history-graphs-plan.md) plans retain the design and deferred scope.
 
 ## Playable civilian economy — 2026-10-01

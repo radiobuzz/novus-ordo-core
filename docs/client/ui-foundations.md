@@ -1,5 +1,17 @@
 # Game UI foundations — living plan
 
+## Nation institutions and identity — planning, 2026-10-04
+
+The [first implementation plan](../game-design/nation-institutions-and-identity-plan.md) proposes two additional wizard steps and a retained Government & Identity section under Nation. Reuse Tabs, FieldShell, explicit Tooltip, image controls and the flag composer; extract institution/identity field composition only for the real creation/editor consumers. Permanent save/review actions remain outside scrolling content. Proposed profiles, media edits and EN/FR/narrow interactions are not implemented or browser-verified by this planning update.
+
+## Demography & Development — 2026-10-03
+
+Nation now composes retained Overview / Demography & Development tabs. `ui/IndicatorTrends.js` is a display-only reusable instance accepting groups, current/preceding percentage observations and recorded series. It composes MetricCard, click-only Tooltip and TimeSeriesChart; favourable changes use semantic colours plus explicit direction labels. TimeSeriesChart supports an optional fixed domain propagated into enlargement; existing money/industry charts retain automatic scales. Ten indicators appear in three groups, with population/growth facts and EN/FR labels. Actual Chromium checks cover retention, enlargement, missing history and narrow layout. [Implementation and verification](demography-development-results.md).
+
+## Infrastructure commitments — 2026-10-03
+
+EconomyPanel reuses native named options, a separate funding percentage, FieldShell, Tooltip and MetricTable. Selected option descriptions update in place; spending compares assessed requirement, requested allocation and actual delivery. No new widget, data owner, polling or layout. EN/FR, retained draft/save/reload and the existing six budget Chromium journeys pass. [Rules, local authoring and checks](../game-design/infrastructure-commitment-first-pass.md).
+
 ## Indicator economy replacement — 2026-10-03
 
 Budget & Policies, visible treasury change/actions, semantic colours, click-only help and chart enlargement are retained. Civilian tables show fulfilled/unmet physical needs; industry charts show supply, shared capacity/development and government acquisitions. Obsolete wallet/wage/profit/public-sales rows are removed. New indicator map layers use actual territorial state. Policy/planner inputs, tabs, focus, scroll, EN/FR and narrow layouts retain the existing components. See [implementation and verification](../game-design/indicator-economy-replacement-results.md). Earlier entries below are historical.

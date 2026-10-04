@@ -2,6 +2,7 @@
 namespace App\Services;
 
 use App\Domain\DivisionType;
+use App\Facades\Metacache;
 use App\Models\{Deployment, DivisionDetail, LeaderDetail, Nation, Order, Turn};
 use App\ReadModels\OwnedDivisionInfo;
 
@@ -27,6 +28,10 @@ final class PlayerWorkspace
             ],
             'nation' => $detail->exportForOwner(),
             'identity' => $detail->export(),
+            'demography' => [
+                'population' => Metacache::remember($detail->getPopulationSize(...)),
+                'growth_rate' => Metacache::remember($detail->getPopulationGrowthRate(...)),
+            ],
             'leaders' => LeaderDetail::getAll($turn)
                 ->filter(fn (LeaderDetail $leader) => $leader->nation_id === $nation->getId())
                 ->map(fn (LeaderDetail $leader) => $leader->export())->values(),

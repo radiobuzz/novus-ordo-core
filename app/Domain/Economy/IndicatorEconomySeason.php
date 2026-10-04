@@ -94,7 +94,7 @@ final class IndicatorEconomySeason
         $privateAllowance = Q::mul(Q::sub($afterTax, $privateProvisionPaid), Q::calculated($rules['hypothesis']['private_development_share']));
         $privateStart = $privateAllowance; $privateInfrastructure = self::Z;
         $infrastructure = $assessment['infrastructure'];
-        foreach ($infrastructure as &$row) $row += ['maintenance_paid' => self::Z, 'maintenance_allocation' => self::Z, 'improvement_paid' => self::Z, 'private_paid' => self::Z, 'paid' => self::Z, 'requested' => Q::add($row['maintenance_requested'],$row['improvement_requested'])]; unset($row);
+        foreach ($infrastructure as &$row) $row += ['maintenance_paid' => self::Z, 'maintenance_allocation' => self::Z, 'improvement_paid' => self::Z, 'improvement_allocation' => self::Z, 'private_paid' => self::Z, 'paid' => self::Z, 'requested' => Q::add($row['maintenance_requested'],$row['improvement_requested'])]; unset($row);
         $infraOrder = array_keys($infrastructure); $priority = $settings['allocation.infrastructure_priority']['infrastructure'] ?? 'regional';
         $weight = fn ($id) => match ($priority) {
             'population' => $goods->territories[$id]['population'],
@@ -142,7 +142,8 @@ final class IndicatorEconomySeason
             } elseif ($class === 'infrastructure_development') {
                 foreach ($infraOrder as $id) {
                     $row = &$infrastructure[$id];
-                    $row['improvement_paid'] = $pay($goods->construction((string) $id, Q::min($row['improvement_requested'], $available())));
+                    $row['improvement_allocation'] = Q::min($row['improvement_requested'], $available());
+                    $row['improvement_paid'] = $pay($goods->construction((string) $id, $row['improvement_allocation']));
                     $row['private_paid'] = $goods->construction((string) $id, Q::min($row['private_requested'], $privateAllowance));
                     $privateAllowance = Q::sub($privateAllowance, $row['private_paid']); $privateInfrastructure = Q::add($privateInfrastructure, $row['private_paid']);
                     unset($row);
@@ -173,8 +174,12 @@ final class IndicatorEconomySeason
         }
         foreach ($infrastructure as $id => &$row) {
             $row['paid'] = Q::add($row['maintenance_paid'], $row['improvement_paid']);
+            $row['required'] = Q::add($row['maintenance'], $row['improvement']);
+            $row['delivery_ratio'] = Q::calculated(self::ratio($row['paid'], $row['required']));
             if (Q::cmp($row['maintenance_paid'], $row['maintenance']) < 0) $warnings[] = ['type'=>'infrastructure_maintenance_shortfall','territory_id'=>(int)$id,'required'=>$row['maintenance'],'paid'=>$row['maintenance_paid'],
                 'cause'=>Q::cmp($goods->territories[$id]['workforce'],'0') === 0 ? 'no_workforce' : (Q::cmp($row['maintenance_requested'],$row['maintenance']) < 0 ? 'policy_funding' : (Q::cmp($row['maintenance_allocation'],$row['maintenance']) < 0 ? 'treasury_shortfall' : 'construction_workforce'))];
+            if (Q::cmp($row['improvement_paid'], $row['improvement']) < 0) $warnings[] = ['type'=>'infrastructure_development_shortfall','territory_id'=>(int)$id,'required'=>$row['improvement'],'paid'=>$row['improvement_paid'],
+                'cause'=>Q::cmp($goods->territories[$id]['workforce'],'0') === 0 ? 'no_workforce' : (Q::cmp($row['improvement_requested'],$row['improvement']) < 0 ? 'policy_funding' : (Q::cmp($row['improvement_allocation'],$row['improvement_requested']) < 0 ? 'treasury_shortfall' : 'construction_workforce'))];
         } unset($row);
         foreach ($rows as $key => $row) if (Q::cmp($row['acquisition_unmet'],'0') > 0) $warnings[] = ['type'=>'acquisition_shortfall','resource_key'=>$key,'missing'=>$row['acquisition_unmet']];
         if (Q::cmp($militaryPaid, Q::parse($plan['military_costs'])) < 0) $warnings[] = ['type'=>'military_funding_shortfall'];
@@ -207,7 +212,10 @@ final class IndicatorEconomySeason
             'private_development_allowance'=>$privateStart,'private_development_unused'=>$privateAllowance,
             'private_provision_estimate'=>$privateProvisionPaid,'disposable_income_estimate'=>Q::sub($afterTax,$privateProvisionPaid),
             'support_requested'=>Q::parse($settings['budget.income_support']['households'] ?? '0'),'support_paid'=>$supportPaid,
-            'infrastructure'=>$infrastructure,'warnings'=>$warnings,'industries'=>[],
+            'infrastructure'=>$infrastructure,
+            'infrastructure_required'=>self::sum(array_column($infrastructure,'required')),
+            'infrastructure_requested'=>self::sum(array_column($infrastructure,'requested')),
+            'warnings'=>$warnings,'industries'=>[],
             'fiscal'=>['opening_debt'=>Q::parse($opening['debt']),'closing_debt'=>$debt,'credit_limit'=>$creditLimit,'credit_lock'=>$lock,'default_episode'=>$episode,'new_default'=>$newDefault,
                 'borrowing'=>$borrowed,'interest_due'=>$interestDue,'interest_paid'=>$interestPaid,'arrears'=>$arrears,'relief'=>$relief,'principal_repaid'=>$repaid,'receipts'=>$history]];
         $report['civilian'] = ['workforce'=>self::sum(array_column($goods->territories,'workforce')),'workers_used'=>self::sum($goods->usedWorkers),

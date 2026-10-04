@@ -24,6 +24,8 @@ const supported = new Set([
     'finance.income_tax',
     'finance.treasury_reserve',
     'budget.program_funding',
+    'budget.program_target',
+    'budget.program_cost',
     'budget.income_support',
     'indicator.target_shift',
     'allocation.infrastructure_priority',
@@ -333,6 +335,7 @@ export class EconomyPanel {
         this.inputsScope = new Scope();
         this.inputs = [];
         this.investmentNotices = new Map();
+        this.optionDescriptions = new Map();
         for (const group of this.policyPanels.values()) group.replaceChildren();
         this.inputSignature = this.confirmedSignature;
         const choices = { ...this.policies.current, ...(this.draft.changes ?? this.policies.pending) };
@@ -376,6 +379,9 @@ export class EconomyPanel {
                 this.inputs.push({ key: p.key, option: true, input: select });
                 this.inputsScope.listen(select, 'change', () => this.edit());
                 group.append(new FieldShell({ label: this.localize(p.labels), control: select }).element);
+                const detail = el('p', { class: 'economy-help', 'data-policy-option-description': p.key });
+                this.optionDescriptions.set(p.key, detail);
+                group.append(detail);
             }
             for (const param of p.parameters) {
                 const percent = param.unit_key?.startsWith('fraction_');
@@ -408,6 +414,16 @@ export class EconomyPanel {
                 );
             group.dataset.policyKey = p.key;
             this.policyPanels.get(policyGroup(p)).append(group);
+        }
+        this.updateOptionDescriptions(choices);
+    }
+    updateOptionDescriptions(choices) {
+        for (const [key, node] of this.optionDescriptions ?? []) {
+            const policy = this.definitions.find((p) => p.key === key);
+            node.textContent = this.localize(
+                policy?.options.find((o) => o.key === choices[key]?.option)?.descriptions,
+            );
+            node.hidden = !node.textContent;
         }
     }
     updateTabs() {
@@ -566,6 +582,10 @@ export class EconomyPanel {
             f.disabled = busy || !this.services.world.current || this.services.gameplay.needsReview;
         });
         this.updateInvestmentAvailability();
+        this.updateOptionDescriptions({
+            ...this.policies.current,
+            ...(this.draft.changes ?? this.policies.pending),
+        });
         this.updateTabs();
         this.save.setLabel(this.t(this.reviewContent.hidden ? 'reviewSave' : 'save'));
         const economy = this.snapshot.nation.economy;
@@ -814,6 +834,8 @@ export class EconomyPanel {
                 'public_development',
                 'support_requested',
                 'support_paid',
+                'infrastructure_required',
+                'infrastructure_requested',
                 'infrastructure_paid',
                 'fiscal.interest_due',
             ],

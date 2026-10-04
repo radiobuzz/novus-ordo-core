@@ -120,8 +120,16 @@ export class TimeSeriesChart {
         this.selected = season;
         this.draw();
     }
-    update({ title, unit, points, series, stacked = false, markers = [] }) {
-        Object.assign(this, { points, series, unit, stacked, markers });
+    update({ title, unit, points, series, stacked = false, markers = [], domain = null }) {
+        if (
+            domain &&
+            (!Array.isArray(domain) ||
+                domain.length !== 2 ||
+                !domain.every(Number.isFinite) ||
+                domain[0] >= domain[1])
+        )
+            throw new TypeError('Chart domain requires two increasing finite bounds.');
+        Object.assign(this, { points, series, unit, stacked, markers, domain });
         this.title.textContent = title;
         if (this.expandButton) {
             const label = this.i18n.t('history.enlargeChart', { title });
@@ -171,6 +179,7 @@ export class TimeSeriesChart {
         );
         let min = Math.min(0, ...values),
             max = Math.max(0, ...values);
+        if (this.domain) [min, max] = this.domain;
         if (max === min) max = min + 1;
         const left = this.compact ? 8 : 62,
             right = this.compact ? 232 : 702;
@@ -324,6 +333,7 @@ export class TimeSeriesChart {
             series: this.series,
             stacked: this.stacked,
             markers: this.markers,
+            domain: this.domain,
         });
         this.expansion.refresh();
     }

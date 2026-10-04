@@ -137,5 +137,65 @@ $healthy=Season::resolve($resources,$fixture(),$plan,$rules);$r=Season::resolve(
 $check((float)$r['state']['territories'][1]['economy']['economic_strength'] < (float)$healthy['state']['territories'][1]['economy']['economic_strength'],'Poor infrastructure depresses economic strength');
 $check((float)$r['state']['territories'][1]['economy']['infrastructure']>0.1,'Funded damaged infrastructure recovers gradually');
 $throws(fn()=>IndicatorRules::state(['capacity'=>'1']),'Retired territorial state rejected');
+// Named infrastructure commitments and funding are independent catalogue inputs.
+$policyDocument = json_decode(file_get_contents(__DIR__.'/../../database/policy-templates/economy.json'), true, flags: JSON_THROW_ON_ERROR);
+$topics = array_column($policyDocument['policies'], null, 'key'); $choices = [];
+foreach ($topics as $key => $topic) {
+    foreach ($topic['options'] as $option) if ($option['is_default']) $choices[$key] = ['option'=>$option['key'], 'parameters'=>array_column($topic['parameters'], 'default_value', 'key')];
+    $parameters = array_column($topic['parameters'],null,'key');
+    foreach ($topic['options'] as $option) foreach ($option['effects'] as $effect) $registry->validate($effect,$parameters,'test');
+}
+$namedSettings = function ($option, $funding = '1') use ($registry,$topics,$choices) {
+    $c=$choices; $c['infrastructure_investment']=['option'=>$option,'parameters'=>['funding_ratio'=>$funding]];
+    return $registry->compile($topics,$c);
+};
+$infraState=$fixture(true); $infraState['treasury']='1000';
+foreach ($infraState['territories'] as &$t) $t['economy']['infrastructure']='0.75'; unset($t);
+foreach (['none'=>'0','minimal'=>'0.25','moderate'=>'0.5','high'=>'0.75','very_high'=>'1'] as $name=>$level) {
+    $settings=$namedSettings($name); $r=Season::resolve($resources,$infraState,['settings'=>$settings],$rules);
+    $check(Q::cmp($settings['budget.program_target']['infrastructure'],$level)===0, 'Named commitment compiles its own target');
+    $check(Q::cmp($settings['budget.program_funding']['infrastructure'],'1')===0, 'Lower commitment retains full funding');
+    $check(!array_filter($r['warnings'],fn($w)=>str_starts_with($w['type'],'infrastructure_')), 'Fully funded modest commitment does not warn');
+    foreach ($r['report']['infrastructure'] as $row) {
+        $check($row['target']===Q::parse($level), 'Report records selected commitment');
+        $check(Q::cmp($row['maintenance'],'0')>0 && $row['maintenance']===$row['maintenance_paid'], 'None/lower ambition still maintains existing assets');
+        $check($row['delivery_ratio']==='1.000000', 'Fulfilled commitment recorded as fulfilled');
+        $check($name==='very_high' ? Q::cmp($row['improvement'],'0')>0 : $row['improvement']==='0.000000', 'Public construction stops at selected target');
+    }
+    $check($r['report']['infrastructure_required']===$r['report']['infrastructure_requested'], 'Full funding requests exactly the commitment requirement');
+}
+$full=Season::resolve($resources,$infraState,['settings'=>$namedSettings('high')],$rules);
+$part=Season::resolve($resources,$infraState,['settings'=>$namedSettings('high','0.75')],$rules);
+$check($part['report']['infrastructure'][1]['target']==='0.750000', 'Funding changes never change the target');
+$check(Q::cmp($part['report']['infrastructure_requested'],$part['report']['infrastructure_required'])<0, 'Partial funding reveals requirement versus allocation');
+$check(count(array_filter($part['warnings'],fn($w)=>$w['type']==='infrastructure_maintenance_shortfall' && $w['cause']==='policy_funding'))===count($infraState['territories']), 'Genuine upkeep underfunding still warns');
+$check(Q::cmp($part['state']['territories'][1]['economy']['unrest'],$full['state']['territories'][1]['economy']['unrest'])>0, 'Unfulfilled funded commitment adds small unrest pressure');
+$low=Season::resolve($resources,$infraState,['settings'=>$namedSettings('minimal')],$rules);
+$check($low['state']['territories'][1]['economy']['unrest']===$full['state']['territories'][1]['economy']['unrest'], 'Fully delivered lower ambition is not a broken promise');
+$noneFull=Season::resolve($resources,$infraState,['settings'=>$namedSettings('none')],$rules);
+$nonePart=Season::resolve($resources,$infraState,['settings'=>$namedSettings('none','0.75')],$rules);
+$check(Q::cmp($nonePart['state']['territories'][1]['economy']['unrest'],$noneFull['state']['territories'][1]['economy']['unrest'])>0, 'No expansion commitment does not excuse underfunding existing upkeep');
+$costSettings=$namedSettings('high');$costSettings['budget.program_cost']['infrastructure_maintenance']='1.8';
+$costlier=Season::resolve($resources,$infraState,['settings'=>$costSettings],$rules);
+$check($costlier['report']['infrastructure'][1]['maintenance']===Q::mul($full['report']['infrastructure'][1]['maintenance'],'2'), 'Authored maintenance price changes actual requirement');
+$growing=$infraState;foreach($growing['territories'] as &$t)$t['economy']['infrastructure']='0.5';unset($t);
+$base=Season::resolve($resources,$growing,['settings'=>$namedSettings('high')],$rules);
+$costSettings=$namedSettings('high');$costSettings['budget.program_cost']['infrastructure_development']='80';
+$costlier=Season::resolve($resources,$growing,['settings'=>$costSettings],$rules);
+$check($costlier['report']['infrastructure'][1]['improvement']===Q::mul($base['report']['infrastructure'][1]['improvement'],'2'), 'Authored development price changes actual requirement');
+$check($costlier['state']['territories'][1]['economy']['infrastructure']===$base['state']['territories'][1]['economy']['infrastructure'], 'Fully funded price change does not magically change growth rate');
+$constructionShort=Season::resolve($resources,$growing,['settings'=>$namedSettings('high','0.75')],$rules);
+$check((bool)array_filter($constructionShort['warnings'],fn($w)=>$w['type']==='infrastructure_development_shortfall' && $w['cause']==='policy_funding'), 'Construction shortfall remains distinct from upkeep');
+$noWorkers=$infraState;foreach($noWorkers['territories'] as &$t)$t['workforce']='0';unset($t);
+$r=Season::resolve($resources,$noWorkers,['settings'=>$namedSettings('high')],$rules);
+$check((bool)array_filter($r['warnings'],fn($w)=>$w['type']==='infrastructure_maintenance_shortfall' && $w['cause']==='no_workforce'), 'Full funding cannot hide a workforce blocker');
+$broke=$infraState;$broke['treasury']='0';$settings=$namedSettings('high');$settings['finance.income_tax']['taxable_income']='0';
+$r=Season::resolve($resources,$broke,['settings'=>$settings],$rules);
+$check((bool)array_filter($r['warnings'],fn($w)=>$w['type']==='infrastructure_maintenance_shortfall' && $w['cause']==='treasury_shortfall'), 'Full policy funding still distinguishes unavailable cash or credit');
+$scarce=$infraState;foreach($scarce['territories'] as &$t)$t['workforce']='100';unset($t);
+$r=Season::resolve($resources,$scarce,['settings'=>$namedSettings('high')],$rules);
+$check((bool)array_filter($r['warnings'],fn($w)=>$w['type']==='infrastructure_maintenance_shortfall' && $w['cause']==='construction_workforce'), 'Full policy funding still distinguishes scarce construction workers');
+$bad=$namedSettings('high');$bad['budget.program_cost']['infrastructure_development']='0';
+$throws(fn()=>Season::resolve($resources,$growing,['settings'=>$bad],$rules),'Positive construction target cannot cost nothing');
 if (in_array('--write-results',$argv,true)) file_put_contents(__DIR__.'/../../docs/game-design/data/indicator-season-worked-results.json',json_encode(['scope'=>'Pure seasonal resolver with saved geography, fixed population, reference prices and no trade. These results do not prove live integration.','checks'=>$checks,'worked_seasons'=>$worked],JSON_PRETTY_PRINT|JSON_UNESCAPED_SLASHES)."\n");
 echo "PASS: $checks indicator economy checks.\n";

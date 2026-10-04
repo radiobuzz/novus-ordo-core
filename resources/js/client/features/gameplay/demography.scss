@@ -1,0 +1,20 @@
+.no-client {
+    .nation-workspace,
+    .demography-view {
+        display: grid;
+        gap: var(--space-3);
+        min-width: 0;
+    }
+    .demography-view > .ui-card-strip {
+        display: grid;
+        grid-template-columns: repeat(auto-fit, minmax(min(100%, 220px), 1fr));
+    }
+    .demography-controls label {
+        display: grid;
+        gap: var(--space-1);
+        width: min(100%, 240px);
+    }
+    .demography-view > p {
+        margin: 0;
+    }
+}

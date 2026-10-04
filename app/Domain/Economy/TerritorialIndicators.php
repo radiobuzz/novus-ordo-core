@@ -43,6 +43,11 @@ final class TerritorialIndicators
     {
         $public = self::share($settings); $h = $r['hypothesis']; $costs = $r['costs_per_million'];
         $serviceShare = $h['public_service_floor_share'] + (1 - $h['public_service_floor_share']) * $public;
+        // Optional authored standards override the game's base assessment coefficients.
+        $infraTarget = (float) ($settings['budget.program_target']['infrastructure'] ?? $h['public_infrastructure_target']);
+        $maintenanceCost = (float) ($settings['budget.program_cost']['infrastructure_maintenance'] ?? $costs['infrastructure_upkeep']);
+        $developmentCost = (float) ($settings['budget.program_cost']['infrastructure_development'] ?? $costs['infrastructure_point']);
+        if ($developmentCost <= 0 && $infraTarget > 0) throw new \DomainException('An infrastructure development target requires a positive construction cost.');
         $programs = array_fill_keys(['health','education','police','welfare','environment','public_development'], '0.000000');
         $infrastructure = []; $privateProvision = $privateConstruction = '0.000000';
         foreach ($territories as $id => $t) {
@@ -56,18 +61,19 @@ final class TerritorialIndicators
                 $fund = $settings['budget.program_funding'][$key] ?? '0';
                 $programs[$key] = Q::add($programs[$key], Q::mul(Q::calculated($amount), Q::parse($fund)));
             }
-            $maintenance = $people * $costs['infrastructure_upkeep'] * (float) $s['infrastructure'];
-            $publicStep = min($r['rates']['infrastructure_growth'], max(0, $h['public_infrastructure_target'] - (float) $s['infrastructure']));
+            $maintenance = $people * $maintenanceCost * (float) $s['infrastructure'];
+            $publicStep = min($r['rates']['infrastructure_growth'], max(0, $infraTarget - (float) $s['infrastructure']));
             $privateTarget = self::bound($h['private_infrastructure_floor'] + $h['private_infrastructure_dynamism'] * (float) $s['dynamism']);
             $privateStep = min($r['rates']['infrastructure_growth'] * (float) $s['dynamism'], max(0, $privateTarget - (float) $s['infrastructure']));
             $privateProvision = Q::add($privateProvision, Q::calculated($maintenance * (1 - $public)));
             $privateBuild = Q::calculated($people * $costs['infrastructure_point'] * $privateStep * (1 - $public));
             $privateConstruction = Q::add($privateConstruction, $privateBuild);
             $infra = $settings['budget.program_funding']['infrastructure'] ?? '0';
-            $infrastructure[$id] = ['maintenance' => Q::calculated($maintenance * $public),
-                'improvement' => Q::calculated($people * $costs['infrastructure_point'] * $publicStep * $public),
+            $infrastructure[$id] = ['target' => Q::calculated($infraTarget), 'funding_ratio' => Q::parse($infra),
+                'maintenance' => Q::calculated($maintenance * $public),
+                'improvement' => Q::calculated($people * $developmentCost * $publicStep * $public),
                 'maintenance_requested' => Q::mul(Q::calculated($maintenance * $public), Q::parse($infra)),
-                'improvement_requested' => Q::mul(Q::calculated($people * $costs['infrastructure_point'] * $publicStep * $public), Q::parse($infra)),
+                'improvement_requested' => Q::mul(Q::calculated($people * $developmentCost * $publicStep * $public), Q::parse($infra)),
                 'private_requested' => $privateBuild, 'public_step' => $publicStep, 'private_step' => $privateStep];
         }
         return ['programs' => $programs, 'infrastructure' => $infrastructure, 'private_provision' => $privateProvision, 'private_construction' => $privateConstruction];
@@ -87,6 +93,12 @@ final class TerritorialIndicators
             $services = [];
             foreach (['health','education'] as $key) $services[$key] = $serviceShare * $coverage[$key] + (1 - $serviceShare) * $privateCoverage;
             $bonus = $h['private_service_bonus'] * (1 - $public) * $s['dynamism'];
+            $infra = $infrastructure[$id];
+            // A lower, fully funded commitment is not a broken promise. Construction
+            // toward a target takes time; only undelivered assessed work adds this penalty.
+            $required = (float) $infra['maintenance'] + (float) $infra['improvement'];
+            $delivery = $required > 0 ? min(1, ((float) $infra['maintenance_paid'] + (float) $infra['improvement_paid']) / $required) : 1;
+            $promisePenalty = $h['unrest_infrastructure_shortfall'] * $public * (1 - $delivery);
             $targets = [
                 'health' => $h['service_target_floor'] + $h['service_target_provision'] * $services['health'] + $bonus
                     - $h['health_hardship'] * $hardship - $h['health_pollution'] * (1 - $s['environment']) - $r['physical']['shortage_health'] * $shortage,
@@ -98,7 +110,7 @@ final class TerritorialIndicators
                 'environment' => $h['environment_floor'] - $h['environment_economic'] * $s['economic_strength']
                     - $h['environment_private_dynamism'] * (1 - $public) * $s['dynamism'] + $h['environment_protection'] * $coverage['environment'],
                 'unrest' => $h['unrest_floor'] + $h['unrest_hardship'] * $hardship + $h['unrest_service_shortfall'] * (1 - min($services))
-                    + $h['unrest_excess_tax'] * max(0, $tax - $tolerance) + $r['physical']['shortage_unrest'] * $shortage,
+                    + $h['unrest_excess_tax'] * max(0, $tax - $tolerance) + $r['physical']['shortage_unrest'] * $shortage + $promisePenalty,
             ];
             $taxStimulus = $h['dynamism_tax_floor'] + $h['dynamism_tax_response'] * self::bound(1 - $tax / $h['private_tax_tolerance']);
             $targets['dynamism'] = ($h['dynamism_health_weight'] * $s['health'] + $h['dynamism_education_weight'] * $s['education']) * $taxStimulus * (1 - $s['crime']) * (1 - $s['unrest']);
@@ -115,7 +127,6 @@ final class TerritorialIndicators
                 if ($key === 'economic_strength') $step = self::bound($step, -$rates['economic_max_step'], $rates['economic_max_step']);
                 $t['economy'][$key] = Q::calculated(self::bound($s[$key] + $step));
             }
-            $infra = $infrastructure[$id];
             $maintenance = (float) $infra['maintenance'] > 0 ? (float) $infra['maintenance_paid'] / (float) $infra['maintenance'] : 1;
             $publicConstruction = (float) $infra['improvement'] > 0 ? (float) $infra['improvement_paid'] / (float) $infra['improvement'] : 0;
             $privateConstruction = (float) $infra['private_requested'] > 0 ? (float) $infra['private_paid'] / (float) $infra['private_requested'] : 0;

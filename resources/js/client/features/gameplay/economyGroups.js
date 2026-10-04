@@ -13,7 +13,12 @@ export function policyGroup(policy) {
         )
     )
         return 'services';
-    if (types.has('budget.program_funding') || types.has('allocation.infrastructure_priority'))
+    if (
+        types.has('budget.program_funding') ||
+        types.has('budget.program_target') ||
+        types.has('budget.program_cost') ||
+        types.has('allocation.infrastructure_priority')
+    )
         return 'infrastructure';
     if (types.has('production.development_funding') || types.has('allocation.production_priority'))
         return 'production';

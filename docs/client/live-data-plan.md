@@ -1,5 +1,17 @@
 # Shared game data — implementation plan
 
+## Nation institutions and identity — planning, 2026-10-04
+
+The [first implementation plan](../game-design/nation-institutions-and-identity-plan.md) keeps institutions in the existing game-owned policy catalogue and shared seasonal draft. The dedicated editor must patch individual choices through GameplayService; full pending-package replacement and EconomyPanel’s current whole-form scanning need explicit handling to prevent cross-screen loss. Cosmetic identity/leader saves are proposed as context-fenced current-turn commands with ordinary reconciliation, retained drafts and no mutation retries. Founding applies chosen institutions before economy initialization; base-name lookup must agree with seasonal identity after rollback. No new read owner, endpoint or runtime behavior is implemented by this plan.
+
+## Demography & Development — 2026-10-03
+
+The Nation instance lazily consumes GameplayService’s existing context/window-scoped economic history read. It introduces no polling, store, endpoint or historical persistence. PlayerWorkspace exposes machine-readable population/growth using existing cached demographic model methods. Current territorial aggregates remain owner-snapshot data; charts use recorded report indicators. Consecutive-season comparisons do not bridge gaps. Same-scope refresh retains chart nodes, legend state, period focus and tabs; context changes clear incompatible history, and late period responses are ignored. Failed reads retain clearly labelled same-context history with explicit retry. [Results and checks](demography-development-results.md).
+
+## Infrastructure commitment projection — 2026-10-03
+
+The existing owner snapshot, shared policy draft and combined seasonal preview/save carry named infrastructure options and separate funding. Laravel assesses targets/costs and publishes required/requested/paid work and delivery; the client displays those values and DB-authored descriptions without simulating budgets. Definitions remain game-owned; the explicit local game #30 edit bumps its policy counter and preserves recorded financial state. No endpoint, read owner or reconciliation change. [Implementation](../game-design/infrastructure-commitment-first-pass.md).
+
 ## Indicator economy replacement — 2026-10-03
 
 The retained GameplayService seasonal draft, combined policy/acquisition save and history read owner now project indicator income, government spending and shared resource capacity. Preview and settlement use the same backend resolver. No extra endpoint, subscription, polling loop, private wallet or optimistic settlement was introduced. History remains recorded actual seasons; rollback fencing and missing observations remain unchanged. See [implementation and verification](../game-design/indicator-economy-replacement-results.md). Earlier entries below are historical.

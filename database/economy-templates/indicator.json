@@ -70,7 +70,8 @@
     "dynamism_tax_response": 0.6,
     "dynamism_health_weight": 0.3,
     "dynamism_education_weight": 0.7,
-    "unrest_economic_penalty": 0.4
+    "unrest_economic_penalty": 0.4,
+    "unrest_infrastructure_shortfall": 0.04
   },
   "initial_core": {
     "health": 0.65,

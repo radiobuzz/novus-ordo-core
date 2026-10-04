@@ -1,5 +1,21 @@
 # Client planning progress
 
+## 2026-10-04 — Nation institutions and identity plan
+
+Audited the current four-step wizard, transactional founding order, game-owned policy machinery, shared pending package, seasonal identity/media, flag composer and NO2 constitutional reform packages. Wrote the [first implementation plan](../game-design/nation-institutions-and-identity-plan.md) with government/liberty choices, dedicated editing, a policy-derived liberty summary, shared-draft preservation, media ownership and rollback requirements. UI/client-data skills guided reuse and responsibilities. Revolution/amendment mechanics remain open; liberty-to-dynamism and further economic/service rules follow after this foundation. Proposed defaults/details remain reviewable. Documentation only; no implementation, migration, reset, game edits or Git publication.
+
+## 2026-10-03 — Demography & Development
+
+Added the Nation tab and reusable IndicatorTrends instance for all ten indicators, grouped into development, living conditions and social pressures. Current values, seasonal changes, direction labels, click-only help, fixed 0–100% overlays, exact tables and enlargement reuse existing controls. Population/growth facts use existing methods; history uses GameplayService’s shared recorded reports without migration, backfill or rule changes. UI/client-data skills guided component and data ownership.
+
+Four demography and six budget Chromium journeys pass, including retained chart/focus state, missing history, read retry, French narrow layout and out-of-order periods. All 287 client tests, projection, generated-client, PHP contract/syntax, build and whitespace checks pass. Read-only local game #30 at turn 5 supplies all ten current/history indices for both nations. [Results](demography-development-results.md).
+
+## 2026-10-03 — Named infrastructure commitments
+
+Implemented None / Minimal / Moderate / High / Very high with independent funding through DB-authored target/cost/funding effects. Actual upkeep remains required above a reduced target; construction tapers, private development remains active, and undelivered promised work adds a small unrest pressure. Retained option descriptions and requirement/allocation/spending comparisons reuse the existing workspace and seasonal draft. No schema change or reset.
+
+Pure scenarios, isolated seasons and rollback, relational authoring/isolation, six budget Chromium journeys, the real production journey, 284 client checks and build pass. Local game #30 explicitly received High / 100%; financial state/history and stocks were preserved, and read-only season-4 forecasts show complete infrastructure delivery without warnings for both nations. UI/client-data skills guided reuse. Health/education commitments remain future work. [Results](../game-design/infrastructure-commitment-first-pass.md).
+
 ## 2026-10-03 — Indicator economy replacement
 
 Implemented replacement packages A–E with one indicator/physical-goods resolver, game-owned validated rules and fresh-game schema. Retired simulated civilian accounts and split capacity. The existing economic workspace, planner, history and map layers consume the new authoritative fields without new data ownership. UI/client-data skills guided retained drafts, focus, scrolling and context fencing. [Results and checks](../game-design/indicator-economy-replacement-results.md) record pure, isolated lifecycle, generic-policy/resource and real-browser evidence, plus the local cutover preserving saved maps/accounts. Remaining work is player balance testing; prices/trade, migration and additional institutional systems remain future scope.

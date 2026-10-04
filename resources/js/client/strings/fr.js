@@ -1,4 +1,43 @@
 export default {
+    'demography.title': 'Démographie et développement',
+    'demography.overview': 'Vue d’ensemble',
+    'demography.nationTabs': 'Rubriques de la nation',
+    'demography.population': 'Population',
+    'demography.growth': 'Croissance démographique saisonnière',
+    'demography.facts': 'Données démographiques',
+    'demography.growthHelp':
+        'Taux de croissance naturelle du modèle ; exclut les annexions et les pertes territoriales.',
+    'demography.development': 'Économie et développement',
+    'demography.conditions': 'Conditions de vie',
+    'demography.pressures': 'Pressions sociales',
+    'demography.current': 'Conditions actuelles',
+    'demography.change': 'Variation saisonnière',
+    'demography.points': 'pts',
+    'demography.higher': 'Plus haut est préférable',
+    'demography.lower': 'Plus bas est préférable',
+    'demography.failed':
+        'Historique des indicateurs indisponible. Les conditions actuelles restent visibles.',
+    'demography.note':
+        'Les indices nationaux agrègent les conditions territoriales, pondérées par la population. Les graphiques montrent les saisons enregistrées sur une échelle de 0 à 100 %. Les variations comparent des saisons consécutives ; une annexion peut aussi modifier la moyenne nationale. Ces indices ne sont pas des mesures du monde réel. Les marqueurs de politiques indiquent leur date, pas une causalité.',
+    'demography.help_economic_strength':
+        'La force globale de l’économie civile. Cet indice ne représente ni le trésor public ni la production en unités.',
+    'demography.help_dynamism':
+        'Les conditions d’initiative et d’investissement qui soutiennent l’activité économique privée.',
+    'demography.help_infrastructure':
+        'L’état actuel des infrastructures. Il représente le résultat obtenu, pas l’engagement politique ni le pourcentage de financement.',
+    'demography.help_health':
+        'L’état de santé de la population, qui soutient le travail et les conditions de vie.',
+    'demography.help_education': 'L’éducation et les compétences qui soutiennent l’activité productive.',
+    'demography.help_environment':
+        'La qualité de l’environnement. Une valeur élevée indique un environnement plus sain, pas davantage de pollution.',
+    'demography.help_inequality':
+        'Les disparités de conditions de vie et de revenus. C’est un indice du jeu, pas un coefficient de Gini mesuré.',
+    'demography.help_crime':
+        'La pression de l’activité criminelle. Une valeur plus basse indique davantage de sécurité.',
+    'demography.help_unrest':
+        'Le mécontentement et les perturbations sociales. Une valeur plus basse indique une situation plus calme.',
+    'demography.help_informal':
+        'L’activité économique hors de l’économie officielle imposable. Une valeur plus basse indique moins d’évasion fiscale.',
     'history.earnedIncome': 'Revenu national gagné',
     'history.disposableIncome': 'Revenu disponible estimé',
     'history.economicStrength': 'Force économique',
@@ -15,7 +54,7 @@ export default {
     'planner.privateDevelopmentBudget': 'Dépense de développement privé · monnaie',
     'planner.capacityTarget': 'Capacité cible évaluée',
     'economy.cause_no_workforce': 'aucune main-d’œuvre disponible',
-    'economy.cause_policy_funding': 'financement de l’entretien inférieur aux besoins',
+    'economy.cause_policy_funding': 'financement choisi inférieur aux besoins de l’engagement',
     'economy.cause_treasury_shortfall': 'trésorerie et crédit disponibles insuffisants',
     'economy.cause_construction_workforce': 'main-d’œuvre de construction disponible insuffisante',
     'economy.new_borrowing': 'Un nouvel emprunt est nécessaire pour couvrir les dépenses.',
@@ -24,6 +63,9 @@ export default {
         'L’entretien militaire est sous-financé; les divisions risquent de déserter.',
     'economy.infrastructure_maintenance_shortfall':
         'Le territoire #{territory} ne peut pas achever l’entretien des infrastructures ({cause}).',
+    'economy.infrastructure_development_shortfall':
+        'Le territoire #{territory} ne peut pas réaliser les améliorations d’infrastructure promises pour cette saison ({cause}).',
+    'economy.infrastructure_required': 'Engagement d’infrastructure · besoins évalués',
     'economy.program_funding_shortfall': 'Le programme {program} ne peut pas être entièrement financé.',
     'economy.civilian_supply_shortfall': 'Il manque {missing} unités de {resource} pour les besoins civils.',
     'economy.programs.environment.paid': 'Protection environnementale',

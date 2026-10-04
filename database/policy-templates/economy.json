@@ -1,6 +1,6 @@
 {
-  "name": "Indicator economy — founding v1",
-  "description": "A mixed founding economy with indicator-based prosperity and generic resource development.",
+  "name": "Indicator economy — founding v2",
+  "description": "Named infrastructure commitments with separately funded requirements; indicator-based prosperity and generic resource development.",
   "policies": [
     {
       "key": "income_tax",
@@ -58,29 +58,60 @@
       "conditions": []
     },
     {
-      "key": "infrastructure_funding",
+      "key": "infrastructure_investment",
       "category_key": "infrastructure",
       "labels": {
-        "en": "Infrastructure funding",
-        "fr": "Financement des infrastructures"
+        "en": "Infrastructure investment",
+        "fr": "Investissement dans les infrastructures"
       },
       "descriptions": {
-        "en": "Share of assessed maintenance and feasible improvements. Maintenance is paid first. Funding depends on affordable cash and credit; benefits build over subsequent seasons.",
-        "fr": "Part des besoins d’entretien et des améliorations réalisables. L’entretien est prioritaire. Le financement dépend des fonds disponibles; les bénéfices apparaissent progressivement."
+        "en": "Choose a development commitment, then fund its assessed requirement separately. Fully funding a modest commitment is not underfunding. Construction tapers at the public target; existing infrastructure still needs maintenance. Private development can exceed the public target. Undelivered promised work adds a small unrest pressure.",
+        "fr": "Choisissez un engagement de développement, puis financez séparément ses besoins évalués. Un engagement modeste entièrement financé n’est pas un sous-financement. Les travaux ralentissent à la cible publique; les infrastructures existantes nécessitent toujours de l’entretien. Le développement privé peut dépasser la cible publique. Les travaux promis non réalisés ajoutent une légère pression sur les troubles."
       },
       "sort_order": 2,
       "status": "active",
       "options": [
         {
-          "key": "enabled",
+          "key": "none",
           "labels": {
-            "en": "Enabled"
+            "en": "None",
+            "fr": "Aucun"
           },
-          "descriptions": {},
-          "is_default": true,
-          "sort_order": 2,
+          "descriptions": {
+            "en": "No new public development commitment. Existing infrastructure still needs maintenance; private development continues.",
+            "fr": "Aucun nouvel engagement de développement public. Les infrastructures existantes nécessitent toujours de l’entretien; le développement privé continue."
+          },
+          "is_default": false,
+          "sort_order": 0,
           "retired": false,
           "effects": [
+            {
+              "key": "standard",
+              "effect_type": "budget.program_target",
+              "arguments": {
+                "program": "infrastructure",
+                "level": "0"
+              },
+              "sort_order": 0
+            },
+            {
+              "key": "maintenance_cost",
+              "effect_type": "budget.program_cost",
+              "arguments": {
+                "program": "infrastructure_maintenance",
+                "amount": "0.9"
+              },
+              "sort_order": 1
+            },
+            {
+              "key": "development_cost",
+              "effect_type": "budget.program_cost",
+              "arguments": {
+                "program": "infrastructure_development",
+                "amount": "40"
+              },
+              "sort_order": 2
+            },
             {
               "key": "program_allocation",
               "effect_type": "budget.program_funding",
@@ -90,7 +121,223 @@
                   "parameter": "funding_ratio"
                 }
               },
+              "sort_order": 3
+            }
+          ]
+        },
+        {
+          "key": "minimal",
+          "labels": {
+            "en": "Minimal",
+            "fr": "Minimal"
+          },
+          "descriptions": {
+            "en": "Public development works gradually toward the chosen infrastructure standard. Construction tapers at that target; existing assets still need upkeep. Private development can go further.",
+            "fr": "Le développement public progresse vers le niveau d’infrastructure choisi. Les travaux ralentissent à cette cible; les infrastructures existantes nécessitent toujours de l’entretien. Le développement privé peut aller plus loin."
+          },
+          "is_default": false,
+          "sort_order": 1,
+          "retired": false,
+          "effects": [
+            {
+              "key": "standard",
+              "effect_type": "budget.program_target",
+              "arguments": {
+                "program": "infrastructure",
+                "level": "0.25"
+              },
               "sort_order": 0
+            },
+            {
+              "key": "maintenance_cost",
+              "effect_type": "budget.program_cost",
+              "arguments": {
+                "program": "infrastructure_maintenance",
+                "amount": "0.9"
+              },
+              "sort_order": 1
+            },
+            {
+              "key": "development_cost",
+              "effect_type": "budget.program_cost",
+              "arguments": {
+                "program": "infrastructure_development",
+                "amount": "40"
+              },
+              "sort_order": 2
+            },
+            {
+              "key": "program_allocation",
+              "effect_type": "budget.program_funding",
+              "arguments": {
+                "program": "infrastructure",
+                "funding_ratio": {
+                  "parameter": "funding_ratio"
+                }
+              },
+              "sort_order": 3
+            }
+          ]
+        },
+        {
+          "key": "moderate",
+          "labels": {
+            "en": "Moderate",
+            "fr": "Modéré"
+          },
+          "descriptions": {
+            "en": "Public development works gradually toward the chosen infrastructure standard. Construction tapers at that target; existing assets still need upkeep. Private development can go further.",
+            "fr": "Le développement public progresse vers le niveau d’infrastructure choisi. Les travaux ralentissent à cette cible; les infrastructures existantes nécessitent toujours de l’entretien. Le développement privé peut aller plus loin."
+          },
+          "is_default": false,
+          "sort_order": 2,
+          "retired": false,
+          "effects": [
+            {
+              "key": "standard",
+              "effect_type": "budget.program_target",
+              "arguments": {
+                "program": "infrastructure",
+                "level": "0.5"
+              },
+              "sort_order": 0
+            },
+            {
+              "key": "maintenance_cost",
+              "effect_type": "budget.program_cost",
+              "arguments": {
+                "program": "infrastructure_maintenance",
+                "amount": "0.9"
+              },
+              "sort_order": 1
+            },
+            {
+              "key": "development_cost",
+              "effect_type": "budget.program_cost",
+              "arguments": {
+                "program": "infrastructure_development",
+                "amount": "40"
+              },
+              "sort_order": 2
+            },
+            {
+              "key": "program_allocation",
+              "effect_type": "budget.program_funding",
+              "arguments": {
+                "program": "infrastructure",
+                "funding_ratio": {
+                  "parameter": "funding_ratio"
+                }
+              },
+              "sort_order": 3
+            }
+          ]
+        },
+        {
+          "key": "high",
+          "labels": {
+            "en": "High",
+            "fr": "Élevé"
+          },
+          "descriptions": {
+            "en": "Public development works gradually toward the chosen infrastructure standard. Construction tapers at that target; existing assets still need upkeep. Private development can go further.",
+            "fr": "Le développement public progresse vers le niveau d’infrastructure choisi. Les travaux ralentissent à cette cible; les infrastructures existantes nécessitent toujours de l’entretien. Le développement privé peut aller plus loin."
+          },
+          "is_default": true,
+          "sort_order": 3,
+          "retired": false,
+          "effects": [
+            {
+              "key": "standard",
+              "effect_type": "budget.program_target",
+              "arguments": {
+                "program": "infrastructure",
+                "level": "0.75"
+              },
+              "sort_order": 0
+            },
+            {
+              "key": "maintenance_cost",
+              "effect_type": "budget.program_cost",
+              "arguments": {
+                "program": "infrastructure_maintenance",
+                "amount": "0.9"
+              },
+              "sort_order": 1
+            },
+            {
+              "key": "development_cost",
+              "effect_type": "budget.program_cost",
+              "arguments": {
+                "program": "infrastructure_development",
+                "amount": "40"
+              },
+              "sort_order": 2
+            },
+            {
+              "key": "program_allocation",
+              "effect_type": "budget.program_funding",
+              "arguments": {
+                "program": "infrastructure",
+                "funding_ratio": {
+                  "parameter": "funding_ratio"
+                }
+              },
+              "sort_order": 3
+            }
+          ]
+        },
+        {
+          "key": "very_high",
+          "labels": {
+            "en": "Very high",
+            "fr": "Très élevé"
+          },
+          "descriptions": {
+            "en": "Public development works gradually toward the chosen infrastructure standard. Construction tapers at that target; existing assets still need upkeep. Private development can go further.",
+            "fr": "Le développement public progresse vers le niveau d’infrastructure choisi. Les travaux ralentissent à cette cible; les infrastructures existantes nécessitent toujours de l’entretien. Le développement privé peut aller plus loin."
+          },
+          "is_default": false,
+          "sort_order": 4,
+          "retired": false,
+          "effects": [
+            {
+              "key": "standard",
+              "effect_type": "budget.program_target",
+              "arguments": {
+                "program": "infrastructure",
+                "level": "1"
+              },
+              "sort_order": 0
+            },
+            {
+              "key": "maintenance_cost",
+              "effect_type": "budget.program_cost",
+              "arguments": {
+                "program": "infrastructure_maintenance",
+                "amount": "0.9"
+              },
+              "sort_order": 1
+            },
+            {
+              "key": "development_cost",
+              "effect_type": "budget.program_cost",
+              "arguments": {
+                "program": "infrastructure_development",
+                "amount": "40"
+              },
+              "sort_order": 2
+            },
+            {
+              "key": "program_allocation",
+              "effect_type": "budget.program_funding",
+              "arguments": {
+                "program": "infrastructure",
+                "funding_ratio": {
+                  "parameter": "funding_ratio"
+                }
+              },
+              "sort_order": 3
             }
           ]
         }
@@ -99,7 +346,8 @@
         {
           "key": "funding_ratio",
           "labels": {
-            "en": "Share of calculated funding requirement"
+            "en": "Funding of this commitment",
+            "fr": "Financement de cet engagement"
           },
           "value_type": "decimal",
           "unit_key": "fraction_of_program_requirement",

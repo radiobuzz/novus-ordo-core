@@ -18,7 +18,7 @@ Treasury is spent before borrowing. Debt, interest, reserve policy and manual re
 
 ## Foundation and authoring
 
-Fresh defaults use mixed ownership, 25% income tax, 50 opening credits and funded basic programmes. Initial core population is unchanged; neutral territories retain their weaker indicators and existing capacity through annexation. These are provisional balancing defaults, not an equilibrium promise for every map or army.
+Fresh defaults use mixed ownership, 25% income tax, 50 opening credits and funded basic programmes. The subsequent [infrastructure commitment pass](infrastructure-commitment-first-pass.md) replaces the infrastructure-only funding choice with named investment ambition and separate funding. Initial core population is unchanged; neutral territories retain their weaker indicators and existing capacity through annexation. These are provisional balancing defaults, not an equilibrium promise for every map or army.
 
 Definitions remain game-owned relational catalogues, never copies per turn. Social funding and additive `indicator.target_shift` effects use the existing validated policy machinery. Target shifts combine before bounding; tax, ownership and other exclusive settings remain exclusive. New mechanisms require code, while supported effects/defaults/parameters are DB-authored.
 

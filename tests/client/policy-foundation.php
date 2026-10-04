@@ -49,6 +49,21 @@ $invalid(fn () => PolicyValues::parameter(['value_type' => 'integer'], '4', 'int
 $conflict = $example; $duplicate = $conflict['policies'][0]; $duplicate['key'] = 'duplicate_tax'; $conflict['policies'][] = $duplicate;
 $invalid(fn () => $validator->validate($conflict));
 
+// Validate the authored infrastructure standard and its costs before cloning to a game.
+$founding = json_decode(file_get_contents(__DIR__.'/../../database/policy-templates/economy.json'),true,flags:JSON_THROW_ON_ERROR);
+$validator->validate($founding);
+$infraKey = array_search('infrastructure_investment',array_column($founding['policies'],'key'),true);
+$check($infraKey!==false,'Founding catalogue lacks named infrastructure policy');
+foreach (['level'=>'1.1','amount'=>'-1'] as $field=>$value) {
+    $bad=$founding; $effectIndex=$field==='level'?0:2;
+    $bad['policies'][$infraKey]['options'][3]['effects'][$effectIndex]['arguments'][$field]=$value;
+    $invalid(fn()=>$validator->validate($bad));
+}
+$bad=$founding;$bad['policies'][$infraKey]['options'][3]['effects'][2]['arguments']['amount']='0';
+$invalid(fn()=>$validator->validate($bad));
+$conflict=$founding;$duplicate=$founding['policies'][$infraKey];$duplicate['key']='duplicate_standard';$conflict['policies'][]=$duplicate;
+$invalid(fn()=>$validator->validate($conflict));
+
 $template = $catalogues->createTemplate($example); $templateId = $template['set']['id'];
 $game = Game::createNew(generatedMapFixture(), policyTemplateId: $templateId);
 $other = Game::createNew(generatedMapFixture(), policyTemplateId: $templateId);
@@ -56,6 +71,18 @@ $legacy = Game::createNew(generatedMapFixture());
 $gameSet = $catalogues->forGame($game); $setId = $gameSet['set']['id'];
 $check($gameSet['ids']['policies'] !== $template['ids']['policies'], 'Clone reused definition IDs');
 $check($catalogues->forGame($legacy) !== null, 'Default game lacks its economic policies');
+$legacySet=$catalogues->forGame($legacy);
+$legacyInfra=array_column($legacySet['document']['policies'],null,'key')['infrastructure_investment'];
+$check(count($legacyInfra['options'])===5,'Named infrastructure options were not stored and cloned');
+$high=array_column($legacyInfra['options'],null,'key')['high'];
+$check(array_column($high['effects'],null,'key')['standard']['arguments']['level']==='0.75','Infrastructure target was not round-tripped through DB');
+$source=$catalogues->load($legacySet['set']['source_policy_set_id']);$tuned=$source['document'];
+$tuneKey=array_search('infrastructure_investment',array_column($tuned['policies'],'key'),true);
+$tuned['policies'][$tuneKey]['options'][3]['effects'][1]['arguments']['amount']='1.8';
+$edited=$catalogues->edit($source['set']['id'],$source['set']['edit_counter'],$tuned);
+$check($edited['catalogue']['document']['policies'][$tuneKey]['options'][3]['effects'][1]['arguments']['amount']==='1.8','Authoring did not save infrastructure cost in DB');
+$check($catalogues->forGame($legacy)['document']===$legacySet['document'],'Infrastructure cost edit leaked from template into existing game');
+
 $beforeClone = $gameSet['document'];
 $editedTemplate = $example; $editedTemplate['policies'][0]['parameters'][0]['default_value'] = '0.4';
 $catalogues->edit($templateId, 1, $editedTemplate);

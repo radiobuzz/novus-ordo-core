@@ -1,0 +1,27 @@
+.indicator-trends {
+    display: grid;
+    gap: var(--space-4);
+    min-width: 0;
+    .indicator-trends-group {
+        min-width: 0;
+        padding: var(--space-3);
+        border: 1px solid var(--border-default);
+        border-radius: var(--radius);
+        background: var(--surface-panel);
+    }
+    .ui-card-strip {
+        display: grid;
+        grid-template-columns: repeat(auto-fit, minmax(min(100%, 180px), 1fr));
+    }
+    .ui-metric-label {
+        display: flex;
+        align-items: center;
+        gap: var(--space-1);
+    }
+    [data-tone='ready'] {
+        color: var(--status-ready);
+    }
+    [data-tone='danger'] {
+        color: var(--action-danger);
+    }
+}
